@@ -218,7 +218,7 @@ body{padding-bottom:0;overflow:hidden;height:100vh}
 .pipsx{letter-spacing:2px;color:var(--acc);font-size:10px}
 .tlock{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:260px;text-align:center;z-index:3;padding:12px;border-color:#6b4a0a;background:#131c30f2}
 .tlock button{width:100%;margin-top:8px}
-</style></head><body>
+.mhint{top:auto!important;bottom:6px!important}</style></head><body>
 <div class="mkbar" id="mkbar"><span>TEST · Map C</span><button data-k="fast" id="fastb">⏩ Speed x60</button><button data-k="cashx">💰 +cash</button><button data-k="reset">↺ Reset</button></div>
 <img id="logo" src="https://idlegamesusa.github.io/Idle-Airport/branding/logo-banner-800.jpg" alt="Idle Airport" width="800" height="450">
 <header>
@@ -1234,13 +1234,13 @@ function layoutC(ti){const T=TERMS[ti],mS=Math.max(...T.planes.map(p=>p.sp)),mL=
    cx:cx+(rN+mL*s*.5)*c,cy:cy+(rN+mL*s*.5)*sn,lx:cx+(rN+mL*s+14)*c,ly:cy+(rN+mL*s+14)*sn,sx:cx+50*c,sy:cy+50*sn,hitR:30})}
  return{cx,cy,s,st,ring:166}}
 function drawC(g,t){const ti=ST.cur,T=TERMS[ti],Lo=layoutC(ti),{cx,cy}=Lo,lockedT=ti>=ST.term,p=pulse(t);
- grass(g,0,0,412,540);road(g,0,0,412,22,[[30,0],[120,1],[250,0],[330,1]]);
+ grass(g,0,0,412,540);
  g.fillStyle=K.apron;g.beginPath();g.arc(cx,cy,184,0,6.3);g.fill();g.save();g.beginPath();g.arc(cx,cy,184,0,6.3);g.clip();g.strokeStyle=K.grid;g.lineWidth=1;for(let r=40;r<184;r+=34){g.beginPath();g.arc(cx,cy,r,0,6.3);g.stroke()}
  for(let i=0;i<22;i++){const a=i/22*6.283;g.beginPath();g.moveTo(cx,cy);g.lineTo(cx+190*Math.cos(a),cy+190*Math.sin(a));g.stroke()}g.restore();g.strokeStyle='#2a3550';g.lineWidth=1.5;g.beginPath();g.arc(cx,cy,184,0,6.3);g.stroke();
  g.strokeStyle=K.yel;g.globalAlpha=.75;g.lineWidth=1.2;g.beginPath();g.arc(cx,cy,166,0,6.3);g.stroke();g.globalAlpha=1;
  taxi(g,[[cx,cy+184],[cx,452],[24,452],[24,487]],15);taxi(g,[[cx,452],[388,452],[388,487]],15);runway(g,4,470,404,34,'09','27');tower(g,380,104,.8);
  // walkway to landside
- g.fillStyle='rgba(0,0,0,.35)';g.fillRect(cx-6,24,16,cy-60-20);roofRect(g,cx-8,20,16,cy-58-18,3,{vert:1});
+ drawMain(g,ti,cx,cy,t);
  if(lockedT){g.save();g.globalAlpha=.45;g.setLineDash([5,4]);g.strokeStyle=T.acc;g.lineWidth=1.5;g.beginPath();g.arc(cx,cy,60,0,6.3);g.stroke();g.setLineDash([]);for(const st of Lo.st)standMarks(g,st,st.len,'tlock');g.restore();return Lo}
  for(const st of Lo.st){const sN=gState(ti,st.g);standMarks(g,st,st.len,sN);if(sN==='aff'){g.save();g.globalAlpha=.22+.12*p;drawPlane(g,ti,0,st.x,st.y,st.a,st.s,t,{ghost:1});g.restore()}}
  for(const st of Lo.st){const sN=gState(ti,st.g);if(sN==='own'){const ar=ST.arr[ti+'|'+st.g],k=ar?clamp((t-ar)/1.2,0,1):1,S=drawPlane(g,ti,ST.g[ti][st.g],st.x+Math.cos(st.th)*(1-k)*60,st.y+Math.sin(st.th)*(1-k)*60,st.a,st.s,t,{svc:ST.svc[ti+'|'+st.g],alpha:k});if(T.stairs)stairs(g,st,S);else bridge(g,st,S,k)}
@@ -1396,6 +1396,42 @@ function drawTraffic(g,t){const n=performance.now()/1000,dt=trT==null?0:Math.min
   g.rotate(p.a);drawPlane(g,p.ti,p.pi,0,off,0,p.s,t);g.restore()}}
 // prewarm so traffic is already flowing on load
 for(let i=0;i<1400;i++)stepTraffic(1/20);
+// ================= main terminal (landside processor) shared by T1-T5 =================
+// Spans the top of the map (runway/taxiways are at the bottom, so ambient traffic never crosses it).
+// The current terminal's connector is the walkway down to the satellite; the others leave as airside corridors toward their own satellites.
+const MB={x:6,y:4,w:400,h:44};
+function drawMain(g,ti,cx,cy,t){const T=TERMS[ti],y0=MB.y+MB.h,CY=56;
+ // airside corridors along the building's airside face, leading off-map toward the other terminals' satellites
+ for(const side of[-1,1]){const ids=[0,1,2,3,4].filter(i=>side<0?i<ti:i>ti);if(!ids.length)continue;
+  const x0=side<0?-6:cx+14,x1=side<0?cx-14:418,yy=y0+2;
+  g.fillStyle='rgba(0,0,0,.35)';g.fillRect(x0+2,yy+3,x1-x0,11);roofRect(g,x0,yy,x1-x0,11,3);
+  g.strokeStyle=K.glass;g.lineWidth=1.6;for(let x=x0+4;x<x1-4;x+=10){g.beginPath();g.moveTo(x,yy+10);g.lineTo(x+6,yy+10);g.stroke()}
+  // chevrons pointing off-map
+  g.fillStyle='#8aa0c0';for(let k=0;k<3;k++){const ax=side<0?12+k*7:400-k*7;g.beginPath();g.moveTo(ax+side*3,yy+5.5);g.lineTo(ax-side*2,yy+2);g.lineTo(ax-side*2,yy+9);g.closePath();g.fill()}
+  // labels
+  const lab=ids.map(i=>TERMS[i].short+(i<ST.term?'':'🔒')).join(' · '),lx=side<0?(x0+x1)/2+8:(x0+x1)/2-8;
+  g.save();g.font='800 8px system-ui,sans-serif';const w=g.measureText(lab).width+12;rrect(g,lx-w/2,yy+14,w,13,6.5);g.fillStyle='#0b1220e0';g.fill();g.strokeStyle='#46557a';g.lineWidth=1;g.stroke();
+  g.fillStyle='#cdd6e6';g.textAlign='center';g.textBaseline='middle';g.fillText((side<0?'◀ ':'')+lab+(side>0?' ▶':''),lx,yy+20.8);g.restore()}
+ // building shadow + body
+ g.save();g.fillStyle='rgba(0,0,0,.38)';rrect(g,MB.x+3,MB.y+4,MB.w,MB.h,9);g.fill();
+ rrect(g,MB.x,MB.y,MB.w,MB.h,9);g.fillStyle=K.roof;g.fill();g.clip();
+ // roof ribs
+ g.strokeStyle=K.rib;g.lineWidth=1;for(let x=MB.x+10;x<MB.x+MB.w;x+=12){g.beginPath();g.moveTo(x,MB.y);g.lineTo(x,MB.y+MB.h);g.stroke()}
+ // glass barrel skylights (check-in hall look)
+ for(const [x0,x1] of [[MB.x+14,cx-40],[cx+40,MB.x+MB.w-14]]){const gr=g.createLinearGradient(0,MB.y+12,0,MB.y+30);gr.addColorStop(0,'#5d8fc4');gr.addColorStop(.5,'#9cc8f0');gr.addColorStop(1,'#3d6a9e');
+  rrect(g,x0,MB.y+13,x1-x0,16,8);g.fillStyle=gr;g.fill();g.strokeStyle='#2a3a58';g.lineWidth=.8;for(let x=x0+6;x<x1;x+=7){g.beginPath();g.moveTo(x,MB.y+13);g.lineTo(x,MB.y+29);g.stroke()}
+  g.strokeStyle='rgba(255,255,255,.35)';g.beginPath();g.moveTo(x0+4,MB.y+17);g.lineTo(x1-4,MB.y+17);g.stroke()}
+ // airside glazing along the bottom facade
+ g.strokeStyle=K.glass;g.lineWidth=2.4;for(let x=MB.x+6;x<MB.x+MB.w-6;x+=11){g.beginPath();g.moveTo(x,MB.y+MB.h-1.5);g.lineTo(x+7,MB.y+MB.h-1.5);g.stroke()}
+ g.restore();g.strokeStyle=K.edge;g.lineWidth=2;rrect(g,MB.x,MB.y,MB.w,MB.h,9);g.stroke();
+ // central hub with the label
+ g.save();rrect(g,cx-36,MB.y+6,72,32,8);g.fillStyle='#22304d';g.fill();g.strokeStyle=T.acc;g.lineWidth=1.5;g.stroke();
+ g.fillStyle='#e6edf7';g.font='900 9px system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('MAIN TERMINAL',cx,MB.y+17);
+ g.fillStyle='#8aa0c0';g.font='700 7px system-ui,sans-serif';g.fillText('CHECK-IN · SECURITY',cx,MB.y+28);g.restore();
+ // highlighted connector: walkway from the main terminal to this satellite
+ const wy=y0-2,wh=cy-60-wy+2;g.fillStyle='rgba(0,0,0,.35)';g.fillRect(cx-6,wy+4,16,wh);roofRect(g,cx-8,wy,16,wh,3,{vert:1});
+ g.save();g.strokeStyle=T.acc;g.lineWidth=2;g.globalAlpha=.6+.25*pulse(t);g.strokeRect(cx-8,wy,16,wh);g.restore();
+ g.save();rrect(g,cx+12,wy+40,30,13,6);g.fillStyle='#0b1220e0';g.fill();g.strokeStyle=T.acc;g.lineWidth=1.2;g.stroke();g.fillStyle='#e6edf7';g.font='800 8px system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(T.short+' ▼',cx+27,wy+46.5);g.restore()}
 
 setup();if(TFIX==null)requestAnimationFrame(frame);
 (function loop(ts){pfTick(ts);requestAnimationFrame(loop)})(performance.now());
