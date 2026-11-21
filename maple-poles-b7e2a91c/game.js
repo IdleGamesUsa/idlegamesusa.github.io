@@ -8,7 +8,7 @@
   const TX = M.txSpots;
   const ENTRY = M.entry;
   const STREETS = M.streets;
-  const KEY = 'ipg-maple-poles-v2';
+  const KEY = 'ipg-maple-poles-v3';
   const svcCost = (n) => R.serviceBase + R.servicePerCan * n;
 
   const cv = document.getElementById('cv');
@@ -28,6 +28,8 @@
   const $sub = document.getElementById('tbarsub');
 
   let dpr = 1, litImg, dimImg, graph;
+  let poleImg, poleSvc = {};
+  const POLE = { artH: 112, shaftFrac: 0.529, armBotFrac: 0.277, armFracs: [0.12, 0.185, 0.255] };
   let cash, poles, spans, services, lit, undo, lastTs, done, doneShown;
   let pops = [], pulses = [], highlight = null, hover = null, press = null;
   let plantingLock = 0, toastTimer = 0;
@@ -188,8 +190,9 @@
     const n = nearestNode(c.x, c.y, (q) => q.on);
     return !!(n && n.d <= R.feedReach);
   }
-  function availableTx() { return TX.filter(canBuyTx); }
-  function availableSvc() { return CLUSTERS.filter(canBuySvc); }
+  function squareDone() { return !!done || lit.size >= 20; }
+  function availableTx() { return squareDone() ? [] : TX.filter(canBuyTx); }
+  function availableSvc() { return squareDone() ? [] : CLUSTERS.filter(canBuySvc); }
 
   function buyTx(id, opts = {}) {
     const spot = TX.find((s) => s.id === id);
@@ -208,7 +211,7 @@
       });
     }
     rebridge();
-    pulses.push({ x: spot.x, y: spot.y, t: now(), r: 22 });
+    pulses.push({ x: spot.x, y: spot.y, t: now(), r: 18, spark: true });
     undo.push({ typ: 'pole', id, cost: R.poleCost });
     save(); ui();
     return { ok: true, pole };
@@ -242,6 +245,7 @@
     });
     undo.push({ typ: 'service', id: c.id, cost, houses: c.houses.slice() });
     highlight = null;
+    pulses.push({ x: c.x, y: c.y, t: now(), r: 16, spark: true });
     save(); ui();
     return { ok: true, cluster: c };
   }
@@ -368,72 +372,86 @@
   }
 
   /* ---------- drawing ---------- */
-  function drawPoly(pts, state, width, tZip, dashOff) {
-    if (!pts || pts.length < 2) return;
-    const cut = tZip == null ? 1 : clamp((now() - tZip) / 280, 0, 1);
-    let use = pts;
-    if (cut < 1) {
-      // walk length and trim
-      let total = 0;
-      const acc = [0];
-      for (let i = 1; i < pts.length; i++) {
-        total += hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
-        acc.push(total);
-      }
-      const keep = total * easeOut(cut);
-      use = [pts[0]];
-      for (let i = 1; i < pts.length; i++) {
-        if (acc[i] <= keep) use.push(pts[i]);
-        else {
-          const t = (keep - acc[i - 1]) / Math.max(1e-6, acc[i] - acc[i - 1]);
-          use.push([pts[i - 1][0] + t * (pts[i][0] - pts[i - 1][0]), pts[i - 1][1] + t * (pts[i][1] - pts[i - 1][1])]);
-          break;
-        }
+  /* ---------- drawing ---------- */
+  function poleScale(y) {
+    // Source painted pole sits near canvas y≈200; nearer streets are a bit taller.
+    return 0.78 + 0.22 * (y / 220);
+  }
+  function poleH(y) { return POLE.artH * 0.5 * poleScale(y); }
+  function attachLift(y, frac) { return poleH(y) * (1 - frac); }
+
+  function trimPath(pts, cut) {
+    if (!pts || pts.length < 2) return pts;
+    if (cut >= 1 || cut == null) return pts;
+    const acc = [0];
+    for (let i = 1; i < pts.length; i++) acc.push(acc[i - 1] + hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    const keep = acc[acc.length - 1] * easeOut(cut);
+    const use = [pts[0]];
+    for (let i = 1; i < pts.length; i++) {
+      if (acc[i] <= keep) use.push(pts[i]);
+      else {
+        const t = (keep - acc[i - 1]) / Math.max(1e-6, acc[i] - acc[i - 1]);
+        use.push([pts[i - 1][0] + t * (pts[i][0] - pts[i - 1][0]), pts[i - 1][1] + t * (pts[i][1] - pts[i - 1][1])]);
+        break;
       }
     }
+    return use;
+  }
+
+  /* Thin dark sagging conductors, like the painted wires along the island's back edge. */
+  function drawWires(pts, yA, yB, tZip, preview) {
+    if (!pts || pts.length < 2) return;
+    const cut = tZip == null ? 1 : clamp((now() - tZip) / 300, 0, 1);
+    const use = trimPath(pts, cut);
+    if (!use || use.length < 2) return;
+    let total = 0;
+    for (let i = 1; i < use.length; i++) total += hypot(use[i][0] - use[i - 1][0], use[i][1] - use[i - 1][1]);
+    const sag = clamp(total * 0.022, 1.1, 3.4);
+    const colors = preview
+      ? ['rgba(90,78,74,0.32)', 'rgba(82,72,68,0.28)', 'rgba(88,76,72,0.24)']
+      : ['rgba(88,76,72,0.5)', 'rgba(78,68,64,0.42)', 'rgba(96,84,80,0.38)'];
+    const widths = preview ? [0.45, 0.4, 0.38] : [0.52, 0.45, 0.42];
     g.save();
     g.lineCap = 'round';
     g.lineJoin = 'round';
-    g.beginPath();
-    g.moveTo(use[0][0], use[0][1]);
-    for (let i = 1; i < use.length; i++) g.lineTo(use[i][0], use[i][1]);
-    if (state === 'live') {
-      g.shadowColor = '#4fc3f7';
-      g.shadowBlur = 6;
-      g.strokeStyle = 'rgba(20,40,70,.9)';
-      g.lineWidth = width + 2;
-      g.stroke();
-      g.shadowBlur = 0;
-      g.strokeStyle = '#7dd8ff';
-      g.lineWidth = width;
-      g.setLineDash([7, 6]);
-      g.lineDashOffset = -(dashOff || 0);
-      g.stroke();
-      g.setLineDash([]);
-    } else if (state === 'preview') {
-      g.strokeStyle = 'rgba(230, 230, 235, .95)';
-      g.lineWidth = width;
-      g.setLineDash([5, 5]);
-      g.stroke();
-      g.setLineDash([]);
-    } else {
-      g.strokeStyle = 'rgba(150,165,185,.7)';
-      g.lineWidth = width;
-      g.setLineDash([4, 5]);
+    g.shadowBlur = 0;
+    for (let w = 0; w < 3; w++) {
+      const arm = POLE.armFracs[w];
+      const la = attachLift(yA, arm);
+      const lb = attachLift(yB, arm);
+      g.strokeStyle = colors[w];
+      g.lineWidth = widths[w];
+      if (preview) g.setLineDash([3.5, 3.5]);
+      g.beginPath();
+      let dist = 0;
+      for (let i = 0; i < use.length; i++) {
+        if (i > 0) dist += hypot(use[i][0] - use[i - 1][0], use[i][1] - use[i - 1][1]);
+        const t = total > 0 ? dist / total : 0;
+        const lift = la + (lb - la) * t;
+        const droop = sag * 4 * t * (1 - t);
+        const x = use[i][0], y = use[i][1] - lift + droop;
+        if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
+      }
       g.stroke();
       g.setLineDash([]);
     }
     g.restore();
   }
+  function drawPoly(pts, state, width, tZip, dashOff) {
+    if (!pts || pts.length < 2) return;
+    drawWires(pts, pts[0][1], pts[pts.length - 1][1], tZip, state === 'preview');
+  }
 
-  function drawDrop(ax, ay, bx, by, state, width, tZip, dashOff) {
-    // short service drop: slight sag, not street-routed
+  function drawDrop(ax, ay, bx, by, tZip) {
     const len = hypot(bx - ax, by - ay);
-    const sag = Math.min(9, 3 + len * 0.05);
+    const sag = Math.min(7, 2.5 + len * 0.045);
     const mx = (ax + bx) / 2, my = (ay + by) / 2 + sag;
-    const cut = tZip == null ? 1 : clamp((now() - tZip) / 260, 0, 1);
+    const cut = tZip == null ? 1 : clamp((now() - tZip) / 280, 0, 1);
     g.save();
     g.lineCap = 'round';
+    g.strokeStyle = 'rgba(70,62,58,0.5)';
+    g.lineWidth = 0.5;
+    g.shadowBlur = 0;
     g.beginPath();
     g.moveTo(ax, ay);
     if (cut < 1) {
@@ -445,91 +463,28 @@
     } else {
       g.quadraticCurveTo(mx, my, bx, by);
     }
-    if (state === 'live') {
-      g.shadowColor = '#4fc3f7';
-      g.shadowBlur = 5;
-      g.strokeStyle = '#7dd8ff';
-      g.lineWidth = width;
-      g.setLineDash([6, 5]);
-      g.lineDashOffset = -(dashOff || 0);
-      g.stroke();
-      g.setLineDash([]);
-      g.shadowBlur = 0;
-    } else {
-      g.strokeStyle = 'rgba(150,165,185,.7)';
-      g.lineWidth = width;
-      g.setLineDash([4, 5]);
-      g.stroke();
-      g.setLineDash([]);
-    }
+    g.stroke();
     g.restore();
   }
 
   function drawPole(x, y, opt) {
-    const t = opt.plant ? clamp((now() - opt.plant) / 280, 0, 1) : 1;
+    const t = opt.plant ? clamp((now() - opt.plant) / 300, 0, 1) : 1;
     const k = easeOutBack(Math.min(1, t));
-    const drop = (1 - k) * 16;
-    const hgt = (opt.service ? 23 : 26);
+    const img = (opt.service && opt.cans && poleSvc[opt.cans]) ? poleSvc[opt.cans] : poleImg;
+    const hgt = poleH(y) * (0.88 + 0.12 * k);
+    const drop = (1 - k) * 10;
     const top = y - hgt - drop;
-    const on = !!opt.on;
+    const wid = img ? (hgt * (img.width / img.height)) : 8;
+    const ax = x - wid * POLE.shaftFrac;
     g.save();
-    g.translate(x, y);
-    g.scale(1, k || 0.01);
-    g.translate(-x, -y);
-    g.fillStyle = 'rgba(0,0,0,.28)';
+    g.fillStyle = 'rgba(20,14,10,' + (0.28 * k) + ')';
     g.beginPath();
-    g.ellipse(x + 1, y + 1.5, 5.8, 2.3, 0, 0, 7);
+    g.ellipse(x + 0.6, y + 1.2, Math.max(3.2, wid * 0.42), 2.1, 0, 0, 7);
     g.fill();
-    const grd = g.createLinearGradient(x - 3, top, x + 4, y);
-    grd.addColorStop(0, on ? '#8a6238' : '#5c4a38');
-    grd.addColorStop(.45, on ? '#c49a62' : '#8a7356');
-    grd.addColorStop(1, on ? '#6b4a28' : '#4a3b2c');
-    g.fillStyle = grd;
-    g.beginPath();
-    g.moveTo(x - 2.2, top + 2);
-    g.lineTo(x + 2.2, top + 2);
-    g.lineTo(x + 2.8, y);
-    g.lineTo(x - 2.8, y);
-    g.closePath();
-    g.fill();
-    const cy = top + 6;
-    g.fillStyle = on ? '#6b4a28' : '#4a3b2c';
-    g.fillRect(x - 8.5, cy, 17, 2.3);
-    g.fillStyle = on ? '#dfe8f2' : '#9aa6b4';
-    g.beginPath(); g.arc(x - 6, cy - 1.2, 1.25, 0, 7); g.fill();
-    g.beginPath(); g.arc(x + 6, cy - 1.2, 1.25, 0, 7); g.fill();
-    if (on) {
-      g.fillStyle = 'rgba(80,200,255,.35)';
-      g.beginPath(); g.arc(x, top + 3, 3.2, 0, 7); g.fill();
-    }
-    const cans = opt.cans || 0;
-    if (cans > 0) {
-      const xs = cans === 1 ? [0] : cans === 2 ? [-6.6, 6.6] : [-8.6, 0, 8.6];
-      xs.forEach((dx) => {
-        const cx = x + dx, ty = cy + 2.4;
-        // bigger, more visible transformer can
-        g.fillStyle = 'rgba(0,0,0,.3)';
-        g.fillRect(cx - 3.8, ty + 0.8, 8, 11);
-        const cg = g.createLinearGradient(cx - 4, ty, cx + 4.2, ty);
-        cg.addColorStop(0, '#2a333c');
-        cg.addColorStop(.35, '#9ab0c6');
-        cg.addColorStop(.7, '#5b6d80');
-        cg.addColorStop(1, '#2e3842');
-        g.fillStyle = cg;
-        g.fillRect(cx - 4, ty, 8, 10.6);
-        // lid
-        g.fillStyle = '#e4eef6';
-        g.fillRect(cx - 4.3, ty - 1.4, 8.6, 2.5);
-        g.fillStyle = '#9aabb8';
-        g.fillRect(cx - 4, ty + 9, 8, 1.8);
-        // bushing up to the arm
-        g.strokeStyle = '#cfd8e2';
-        g.lineWidth = 1.2;
-        g.beginPath(); g.moveTo(cx, ty - 1.4); g.lineTo(cx, cy + 2.2); g.stroke();
-        // little badge highlight
-        g.fillStyle = 'rgba(255,255,255,.32)';
-        g.fillRect(cx - 2.6, ty + 1.4, 1.6, 5);
-      });
+    if (img) {
+      g.imageSmoothingEnabled = true;
+      g.imageSmoothingQuality = 'high';
+      g.drawImage(img, ax, top, wid, hgt);
     }
     g.restore();
   }
@@ -660,26 +615,16 @@
 
   function draw() {
     const t = now();
-    const dash = (t / 45) % 40;
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, W, H);
     lightHouses();
 
-    for (const p of pulses) {
-      const k = clamp((t - p.t) / 500, 0, 1);
-      if (k >= 1) continue;
-      g.strokeStyle = `rgba(220,230,240,${(1 - k) * .4})`;
-      g.lineWidth = 1.4;
-      g.beginPath(); g.arc(p.x, p.y, (p.r || 18) * (0.6 + easeOut(k) * 0.8), 0, 7); g.stroke();
-    }
-    pulses = pulses.filter((p) => t - p.t < 500);
-
-    // transmission lines along streets
+    // transmission lines along streets — thin dark wires, no glow
     for (const s of spans) {
       const a = nodeById(s.a), b = nodeById(s.b);
       if (!a || !b) continue;
       const pts = (s.pts && s.pts.length >= 2) ? s.pts : streetPath(a.x, a.y, b.x, b.y);
-      drawPoly(pts, s.on ? 'live' : 'grey', 1.75, s.zip, dash);
+      drawWires(pts, a.y, b.y, s.zip, false);
     }
 
     // distribution laterals from the feeding pole to each service, along streets
@@ -688,18 +633,18 @@
       const pts = (s.pts && s.pts.length >= 2)
         ? s.pts
         : (f ? streetPath(f.x, f.y, s.x, s.y) : null);
-      if (pts) drawPoly(pts, 'live', 1.45, s.zip, dash);
+      if (pts) drawWires(pts, f ? f.y : s.y, s.y, s.zip, false);
     }
 
-    // service drops to houses
+    // thin dark service drops to houses
     for (const s of services) {
       const c = CLUSTERS.find((x) => x.id === s.id);
       if (!c) continue;
+      const dropFromY = c.y - attachLift(c.y, POLE.armBotFrac) + 3;
       c.houses.forEach((hid, i) => {
         const h = HOUSES[hid];
         const zip = s.zip + i * 90;
-        const live = lit.has(hid) || (t - zip > 200);
-        drawDrop(c.x, c.y - 18, h.ex, h.ey, live ? 'live' : 'grey', 1.25, zip, dash);
+        drawDrop(c.x, dropFromY, h.ex, h.ey, zip);
       });
     }
 
@@ -708,7 +653,7 @@
       const spot = TX.find((s) => s.id === hover.id);
       if (spot && canBuyTx(spot)) {
         const n = nearestNode(spot.x, spot.y, (q) => q.on);
-        if (n) drawPoly(streetPath(n.node.x, n.node.y, spot.x, spot.y), 'preview', 1.7, 0, 0);
+        if (n) drawWires(streetPath(n.node.x, n.node.y, spot.x, spot.y), n.node.y, spot.y, 0, true);
       }
     }
 
@@ -753,6 +698,31 @@
       if (p.entry) drawBadge(p.x, p.y, '#1 live', true);
     }
     for (const e of (M.locked || [])) drawBadge(e.sx || e.x, e.sy || e.y, e.label, false);
+
+    // brief warm spark on energize — no blue glow
+    for (const p of pulses) {
+      const k = clamp((t - p.t) / 380, 0, 1);
+      if (k >= 1) continue;
+      const fade = 1 - k;
+      const ax = p.x, ay = p.y - attachLift(p.y, POLE.armFracs[1]);
+      g.save();
+      g.globalAlpha = fade * 0.85;
+      g.strokeStyle = 'rgba(255, 220, 160, 0.85)';
+      g.fillStyle = 'rgba(255, 236, 200, 0.7)';
+      g.lineWidth = 0.8;
+      const rad = 2 + easeOut(k) * 7;
+      for (let i = 0; i < 5; i++) {
+        const a = -Math.PI / 2 + i * (Math.PI * 2 / 5) + k * 0.4;
+        const r0 = 1.2, r1 = rad;
+        g.beginPath();
+        g.moveTo(ax + Math.cos(a) * r0, ay + Math.sin(a) * r0);
+        g.lineTo(ax + Math.cos(a) * r1, ay + Math.sin(a) * r1);
+        g.stroke();
+      }
+      g.beginPath(); g.arc(ax, ay, 1.4 * fade, 0, 7); g.fill();
+      g.restore();
+    }
+    pulses = pulses.filter((p) => t - p.t < 380);
 
     // +$ pops
     for (const p of pops) {
@@ -923,9 +893,15 @@
   graph = buildGraph();
   Promise.all([
     loadImage('art/sq-02-lit.webp'),
-    loadImage('art/sq-02-dim.webp')
-  ]).then(([lit, dim]) => {
+    loadImage('art/sq-02-dim.webp'),
+    loadImage('art/pole.png'),
+    loadImage('art/pole-svc-1.png'),
+    loadImage('art/pole-svc-2.png'),
+    loadImage('art/pole-svc-3.png')
+  ]).then(([lit, dim, pole, s1, s2, s3]) => {
     litImg = lit; dimImg = dim;
+    poleImg = pole;
+    poleSvc = { 1: s1, 2: s2, 3: s3 };
     start();
   }).catch((err) => {
     boot.textContent = 'Failed to load art';
