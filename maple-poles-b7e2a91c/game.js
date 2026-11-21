@@ -1,12 +1,14 @@
-/* Maple Homes pole prototype — plant primaries, tap service-pole spots. */
+/* Maple Homes — fixed transmission & service dots, street-routed lines. */
 (() => {
   const M = window.MAPLE;
   const R = M.rules;
   const W = M.W, H = M.H;
   const HOUSES = M.houses;
   const CLUSTERS = M.clusters;
+  const TX = M.txSpots;
   const ENTRY = M.entry;
-  const KEY = 'ipg-maple-poles-v1';
+  const STREETS = M.streets;
+  const KEY = 'ipg-maple-poles-v2';
   const svcCost = (n) => R.serviceBase + R.servicePerCan * n;
 
   const cv = document.getElementById('cv');
@@ -25,10 +27,10 @@
   const $popBox = document.getElementById('popBox');
   const $sub = document.getElementById('tbarsub');
 
-  let dpr = 1, litImg, dimImg, maskPix;
-  let cash, poles, spans, services, lit, undo, tAcc, lastTs, done, doneShown;
-  let aim = null, shake = null, pops = [], pulses = [], highlight = null, flash = 0;
-  let plantingLock = 0, toastTimer = 0, hover = null;
+  let dpr = 1, litImg, dimImg, graph;
+  let cash, poles, spans, services, lit, undo, lastTs, done, doneShown;
+  let pops = [], pulses = [], highlight = null, hover = null, press = null;
+  let plantingLock = 0, toastTimer = 0;
   let ready = false, running = false;
 
   const now = () => performance.now();
@@ -47,45 +49,87 @@
   function loadImage(src) {
     return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
   }
-  function loadMask(src) {
-    return loadImage(src).then((img) => {
-      const c = document.createElement('canvas');
-      c.width = W; c.height = H;
-      const ctx = c.getContext('2d');
-      ctx.drawImage(img, 0, 0, W, H);
-      return ctx.getImageData(0, 0, W, H).data;
-    });
-  }
-  function maskAt(x, y) {
-    const xi = x | 0, yi = y | 0;
-    if (xi < 0 || yi < 0 || xi >= W || yi >= H) return 0;
-    return maskPix[(yi * W + xi) * 4]; // R channel
-  }
 
-  function snap(x, y) {
-    const rad = R.snapRadius;
-    let dS = rad + 1, dV = rad + 1, s = null, v = null;
-    const x0 = Math.max(0, Math.floor(x - rad)), x1 = Math.min(W - 1, Math.ceil(x + rad));
-    const y0 = Math.max(0, Math.floor(y - rad)), y1 = Math.min(H - 1, Math.ceil(y + rad));
-    for (let yy = y0; yy <= y1; yy++) {
-      for (let xx = x0; xx <= x1; xx++) {
-        const m = maskPix[(yy * W + xx) * 4];
-        if (m < 160) continue;
-        const d = hypot(xx - x, yy - y);
-        if (m >= 240 && d < dS) { dS = d; s = [xx, yy]; }
-        else if (d < dV) { dV = d; v = [xx, yy]; }
+  /* ---- street graph for line routing ---- */
+  function buildGraph() {
+    const nodes = [], adj = [];
+    const mergeR = 5;
+    function findOrAdd(x, y) {
+      for (let i = 0; i < nodes.length; i++) {
+        if (hypot(nodes[i].x - x, nodes[i].y - y) <= mergeR) return i;
+      }
+      nodes.push({ x, y }); adj.push([]); return nodes.length - 1;
+    }
+    function link(i, j) {
+      if (i === j) return;
+      const d = hypot(nodes[i].x - nodes[j].x, nodes[i].y - nodes[j].y);
+      if (!adj[i].some((e) => e.j === j)) { adj[i].push({ j, d }); adj[j].push({ j: i, d }); }
+    }
+    for (const poly of STREETS) {
+      let prev = null;
+      for (let s = 0; s < poly.length - 1; s++) {
+        const ax = poly[s][0], ay = poly[s][1], bx = poly[s + 1][0], by = poly[s + 1][1];
+        const len = hypot(bx - ax, by - ay) || 1;
+        const n = Math.max(1, Math.round(len / 6));
+        for (let k = 0; k <= n; k++) {
+          const t = k / n, i = findOrAdd(ax + t * (bx - ax), ay + t * (by - ay));
+          if (prev != null) link(prev, i);
+          prev = i;
+        }
       }
     }
-    const p = s || v;
-    if (!p) return { x, y, valid: false };
-    return { x: p[0], y: p[1], valid: true, onCenter: !!s };
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        if (hypot(nodes[i].x - nodes[j].x, nodes[i].y - nodes[j].y) <= 8) link(i, j);
+      }
+    }
+    return { nodes, adj };
+  }
+  function nearestGraph(x, y) {
+    let bi = 0, bd = 1e9;
+    const ns = graph.nodes;
+    for (let i = 0; i < ns.length; i++) {
+      const d = hypot(ns[i].x - x, ns[i].y - y);
+      if (d < bd) { bd = d; bi = i; }
+    }
+    return bi;
+  }
+  function streetPath(ax, ay, bx, by) {
+    const s = nearestGraph(ax, ay), t = nearestGraph(bx, by);
+    if (s === t) return [[ax, ay], [bx, by]];
+    const N = graph.nodes.length, dist = new Float64Array(N), prev = new Int32Array(N);
+    dist.fill(1e15); prev.fill(-1); dist[s] = 0;
+    const used = new Uint8Array(N);
+    for (let n = 0; n < N; n++) {
+      let u = -1, best = 1e15;
+      for (let i = 0; i < N; i++) if (!used[i] && dist[i] < best) { best = dist[i]; u = i; }
+      if (u < 0 || u === t) break;
+      used[u] = 1;
+      const edges = graph.adj[u];
+      for (let k = 0; k < edges.length; k++) {
+        const j = edges[k].j, nd = dist[u] + edges[k].d;
+        if (nd < dist[j]) { dist[j] = nd; prev[j] = u; }
+      }
+    }
+    if (prev[t] < 0 && s !== t) return [[ax, ay], [bx, by]];
+    const chain = [];
+    for (let v = t; v >= 0; v = prev[v]) { chain.push(v); if (v === s) break; }
+    chain.reverse();
+    const pts = [[ax, ay]];
+    for (const i of chain) {
+      const p = graph.nodes[i];
+      const last = pts[pts.length - 1];
+      if (hypot(p.x - last[0], p.y - last[1]) > 1.5) pts.push([p.x, p.y]);
+    }
+    const last = pts[pts.length - 1];
+    if (hypot(bx - last[0], by - last[1]) > 1.5) pts.push([bx, by]);
+    return pts;
   }
 
+  /* ---- state helpers ---- */
   function allNodes() {
     return [{ id: 'entry', x: ENTRY.x, y: ENTRY.y, on: true }, ...poles];
   }
-  function distP(a, b) { return hypot(a.x - b.x, a.y - b.y); }
-
   function nearestNode(x, y, pred) {
     let best = null, bd = 1e9;
     for (const p of allNodes()) {
@@ -95,19 +139,10 @@
     }
     return best ? { node: best, d: bd } : null;
   }
-
-  function tooClose(x, y, ignoreId) {
-    if (hypot(x - ENTRY.x, y - ENTRY.y) < R.minPoleDist) return true;
-    for (const p of poles) if (p.id !== ignoreId && hypot(x - p.x, y - p.y) < R.minPoleDist) return true;
-    for (const c of CLUSTERS) {
-      if (services.some((s) => s.id === c.id)) continue;
-      if (hypot(x - c.x, y - c.y) < 18) return true;
-    }
-    return false;
-  }
-
   function inc() { return lit.size * R.houseIncome; }
-
+  function hasSpan(a, b) {
+    return spans.some((s) => (s.a === a && s.b === b) || (s.a === b && s.b === a));
+  }
   function energize() {
     const on = new Set(['entry']);
     let changed = true;
@@ -121,11 +156,6 @@
     for (const p of poles) p.on = on.has(p.id);
     for (const s of spans) s.on = on.has(s.a) && on.has(s.b);
   }
-
-  function hasSpan(a, b) {
-    return spans.some((s) => (s.a === a && s.b === b) || (s.a === b && s.b === a));
-  }
-
   function rebridge() {
     energize();
     let added = true;
@@ -135,7 +165,7 @@
         if (p.on) continue;
         const n = nearestNode(p.x, p.y, (q) => q.id !== p.id && q.on);
         if (n && n.d <= R.maxSpan && !hasSpan(p.id, n.node.id)) {
-          spans.push({ a: p.id, b: n.node.id, on: false, zip: now() });
+          spans.push({ a: p.id, b: n.node.id, on: false, zip: now(), pts: streetPath(p.x, p.y, n.node.x, n.node.y) });
           added = true;
         }
       }
@@ -143,44 +173,62 @@
     }
   }
 
-  function canFeed(c) {
-    if (services.some((s) => s.id === c.id)) return false;
+  function txBuilt(id) { return poles.some((p) => p.spotId === id); }
+  function svcBuilt(id) { return services.some((s) => s.id === id); }
+
+  function canBuyTx(spot) {
+    if (typeof spot === 'string') spot = TX.find((s) => s.id === spot);
+    if (!spot || txBuilt(spot.id)) return false;
+    const n = nearestNode(spot.x, spot.y, (q) => q.on);
+    return !!(n && n.d <= R.maxSpan);
+  }
+  function canBuySvc(c) {
+    if (typeof c === 'string') c = CLUSTERS.find((x) => x.id === c);
+    if (!c || svcBuilt(c.id)) return false;
     const n = nearestNode(c.x, c.y, (q) => q.on);
     return !!(n && n.d <= R.feedReach);
   }
+  function availableTx() { return TX.filter(canBuyTx); }
+  function availableSvc() { return CLUSTERS.filter(canBuySvc); }
 
-  function plantPole(x, y, opts = {}) {
-    const s = snap(x, y);
-    if (!s.valid) return { ok: false, reason: 'invalid' };
-    if (tooClose(s.x, s.y)) return { ok: false, reason: 'close', x: s.x, y: s.y };
+  function buyTx(id, opts = {}) {
+    const spot = TX.find((s) => s.id === id);
+    if (!spot) return { ok: false, reason: 'missing' };
+    if (txBuilt(id)) return { ok: false, reason: 'done' };
+    if (!canBuyTx(spot)) return { ok: false, reason: 'reach' };
     if (cash < R.poleCost && !opts.free) return { ok: false, reason: 'cash' };
     if (!opts.free) cash -= R.poleCost;
-    const id = 'p' + (poles.reduce((m, p) => Math.max(m, parseInt(p.id.slice(1), 10) || 0), 0) + 1);
-    const pole = { id, x: s.x, y: s.y, on: false, plant: now() };
+    const pole = { id, spotId: id, x: spot.x, y: spot.y, on: false, plant: now() };
     poles.push(pole);
-    const nOn = nearestNode(s.x, s.y, (q) => q.id !== id && q.on);
-    const nAny = nearestNode(s.x, s.y, (q) => q.id !== id);
-    const n = (nOn && nOn.d <= R.maxSpan) ? nOn : (nAny && nAny.d <= R.maxSpan ? nAny : null);
-    if (n) spans.push({ a: id, b: n.node.id, on: false, zip: now() });
+    const nOn = nearestNode(spot.x, spot.y, (q) => q.id !== id && q.on);
+    if (nOn && nOn.d <= R.maxSpan) {
+      spans.push({
+        a: id, b: nOn.node.id, on: false, zip: now(),
+        pts: streetPath(spot.x, spot.y, nOn.node.x, nOn.node.y)
+      });
+    }
     rebridge();
-    pulses.push({ x: s.x, y: s.y, t: now(), r: R.feedReach });
-    undo.push({ typ: 'pole', id });
-    flash = now();
+    pulses.push({ x: spot.x, y: spot.y, t: now(), r: 22 });
+    undo.push({ typ: 'pole', id, cost: R.poleCost });
     save(); ui();
     return { ok: true, pole };
   }
 
-  function connectService(cid) {
-    const c = CLUSTERS.find((x) => x.id === cid) || CLUSTERS[cid];
+  function buySvc(cid) {
+    const c = CLUSTERS.find((x) => x.id === cid);
     if (!c) return { ok: false, reason: 'missing' };
-    if (services.some((s) => s.id === c.id)) return { ok: false, reason: 'done' };
-    if (!canFeed(c)) return { ok: false, reason: 'reach', cluster: c };
+    if (svcBuilt(c.id)) return { ok: false, reason: 'done' };
+    if (!canBuySvc(c)) return { ok: false, reason: 'reach' };
     const cost = svcCost(c.n);
     if (cash < cost) return { ok: false, reason: 'cash' };
     cash -= cost;
     const t = now();
-    services.push({ id: c.id, x: c.x, y: c.y, n: c.n, houses: c.houses.slice(), plant: t, zip: t });
-    // houses light as the drops finish (staggered slightly)
+    const feeder = nearestNode(c.x, c.y, (q) => q.on);
+    services.push({
+      id: c.id, x: c.x, y: c.y, n: c.n, houses: c.houses.slice(), plant: t, zip: t,
+      feeder: feeder ? feeder.node.id : 'entry',
+      pts: feeder ? streetPath(feeder.node.x, feeder.node.y, c.x, c.y) : [[ENTRY.x, ENTRY.y], [c.x, c.y]]
+    });
     c.houses.forEach((hid, i) => {
       setTimeout(() => {
         if (!lit.has(hid)) {
@@ -202,10 +250,9 @@
     const last = undo.pop();
     if (!last) return;
     if (last.typ === 'pole') {
-      // don't undo a pole if a later service depended? we only undo last action
       poles = poles.filter((p) => p.id !== last.id);
       spans = spans.filter((s) => s.a !== last.id && s.b !== last.id);
-      cash += R.poleCost;
+      cash += last.cost || R.poleCost;
       rebridge();
     } else if (last.typ === 'service') {
       services = services.filter((s) => s.id !== last.id);
@@ -235,10 +282,9 @@
     pops = [];
     pulses = [];
     highlight = null;
-    aim = null;
+    hover = null;
     done = false;
     doneShown = false;
-    tAcc = 0;
     lastTs = now();
     if (hard !== false) try { localStorage.removeItem(KEY); } catch (e) {}
     ui();
@@ -255,7 +301,7 @@
     reset(false);
     try {
       const o = JSON.parse(localStorage.getItem(KEY) || 'null');
-      if (!o) return;
+      if (!o || !Array.isArray(o.poles)) return;
       cash = o.cash;
       poles = o.poles || [];
       spans = o.spans || [];
@@ -264,6 +310,21 @@
       undo = o.undo || [];
       done = !!o.done;
       doneShown = false;
+      // rehydrate street paths if missing (old saves)
+      for (const s of spans) {
+        if (!s.pts || s.pts.length < 2) {
+          const a = nodeById(s.a), b = nodeById(s.b);
+          if (a && b) s.pts = streetPath(a.x, a.y, b.x, b.y);
+        }
+      }
+      for (const s of services) {
+        const f = nodeById(s.feeder) || nearestNode(s.x, s.y, (q) => q.on);
+        const fn = f && f.node ? f.node : f;
+        if (fn) {
+          s.feeder = fn.id;
+          if (!s.pts || s.pts.length < 2) s.pts = streetPath(fn.x, fn.y, s.x, s.y);
+        }
+      }
       rebridge();
     } catch (e) { reset(false); }
   }
@@ -277,13 +338,20 @@
 
   function hintFor() {
     if (lit.size >= 20) return 'Maple Homes is fully powered.';
-    const readySvc = CLUSTERS.filter(canFeed);
-    if (readySvc.length) {
-      const c = readySvc[0];
-      return `Tap the glowing <b>${c.n}-can</b> spot ($${svcCost(c.n)}) to light ${c.n} house${c.n > 1 ? 's' : ''}.`;
+    const sv = availableSvc(), tx = availableTx();
+    if (sv.length) {
+      const c = sv[0];
+      const aff = cash >= svcCost(c.n);
+      return aff
+        ? `Tap a <b>small</b> dot to place a ${c.n}-can service pole ($${svcCost(c.n)}) and light ${c.n} house${c.n > 1 ? 's' : ''}.`
+        : `A service pole is ready ($${svcCost(c.n)}) — not enough cash yet.`;
     }
-    if (!poles.length) return 'Plant a <b>pole</b> on the street — a dashed preview shows the span from #1.';
-    return 'Extend the line: plant another pole within reach, then tap a service spot.';
+    if (tx.length) {
+      return cash >= R.poleCost
+        ? 'Tap a <b>larger</b> grey dot to plant a transmission pole ($6) and extend the line.'
+        : 'A transmission pole is ready ($6) — not enough cash yet.';
+    }
+    return 'The next dots appear once the live line reaches them.';
   }
 
   function ui() {
@@ -296,36 +364,39 @@
     $undo.disabled = !undo.length;
     $sub.textContent = lit.size >= 20
       ? 'Square complete'
-      : (lit.size ? (lit.size + ' lit · +' + fmt(inc()) + '/min') : 'Plant poles on the street · tap a service spot');
+      : (lit.size ? (lit.size + ' lit · +' + fmt(inc()) + '/min') : 'Tap the next grey dots to grow the grid');
   }
 
   /* ---------- drawing ---------- */
-  function sagBezier(ax, ay, bx, by, sag) {
-    const mx = (ax + bx) / 2, my = (ay + by) / 2 + sag;
-    return { mx, my };
-  }
-  function drawWire(ax, ay, bx, by, state, width, tZip, dashOff) {
-    const len = hypot(bx - ax, by - ay);
-    const sag = Math.min(10, 3 + len * 0.04);
-    const { mx, my } = sagBezier(ax, ay, bx, by, sag);
-    const cut = tZip == null ? 1 : clamp((now() - tZip) / 260, 0, 1);
+  function drawPoly(pts, state, width, tZip, dashOff) {
+    if (!pts || pts.length < 2) return;
+    const cut = tZip == null ? 1 : clamp((now() - tZip) / 280, 0, 1);
+    let use = pts;
+    if (cut < 1) {
+      // walk length and trim
+      let total = 0;
+      const acc = [0];
+      for (let i = 1; i < pts.length; i++) {
+        total += hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+        acc.push(total);
+      }
+      const keep = total * easeOut(cut);
+      use = [pts[0]];
+      for (let i = 1; i < pts.length; i++) {
+        if (acc[i] <= keep) use.push(pts[i]);
+        else {
+          const t = (keep - acc[i - 1]) / Math.max(1e-6, acc[i] - acc[i - 1]);
+          use.push([pts[i - 1][0] + t * (pts[i][0] - pts[i - 1][0]), pts[i - 1][1] + t * (pts[i][1] - pts[i - 1][1])]);
+          break;
+        }
+      }
+    }
     g.save();
     g.lineCap = 'round';
     g.lineJoin = 'round';
-    if (cut < 1) {
-      g.beginPath();
-      g.moveTo(ax, ay);
-      // approximate cut along quadratic
-      const steps = 16, keep = Math.max(2, Math.floor(steps * easeOut(cut)));
-      for (let i = 1; i <= keep; i++) {
-        const t = i / steps, u = 1 - t;
-        g.lineTo(u * u * ax + 2 * u * t * mx + t * t * bx, u * u * ay + 2 * u * t * my + t * t * by);
-      }
-    } else {
-      g.beginPath();
-      g.moveTo(ax, ay);
-      g.quadraticCurveTo(mx, my, bx, by);
-    }
+    g.beginPath();
+    g.moveTo(use[0][0], use[0][1]);
+    for (let i = 1; i < use.length; i++) g.lineTo(use[i][0], use[i][1]);
     if (state === 'live') {
       g.shadowColor = '#4fc3f7';
       g.shadowBlur = 6;
@@ -340,13 +411,7 @@
       g.stroke();
       g.setLineDash([]);
     } else if (state === 'preview') {
-      g.strokeStyle = 'rgba(245,184,75,.95)';
-      g.lineWidth = width;
-      g.setLineDash([5, 5]);
-      g.stroke();
-      g.setLineDash([]);
-    } else if (state === 'out') {
-      g.strokeStyle = 'rgba(230,100,90,.85)';
+      g.strokeStyle = 'rgba(230, 230, 235, .95)';
       g.lineWidth = width;
       g.setLineDash([5, 5]);
       g.stroke();
@@ -361,72 +426,116 @@
     g.restore();
   }
 
+  function drawDrop(ax, ay, bx, by, state, width, tZip, dashOff) {
+    // short service drop: slight sag, not street-routed
+    const len = hypot(bx - ax, by - ay);
+    const sag = Math.min(9, 3 + len * 0.05);
+    const mx = (ax + bx) / 2, my = (ay + by) / 2 + sag;
+    const cut = tZip == null ? 1 : clamp((now() - tZip) / 260, 0, 1);
+    g.save();
+    g.lineCap = 'round';
+    g.beginPath();
+    g.moveTo(ax, ay);
+    if (cut < 1) {
+      const steps = 14, keep = Math.max(2, Math.floor(steps * easeOut(cut)));
+      for (let i = 1; i <= keep; i++) {
+        const t = i / steps, u = 1 - t;
+        g.lineTo(u * u * ax + 2 * u * t * mx + t * t * bx, u * u * ay + 2 * u * t * my + t * t * by);
+      }
+    } else {
+      g.quadraticCurveTo(mx, my, bx, by);
+    }
+    if (state === 'live') {
+      g.shadowColor = '#4fc3f7';
+      g.shadowBlur = 5;
+      g.strokeStyle = '#7dd8ff';
+      g.lineWidth = width;
+      g.setLineDash([6, 5]);
+      g.lineDashOffset = -(dashOff || 0);
+      g.stroke();
+      g.setLineDash([]);
+      g.shadowBlur = 0;
+    } else {
+      g.strokeStyle = 'rgba(150,165,185,.7)';
+      g.lineWidth = width;
+      g.setLineDash([4, 5]);
+      g.stroke();
+      g.setLineDash([]);
+    }
+    g.restore();
+  }
+
   function drawPole(x, y, opt) {
     const t = opt.plant ? clamp((now() - opt.plant) / 280, 0, 1) : 1;
     const k = easeOutBack(Math.min(1, t));
     const drop = (1 - k) * 16;
-    const hgt = (opt.service ? 21 : 25);
+    const hgt = (opt.service ? 23 : 26);
     const top = y - hgt - drop;
     const on = !!opt.on;
     g.save();
     g.translate(x, y);
     g.scale(1, k || 0.01);
     g.translate(-x, -y);
-    // base shadow
     g.fillStyle = 'rgba(0,0,0,.28)';
     g.beginPath();
-    g.ellipse(x + 1, y + 1.5, 5.5, 2.2, 0, 0, 7);
+    g.ellipse(x + 1, y + 1.5, 5.8, 2.3, 0, 0, 7);
     g.fill();
-    // shaft
     const grd = g.createLinearGradient(x - 3, top, x + 4, y);
     grd.addColorStop(0, on ? '#8a6238' : '#5c4a38');
     grd.addColorStop(.45, on ? '#c49a62' : '#8a7356');
     grd.addColorStop(1, on ? '#6b4a28' : '#4a3b2c');
     g.fillStyle = grd;
     g.beginPath();
-    g.moveTo(x - 2.1, top + 2);
-    g.lineTo(x + 2.1, top + 2);
-    g.lineTo(x + 2.6, y);
-    g.lineTo(x - 2.6, y);
+    g.moveTo(x - 2.2, top + 2);
+    g.lineTo(x + 2.2, top + 2);
+    g.lineTo(x + 2.8, y);
+    g.lineTo(x - 2.8, y);
     g.closePath();
     g.fill();
-    // crossarm
     const cy = top + 6;
     g.fillStyle = on ? '#6b4a28' : '#4a3b2c';
-    g.fillRect(x - 7.5, cy, 15, 2.1);
-    // insulators
+    g.fillRect(x - 8.5, cy, 17, 2.3);
     g.fillStyle = on ? '#dfe8f2' : '#9aa6b4';
-    g.beginPath(); g.arc(x - 5.2, cy - 1.1, 1.15, 0, 7); g.fill();
-    g.beginPath(); g.arc(x + 5.2, cy - 1.1, 1.15, 0, 7); g.fill();
-    // live glow
+    g.beginPath(); g.arc(x - 6, cy - 1.2, 1.25, 0, 7); g.fill();
+    g.beginPath(); g.arc(x + 6, cy - 1.2, 1.25, 0, 7); g.fill();
     if (on) {
       g.fillStyle = 'rgba(80,200,255,.35)';
       g.beginPath(); g.arc(x, top + 3, 3.2, 0, 7); g.fill();
     }
-    // transformer cans
     const cans = opt.cans || 0;
     if (cans > 0) {
-      const xs = cans === 1 ? [0] : cans === 2 ? [-4.2, 4.2] : [-5.6, 0, 5.6];
+      const xs = cans === 1 ? [0] : cans === 2 ? [-6.6, 6.6] : [-8.6, 0, 8.6];
       xs.forEach((dx) => {
         const cx = x + dx, ty = cy + 2.4;
-        g.fillStyle = '#3d4c5c';
-        g.fillRect(cx - 2.1, ty, 4.2, 6.2);
-        g.fillStyle = '#8ea0b4';
-        g.fillRect(cx - 2.1, ty, 4.2, 1.4);
-        g.fillStyle = '#2a333e';
-        g.fillRect(cx - 2.1, ty + 5.5, 4.2, 1.2);
-        // bushing
-        g.strokeStyle = '#c5d0da';
-        g.lineWidth = 0.8;
-        g.beginPath(); g.moveTo(cx, ty); g.lineTo(cx, cy + 2.1); g.stroke();
+        // bigger, more visible transformer can
+        g.fillStyle = 'rgba(0,0,0,.3)';
+        g.fillRect(cx - 3.8, ty + 0.8, 8, 11);
+        const cg = g.createLinearGradient(cx - 4, ty, cx + 4.2, ty);
+        cg.addColorStop(0, '#2a333c');
+        cg.addColorStop(.35, '#9ab0c6');
+        cg.addColorStop(.7, '#5b6d80');
+        cg.addColorStop(1, '#2e3842');
+        g.fillStyle = cg;
+        g.fillRect(cx - 4, ty, 8, 10.6);
+        // lid
+        g.fillStyle = '#e4eef6';
+        g.fillRect(cx - 4.3, ty - 1.4, 8.6, 2.5);
+        g.fillStyle = '#9aabb8';
+        g.fillRect(cx - 4, ty + 9, 8, 1.8);
+        // bushing up to the arm
+        g.strokeStyle = '#cfd8e2';
+        g.lineWidth = 1.2;
+        g.beginPath(); g.moveTo(cx, ty - 1.4); g.lineTo(cx, cy + 2.2); g.stroke();
+        // little badge highlight
+        g.fillStyle = 'rgba(255,255,255,.32)';
+        g.fillRect(cx - 2.6, ty + 1.4, 1.6, 5);
       });
     }
     g.restore();
-    // entry badge is drawn separately
   }
 
   function drawBadge(x, y, text, live) {
-    const pad = 4, fs = 8;
+    const pad = 4;
     g.font = '700 8px system-ui,sans-serif';
     const tw = g.measureText(text).width;
     const w = tw + pad * 2, h = 12;
@@ -454,7 +563,24 @@
   function lightHouses() {
     g.drawImage(dimImg, 0, 0, W, H);
     if (lit.size <= 0) return;
-    if (lit.size >= HOUSES.length) { g.drawImage(litImg, 0, 0, W, H); return; }
+    if (lit.size >= HOUSES.length) {
+      g.drawImage(litImg, 0, 0, W, H);
+      // extra warm window bloom on the fully-lit painting
+      g.save();
+      g.globalCompositeOperation = 'lighter';
+      for (const h of HOUSES) {
+        const grd = g.createRadialGradient(h.cx, h.cy - 4, 2, h.cx, h.cy - 2, 28);
+        grd.addColorStop(0, 'rgba(255, 210, 120, 0.28)');
+        grd.addColorStop(0.45, 'rgba(255, 170, 70, 0.12)');
+        grd.addColorStop(1, 'rgba(255, 140, 40, 0)');
+        g.fillStyle = grd;
+        g.beginPath();
+        g.ellipse(h.cx, h.cy - 2, 26, 30, 0, 0, 7);
+        g.fill();
+      }
+      g.restore();
+      return;
+    }
     const off = document.createElement('canvas');
     off.width = W; off.height = H;
     const og = off.getContext('2d');
@@ -462,22 +588,74 @@
     og.globalCompositeOperation = 'destination-in';
     for (const hid of lit) {
       const h = HOUSES[hid];
-      const grd = og.createRadialGradient(h.cx, h.cy - 4, 6, h.cx, h.cy - 2, 34);
+      const grd = og.createRadialGradient(h.cx, h.cy - 4, 4, h.cx, h.cy - 2, 44);
       grd.addColorStop(0, 'rgba(0,0,0,1)');
-      grd.addColorStop(.62, 'rgba(0,0,0,.85)');
+      grd.addColorStop(.55, 'rgba(0,0,0,.9)');
       grd.addColorStop(1, 'rgba(0,0,0,0)');
       og.fillStyle = grd;
       og.beginPath();
-      og.ellipse(h.cx, h.cy - 2, 30, 34, 0, 0, 7);
+      og.ellipse(h.cx, h.cy - 2, 38, 44, 0, 0, 7);
       og.fill();
     }
     og.globalCompositeOperation = 'source-over';
     g.drawImage(off, 0, 0);
+    // warm bloom on top of the already-lit houses
+    g.save();
+    g.globalCompositeOperation = 'lighter';
+    for (const hid of lit) {
+      const h = HOUSES[hid];
+      const grd = g.createRadialGradient(h.cx, h.cy - 4, 2, h.cx, h.cy - 2, 28);
+      grd.addColorStop(0, 'rgba(255, 210, 120, 0.32)');
+      grd.addColorStop(0.45, 'rgba(255, 170, 70, 0.14)');
+      grd.addColorStop(1, 'rgba(255, 140, 40, 0)');
+      g.fillStyle = grd;
+      g.beginPath();
+      g.ellipse(h.cx, h.cy - 2, 26, 30, 0, 0, 7);
+      g.fill();
+    }
+    g.restore();
   }
 
   function nodeById(id) {
     if (id === 'entry') return { x: ENTRY.x, y: ENTRY.y, on: true };
     return poles.find((p) => p.id === id);
+  }
+
+  function drawDot(x, y, kind, afford, price, pulseT) {
+    // kind: 'tx' medium, 'svc' small
+    const base = kind === 'tx' ? 9.8 : 5.2;
+    const pulse = afford ? (1 + Math.sin(pulseT / 240) * 0.1) : 1;
+    const r = base * pulse;
+    g.save();
+    g.globalAlpha = afford ? 1 : 0.78;
+    // soft halo so it reads on dusk streets
+    g.fillStyle = afford ? 'rgba(255,255,255,.2)' : 'rgba(255,255,255,.1)';
+    g.beginPath(); g.arc(x, y, r + 4, 0, 7); g.fill();
+    g.fillStyle = afford ? '#c8d0da' : '#9aa4b0';
+    g.shadowColor = 'rgba(0,0,0,.4)';
+    g.shadowBlur = 3;
+    g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+    g.shadowBlur = 0;
+    g.strokeStyle = afford ? 'rgba(255,255,255,.95)' : 'rgba(236,240,246,.75)';
+    g.lineWidth = kind === 'tx' ? 1.9 : 1.45;
+    g.stroke();
+    // inner pin
+    g.fillStyle = afford ? 'rgba(40,48,60,.35)' : 'rgba(40,48,60,.2)';
+    g.beginPath(); g.arc(x, y, Math.max(1.4, r * 0.28), 0, 7); g.fill();
+    g.restore();
+    // price label
+    const label = '$' + price;
+    g.font = '700 9px system-ui,sans-serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'bottom';
+    const ly = y - r - 4;
+    g.lineWidth = 3.2;
+    g.strokeStyle = 'rgba(10,16,28,.75)';
+    g.strokeText(label, x, ly);
+    g.fillStyle = afford ? '#f4f7fb' : 'rgba(200,208,220,.7)';
+    g.fillText(label, x, ly);
+    g.textAlign = 'left';
+    g.textBaseline = 'alphabetic';
   }
 
   function draw() {
@@ -487,135 +665,81 @@
     g.clearRect(0, 0, W, H);
     lightHouses();
 
-    // pulses (range circles after a plant)
     for (const p of pulses) {
-      const k = clamp((t - p.t) / 700, 0, 1);
+      const k = clamp((t - p.t) / 500, 0, 1);
       if (k >= 1) continue;
-      g.strokeStyle = `rgba(80,200,255,${(1 - k) * .35})`;
-      g.lineWidth = 1.2;
-      g.beginPath(); g.arc(p.x, p.y, p.r * easeOut(k), 0, 7); g.stroke();
+      g.strokeStyle = `rgba(220,230,240,${(1 - k) * .4})`;
+      g.lineWidth = 1.4;
+      g.beginPath(); g.arc(p.x, p.y, (p.r || 18) * (0.6 + easeOut(k) * 0.8), 0, 7); g.stroke();
     }
-    pulses = pulses.filter((p) => t - p.t < 700);
+    pulses = pulses.filter((p) => t - p.t < 500);
 
-    // spans
+    // transmission lines along streets
     for (const s of spans) {
       const a = nodeById(s.a), b = nodeById(s.b);
       if (!a || !b) continue;
-      drawWire(a.x, a.y, b.x, b.y, s.on ? 'live' : 'grey', 1.7, s.zip, dash);
+      const pts = (s.pts && s.pts.length >= 2) ? s.pts : streetPath(a.x, a.y, b.x, b.y);
+      drawPoly(pts, s.on ? 'live' : 'grey', 1.75, s.zip, dash);
     }
 
-    // service drops
+    // distribution laterals from the feeding pole to each service, along streets
+    for (const s of services) {
+      const f = nodeById(s.feeder) || (nearestNode(s.x, s.y, (q) => q.on) || {}).node;
+      const pts = (s.pts && s.pts.length >= 2)
+        ? s.pts
+        : (f ? streetPath(f.x, f.y, s.x, s.y) : null);
+      if (pts) drawPoly(pts, 'live', 1.45, s.zip, dash);
+    }
+
+    // service drops to houses
     for (const s of services) {
       const c = CLUSTERS.find((x) => x.id === s.id);
       if (!c) continue;
       c.houses.forEach((hid, i) => {
         const h = HOUSES[hid];
-        const delay = i * 90;
-        const zip = s.zip + delay;
+        const zip = s.zip + i * 90;
         const live = lit.has(hid) || (t - zip > 200);
-        drawWire(c.x, c.y - 16, h.ex, h.ey, live ? 'live' : 'grey', 1.15, zip, dash);
+        drawDrop(c.x, c.y - 18, h.ex, h.ey, live ? 'live' : 'grey', 1.25, zip, dash);
       });
     }
 
-    // ghost preview
-    if (aim && aim.valid) {
-      const n = nearestNode(aim.x, aim.y, (q) => q.on);
-      const any = nearestNode(aim.x, aim.y);
-      const tgt = (n && n.d <= R.maxSpan) ? n : any;
-      if (tgt) {
-        const ok = tgt.d <= R.maxSpan && tgt.node.on;
-        drawWire(tgt.node.x, tgt.node.y, aim.x, aim.y, ok ? 'preview' : 'out', 1.85, 0, 0);
+    // hover preview of the next transmission span
+    if (hover && hover.k === 'tx') {
+      const spot = TX.find((s) => s.id === hover.id);
+      if (spot && canBuyTx(spot)) {
+        const n = nearestNode(spot.x, spot.y, (q) => q.on);
+        if (n) drawPoly(streetPath(n.node.x, n.node.y, spot.x, spot.y), 'preview', 1.7, 0, 0);
       }
-      g.strokeStyle = 'rgba(245,184,75,.28)';
-      g.lineWidth = 1.2;
-      g.setLineDash([4, 5]);
-      g.beginPath(); g.arc(aim.x, aim.y, R.maxSpan, 0, 7); g.stroke();
-      g.setLineDash([]);
-      g.globalAlpha = 0.92;
-      drawPole(aim.x, aim.y, { on: !!(n && n.d <= R.maxSpan), plant: t - 240, cans: 0 });
-      g.globalAlpha = 1;
     }
 
-    // shake mark
-    if (shake && t - shake.t < 240) {
-      const k = (t - shake.t) / 240;
-      const ox = Math.sin(k * 28) * 4 * (1 - k);
-      g.save();
-      g.translate(ox, 0);
-      g.strokeStyle = `rgba(255,90,80,${1 - k})`;
-      g.lineWidth = 2;
-      g.beginPath(); g.arc(shake.x, shake.y, 10, 0, 7); g.stroke();
-      g.font = '700 11px system-ui';
-      g.fillStyle = `rgba(255,140,130,${1 - k})`;
-      g.textAlign = 'center';
-      g.fillText(shake.msg || 'Street only', shake.x, shake.y - 16);
-      g.textAlign = 'left';
-      g.restore();
-    } else shake = shake && t - shake.t < 240 ? shake : null;
+    // purchasable dots only
+    const txAvail = availableTx();
+    const svcAvail = availableSvc();
+    for (const s of txAvail) {
+      drawDot(s.x, s.y, 'tx', cash >= R.poleCost, R.poleCost, t);
+    }
+    for (const c of svcAvail) {
+      drawDot(c.x, c.y, 'svc', cash >= svcCost(c.n), svcCost(c.n), t);
+    }
 
-    // service dots (unbuilt)
-    for (const c of CLUSTERS) {
-      if (services.some((s) => s.id === c.id)) continue;
-      const feed = canFeed(c);
-      const hi = highlight && highlight === c.id;
-      if (!feed && !hi && poles.length === 0 && !canFeed(c)) {
-        // still draw very faint planning dots? only west1 is feedable at start.
-      }
-      const pulse = 1 + Math.sin(t / 220) * 0.12;
-      const r0 = feed ? 7 * pulse : 4.5;
-      g.beginPath();
-      g.arc(c.x, c.y, r0, 0, 7);
-      if (feed) {
-        g.fillStyle = hi ? '#fff3c4' : '#f5b84b';
-        g.shadowColor = '#f5b84b';
-        g.shadowBlur = 10;
-        g.fill();
-        g.shadowBlur = 0;
-        g.strokeStyle = '#fff8e0';
+    // highlight a service from a house tap
+    if (highlight) {
+      const c = CLUSTERS.find((x) => x.id === highlight);
+      if (c && !svcBuilt(c.id)) {
+        g.strokeStyle = 'rgba(245,184,75,.7)';
         g.lineWidth = 1.4;
-        g.stroke();
-      } else {
-        g.fillStyle = 'rgba(160,170,185,.4)';
-        g.fill();
-        g.strokeStyle = 'rgba(200,210,220,.35)';
-        g.lineWidth = 1;
-        g.stroke();
-      }
-      // can-count badge
-      if (feed || hi) {
-        g.font = '700 8px system-ui,sans-serif';
-        g.fillStyle = '#2b1c00';
-        g.textAlign = 'center';
-        g.textBaseline = 'middle';
-        g.fillText(String(c.n), c.x, c.y + 0.4);
-        g.textAlign = 'left';
-        g.textBaseline = 'alphabetic';
-      }
-      if (hi) {
-        // reach ring + lines to houses
-        g.strokeStyle = 'rgba(245,184,75,.55)';
-        g.lineWidth = 1.2;
         g.setLineDash([4, 3]);
-        g.beginPath(); g.arc(c.x, c.y, 16, 0, 7); g.stroke();
+        g.beginPath(); g.arc(c.x, c.y, 14, 0, 7); g.stroke();
         g.setLineDash([]);
         for (const hid of c.houses) {
-          const h = HOUSES[hid];
           if (lit.has(hid)) continue;
-          g.strokeStyle = 'rgba(245,184,75,.7)';
-          g.setLineDash([3, 3]);
+          const h = HOUSES[hid];
           g.beginPath(); g.moveTo(c.x, c.y); g.lineTo(h.cx, h.cy); g.stroke();
-          g.setLineDash([]);
         }
       }
     }
 
-    // reach hint ring when user tapped a house with no feed
-    if (highlight && highlight.ring) {
-      const c = CLUSTERS.find((x) => x.id === highlight);
-      // handled above
-    }
-
-    // poles (entry + primaries + service poles), painter's order by y
+    // poles, painter's order
     const drawList = [];
     drawList.push({ x: ENTRY.x, y: ENTRY.y, on: true, service: false, cans: 0, entry: true });
     for (const p of poles) drawList.push({ x: p.x, y: p.y, on: p.on, plant: p.plant, cans: 0 });
@@ -628,18 +752,7 @@
       drawPole(p.x, p.y, p);
       if (p.entry) drawBadge(p.x, p.y, '#1 live', true);
     }
-    // locked flavor badges
     for (const e of (M.locked || [])) drawBadge(e.sx || e.x, e.sy || e.y, e.label, false);
-
-    // house highlight outlines when pointing
-    if (hover && hover.k === 'house' && !lit.has(hover.id)) {
-      const h = HOUSES[hover.id];
-      g.strokeStyle = 'rgba(245,184,75,.8)';
-      g.lineWidth = 1.4;
-      g.setLineDash([3, 2]);
-      g.strokeRect(h.x - 2, h.y - 2, h.w + 4, h.h + 8);
-      g.setLineDash([]);
-    }
 
     // +$ pops
     for (const p of pops) {
@@ -667,20 +780,21 @@
     return { x: (src.clientX - r.left) * (W / r.width), y: (src.clientY - r.top) * (H / r.height) };
   }
 
-  function hitService(x, y, onlyFeed) {
-    let best = null, bd = 22;
-    for (const c of CLUSTERS) {
-      if (services.some((s) => s.id === c.id)) continue;
-      if (onlyFeed && !canFeed(c)) continue;
+  function hitDot(x, y) {
+    let best = null, bd = 1e9;
+    for (const s of availableTx()) {
+      const d = hypot(s.x - x, s.y - y);
+      if (d < 22 && d < bd) { bd = d; best = { k: 'tx', id: s.id, d }; }
+    }
+    for (const c of availableSvc()) {
       const d = hypot(c.x - x, c.y - y);
-      if (d < bd) { bd = d; best = c; }
+      if (d < 16 && d < bd) { bd = d; best = { k: 'svc', id: c.id, d }; }
     }
     return best;
   }
   function hitHouse(x, y) {
     let best = null, bd = 28;
     for (const h of HOUSES) {
-      const d = hypot(h.cx - x, h.cy - y);
       const inBox = x >= h.x - 8 && x <= h.x + h.w + 8 && y >= h.y - 10 && y <= h.y + h.h + 14;
       const dd = hypot(h.cx - x, h.cy - y);
       if ((inBox || dd < 26) && dd < bd) { bd = dd; best = h; }
@@ -688,94 +802,55 @@
     return best;
   }
 
-  let ptr = null;
   function onDown(ev) {
     ev.preventDefault();
     const { x, y } = canvasXY(ev);
-    ptr = { x, y, t: now(), moved: false };
-    const svc = hitService(x, y, false);
-    if (svc) { ptr.mode = 'svc'; ptr.cid = svc.id; return; }
-    const h = hitHouse(x, y);
-    if (h && !lit.has(h.id)) { ptr.mode = 'house'; ptr.hid = h.id; return; }
-    ptr.mode = 'aim';
-    const s = snap(x, y);
-    aim = { ...s, rawX: x, rawY: y };
+    press = { x, y, t: now(), hit: hitDot(x, y) };
+    if (press.hit) hover = press.hit;
   }
   function onMove(ev) {
     ev.preventDefault();
     const { x, y } = canvasXY(ev);
-    hover = null;
-    const h = hitHouse(x, y);
-    if (h) hover = { k: 'house', id: h.id };
-    const svc = hitService(x, y, true);
-    if (svc) hover = { k: 'svc', id: svc.id };
-    if (!ptr) return;
-    if (hypot(x - ptr.x, y - ptr.y) > 8) ptr.moved = true;
-    if (ptr.mode === 'aim') {
-      const s = snap(x, y);
-      aim = { ...s, rawX: x, rawY: y };
-    }
+    hover = hitDot(x, y);
+    if (press && hypot(x - press.x, y - press.y) > 10) press.moved = true;
   }
   function onUp(ev) {
     ev.preventDefault();
     const { x, y } = canvasXY(ev);
-    const p = ptr; ptr = null;
-    aim = null;
-    if (!p) return;
-    if (now() < plantingLock) return;
-    if (p.mode === 'svc') {
-      const svc = hitService(x, y, false) || CLUSTERS.find((c) => c.id === p.cid);
-      if (!svc) return;
-      const res = connectService(svc.id);
-      if (!res.ok) {
-        if (res.reason === 'reach') {
-          highlight = svc.id;
-          toast('Place a pole closer');
-          pulses.push({ x: svc.x, y: svc.y, t: now(), r: R.feedReach });
-        } else if (res.reason === 'cash') toast('Not enough cash yet');
-      } else {
-        plantingLock = now() + 280;
+    const p = press; press = null;
+    hover = hitDot(x, y);
+    if (!p || now() < plantingLock) return;
+    const hit = hitDot(x, y);
+    if (hit && p.hit && hit.k === p.hit.k && hit.id === p.hit.id) {
+      if (hit.k === 'tx') {
+        const res = buyTx(hit.id);
+        if (!res.ok && res.reason === 'cash') toast('Not enough cash yet');
+        else if (res.ok) plantingLock = now() + 260;
+        return;
       }
-      return;
+      if (hit.k === 'svc') {
+        const res = buySvc(hit.id);
+        if (!res.ok && res.reason === 'cash') toast('Not enough cash yet');
+        else if (res.ok) plantingLock = now() + 280;
+        return;
+      }
     }
-    if (p.mode === 'house') {
-      const h = HOUSES[p.hid];
+    // house tap highlights its service spot if that spot is purchasable (or tells you to extend)
+    const h = hitHouse(x, y);
+    if (h && !lit.has(h.id)) {
       const c = CLUSTERS.find((cl) => cl.houses.includes(h.id));
-      if (!c) return;
-      if (services.some((s) => s.id === c.id) || lit.has(h.id)) return;
+      if (!c || svcBuilt(c.id)) return;
       highlight = c.id;
-      if (!canFeed(c)) {
-        toast('Place a pole closer');
-        pulses.push({ x: c.x, y: c.y, t: now(), r: R.feedReach });
-      } else {
-        toast('Tap the ' + c.n + '-can service spot');
-      }
-      return;
-    }
-    // plant
-    const s = snap(x, y);
-    if (!s.valid) {
-      shake = { x, y, t: now(), msg: 'Street only' };
-      return;
-    }
-    if (tooClose(s.x, s.y)) {
-      shake = { x: s.x, y: s.y, t: now(), msg: 'Too close' };
-      return;
-    }
-    const res = plantPole(s.x, s.y);
-    if (!res.ok) {
-      if (res.reason === 'cash') toast('Not enough cash yet');
-      else if (res.reason === 'close') shake = { x: s.x, y: s.y, t: now(), msg: 'Too close' };
-    } else {
-      plantingLock = now() + 260;
+      if (!canBuySvc(c)) toast('Extend the line closer first');
+      else toast('Tap the $' + svcCost(c.n) + ' service dot');
     }
   }
 
   cv.addEventListener('pointerdown', onDown);
   cv.addEventListener('pointermove', onMove);
   cv.addEventListener('pointerup', onUp);
-  cv.addEventListener('pointercancel', () => { ptr = null; aim = null; });
-  cv.addEventListener('pointerleave', () => { if (!ptr) { aim = null; hover = null; } });
+  cv.addEventListener('pointercancel', () => { press = null; hover = null; });
+  cv.addEventListener('pointerleave', () => { if (!press) hover = null; });
 
   $undo.addEventListener('click', () => doUndo());
   $reset.addEventListener('click', () => {
@@ -789,24 +864,21 @@
     if (e.target.dataset.k === 'reset') { reset(); $popup.classList.add('hide'); toast('Progress reset'); }
   });
 
-  /* ---------- loop ---------- */
   function frame(ts) {
     if (!running) return;
     const prev = lastTs || ts;
     const dt = Math.min(0.08, (ts - prev) / 1000);
     lastTs = ts;
-    if (inc() > 0) { cash += inc() * dt / 60; tAcc += dt; }
+    if (inc() > 0) cash += inc() * dt / 60;
     draw();
     if ((ts / 200 | 0) !== (prev / 200 | 0)) ui();
     requestAnimationFrame(frame);
   }
-
   function size() {
     dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
     cv.width = Math.round(W * dpr);
     cv.height = Math.round(H * dpr);
   }
-
   function start() {
     size();
     load();
@@ -819,10 +891,8 @@
     requestAnimationFrame(frame);
     window.__game.ready = true;
   }
-
   window.addEventListener('resize', size);
 
-  // Public test API
   window.__game = {
     get ready() { return ready; },
     get cash() { return cash; },
@@ -831,67 +901,31 @@
     get poles() { return poles; },
     get services() { return services; },
     get clusters() { return CLUSTERS; },
+    get txSpots() { return TX; },
     get houses() { return HOUSES; },
     get entry() { return ENTRY; },
     get rules() { return R; },
-    snap,
-    canFeed,
-    plantPole,
-    connectService,
+    canBuyTx, canBuySvc, availableTx, availableSvc,
+    buyTx, buySvc,
     reset: () => reset(),
     undo: () => doUndo(),
-    extendToward(cid) {
-      const t = CLUSTERS.find((c) => c.id === cid);
-      if (!t) return { ok: false, reason: 'missing' };
-      if (canFeed(t)) return { ok: true, feed: true };
-      const on = allNodes().filter((n) => n.on);
-      const cands = [];
-      // ring around the service spot, outside min distance
-      for (let r = 22; r <= 64; r += 6) {
-        for (let a = 0; a < 16; a++) {
-          cands.push([t.x + Math.cos((a + 0.2) * Math.PI / 8) * r, t.y + Math.sin((a + 0.2) * Math.PI / 8) * r]);
-        }
-      }
-      // steps from each energized node toward the target
-      for (const n of on) {
-        const len = hypot(t.x - n.x, t.y - n.y) || 1;
-        for (const f of [0.45, 0.6, 0.72, 0.85, 0.95]) {
-          const step = Math.min(R.maxSpan * f, len - 4);
-          if (step < 16) continue;
-          cands.push([n.x + (t.x - n.x) / len * step, n.y + (t.y - n.y) / len * step]);
-        }
-      }
-      let best = null, bd = 1e9;
-      for (const [x, y] of cands) {
-        const s = snap(x, y);
-        if (!s.valid || tooClose(s.x, s.y)) continue;
-        const n = nearestNode(s.x, s.y, (q) => q.on);
-        if (!n || n.d > R.maxSpan) continue;
-        const d = hypot(s.x - t.x, s.y - t.y);
-        // prefer points that will feed the cluster
-        const score = d + (d <= R.feedReach ? 0 : 80);
-        if (score < bd) { bd = score; best = s; }
-      }
-      if (!best) return { ok: false, reason: 'no-spot' };
-      if (cash < R.poleCost) cash += R.poleCost;
-      return plantPole(best.x, best.y);
-    },
-    aimAt(x, y) { const s = snap(x, y); aim = { ...s, rawX: x, rawY: y }; return s; },
-
-    clearAim() { aim = null; },
     grant(n) { cash += n; ui(); },
     svcCost,
     state() {
-      return { cash, inc: inc(), lit: lit.size, poles: poles.length, services: services.length, done };
+      return {
+        cash, inc: inc(), lit: lit.size, poles: poles.length, services: services.length, done,
+        tx: availableTx().map((s) => s.id),
+        svc: availableSvc().map((s) => s.id)
+      };
     }
   };
 
+  graph = buildGraph();
   Promise.all([
     loadImage('art/sq-02-lit.webp'),
-    loadImage('art/sq-02-dim.webp'),
-    loadMask('art/street-mask.png')
-  ]).then(([lit, dim, mask]) => {
-    litImg = lit; dimImg = dim; maskPix = mask;
+    loadImage('art/sq-02-dim.webp')
+  ]).then(([lit, dim]) => {
+    litImg = lit; dimImg = dim;
     start();
   }).catch((err) => {
     boot.textContent = 'Failed to load art';

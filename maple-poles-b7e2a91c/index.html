@@ -22,7 +22,7 @@ header{position:sticky;top:0;z-index:5;background:#0b1220f2;padding:7px 12px 8px
 .tbar .sub{font-size:11px;color:var(--dim);font-weight:500}
 .badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;background:#1b2740;color:var(--dim);border:1px solid #2a3b5c}
 #stage{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#0b1220;box-shadow:0 8px 28px #0006}
-canvas{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair}
+canvas{display:block;width:100%;height:auto;touch-action:none;cursor:pointer}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 10px;margin-top:8px}
 .hint{font-size:13px;color:var(--txt);min-height:1.35em}
 .hint b{color:var(--acc)}
@@ -33,7 +33,7 @@ button:disabled{background:#26344f;color:#6f84a6;border-color:transparent}
 button:active{transform:scale(.98)}
 .legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px;font-size:11px;color:var(--dim)}
 .legend i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:4px;vertical-align:middle}
-.legend .live{background:#4fc3f7}.legend .preview{background:repeating-linear-gradient(90deg,#e57373 0 4px,transparent 4px 8px)}
+.legend .txdot{width:11px;height:11px;border-radius:50%;background:#c5ccd6;border:1.5px solid #f4f7fb;vertical-align:middle;margin-right:5px}.legend .svcdot{width:7px;height:7px;border-radius:50%;background:#c5ccd6;border:1.5px solid #f4f7fb;vertical-align:middle;margin-right:5px}.legend .live{background:#4fc3f7}.legend .preview{background:repeating-linear-gradient(90deg,#e57373 0 4px,transparent 4px 8px)}
 .legend .spot{width:8px;height:8px;border-radius:50%;background:#f5b84b;height:8px}
 #toast{position:fixed;left:50%;bottom:86px;transform:translateX(-50%);background:#1a2438f2;border:1px solid #3a527a;color:#e6edf7;padding:8px 14px;border-radius:999px;font-size:13px;font-weight:650;z-index:20;display:none;white-space:nowrap;box-shadow:0 8px 24px #0008}
 #popup{position:fixed;inset:0;z-index:25;background:#000a;display:flex;align-items:center;justify-content:center;padding:16px}
@@ -59,7 +59,7 @@ button:active{transform:scale(.98)}
   <div class="tbar">
     <div>
       <h1>Maple Homes</h1>
-      <div class="sub" id="tbarsub">Plant poles on the street · tap a service spot</div>
+      <div class="sub" id="tbarsub">Tap the next grey dots to grow the grid</div>
     </div>
     <div class="badge" id="livebadge">#1 live</div>
   </div>
@@ -68,16 +68,15 @@ button:active{transform:scale(.98)}
     <canvas id="cv" width="400" height="540" class="hide"></canvas>
   </div>
   <div class="card">
-    <div class="hint" id="hint">Tap the glowing service spot to light nearby houses, or plant a pole on a street.</div>
+    <div class="hint" id="hint">Larger grey dots plant a transmission pole ($6). Smaller dots place a service pole and light its houses.</div>
     <div class="row">
       <button class="alt" id="undo" disabled>Undo</button>
       <button class="alt" id="reset" style="margin-left:auto">Reset</button>
     </div>
     <div class="legend">
+      <span><i class="txdot"></i>Transmission $6</span>
+      <span><i class="svcdot"></i>Service $16–32</span>
       <span><i class="live"></i>Live line</span>
-      <span><i class="preview"></i>Preview span</span>
-      <span><i class="spot"></i>Service pole</span>
-      <span>Pole $6 · service $16–32</span>
     </div>
   </div>
 </div>
