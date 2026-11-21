@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex,nofollow">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0b1220">
+<title>Idle Power Grid · Maple Homes</title>
+<link rel="icon" href="favicon.ico">
+<style>
+:root{--bg:#0b1220;--card:#131c30;--line:#22304d;--txt:#e6edf7;--dim:#8aa0c0;--acc:#38d39f;--warn:#f5b84b;--bad:#ff7a6e}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font:15px/1.4 system-ui,-apple-system,sans-serif;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+header{position:sticky;top:0;z-index:5;background:#0b1220f2;padding:7px 12px 8px;border-bottom:1px solid var(--line)}
+.kicker{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim)}
+.big{font-size:clamp(24px,8.2vw,32px);font-weight:800;color:var(--acc);letter-spacing:-1px;line-height:1;font-variant-numeric:tabular-nums}
+.hstats{display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr;gap:6px;margin-top:4px}
+.lbl{font-size:clamp(7.5px,2.45vw,10px);letter-spacing:.08em;text-transform:uppercase;color:var(--dim);white-space:nowrap;overflow:hidden}
+.mid{font-size:clamp(12px,3.7vw,16px);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.view{padding:8px 10px 88px;max-width:520px;margin:auto}
+.tbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px}
+.tbar h1{margin:0;font-size:15px;font-weight:700;letter-spacing:-.01em}
+.tbar .sub{font-size:11px;color:var(--dim);font-weight:500}
+.badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;background:#1b2740;color:var(--dim);border:1px solid #2a3b5c}
+#stage{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#0b1220;box-shadow:0 8px 28px #0006}
+canvas{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 10px;margin-top:8px}
+.hint{font-size:13px;color:var(--txt);min-height:1.35em}
+.hint b{color:var(--acc)}
+.row{display:flex;gap:6px;margin-top:8px}
+button{background:var(--acc);color:#04251a;border:0;border-radius:8px;padding:9px 12px;font-weight:700;cursor:pointer;font-size:13px;font-family:inherit}
+button.alt{background:#1b2740;color:#cfe0ff;border:1px solid #46557a}
+button:disabled{background:#26344f;color:#6f84a6;border-color:transparent}
+button:active{transform:scale(.98)}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px;font-size:11px;color:var(--dim)}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:4px;vertical-align:middle}
+.legend .live{background:#4fc3f7}.legend .preview{background:repeating-linear-gradient(90deg,#e57373 0 4px,transparent 4px 8px)}
+.legend .spot{width:8px;height:8px;border-radius:50%;background:#f5b84b;height:8px}
+#toast{position:fixed;left:50%;bottom:86px;transform:translateX(-50%);background:#1a2438f2;border:1px solid #3a527a;color:#e6edf7;padding:8px 14px;border-radius:999px;font-size:13px;font-weight:650;z-index:20;display:none;white-space:nowrap;box-shadow:0 8px 24px #0008}
+#popup{position:fixed;inset:0;z-index:25;background:#000a;display:flex;align-items:center;justify-content:center;padding:16px}
+#popup .box{background:var(--card);border:1px solid #2f4a7a;border-radius:16px;padding:18px 16px;max-width:360px;width:100%;box-shadow:0 10px 40px #000a}
+#popup h3{margin:0 0 6px;font-size:18px}
+#popup p{margin:0 0 8px;color:var(--dim);font-size:14px}
+.hide{display:none!important}
+#boot{color:var(--dim);text-align:center;padding:40px 0}
+</style>
+</head>
+<body>
+<header>
+  <div class="kicker">Idle Power Grid · income per minute</div>
+  <div class="big" id="inc">$0/min</div>
+  <div class="hstats">
+    <div><div class="lbl">Cash</div><div class="mid" id="cash">$60</div></div>
+    <div><div class="lbl">Houses</div><div class="mid" id="houses">0/20</div></div>
+    <div><div class="lbl">Poles</div><div class="mid" id="poles">0</div></div>
+    <div><div class="lbl">Services</div><div class="mid" id="svcs">0/9</div></div>
+  </div>
+</header>
+<div class="view">
+  <div class="tbar">
+    <div>
+      <h1>Maple Homes</h1>
+      <div class="sub" id="tbarsub">Plant poles on the street · tap a service spot</div>
+    </div>
+    <div class="badge" id="livebadge">#1 live</div>
+  </div>
+  <div id="stage">
+    <div id="boot">Loading Maple Homes…</div>
+    <canvas id="cv" width="400" height="540" class="hide"></canvas>
+  </div>
+  <div class="card">
+    <div class="hint" id="hint">Tap the glowing service spot to light nearby houses, or plant a pole on a street.</div>
+    <div class="row">
+      <button class="alt" id="undo" disabled>Undo</button>
+      <button class="alt" id="reset" style="margin-left:auto">Reset</button>
+    </div>
+    <div class="legend">
+      <span><i class="live"></i>Live line</span>
+      <span><i class="preview"></i>Preview span</span>
+      <span><i class="spot"></i>Service pole</span>
+      <span>Pole $6 · service $16–32</span>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+<div id="popup" class="hide"><div class="box" id="popBox"></div></div>
+<script src="art/maple-data.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
