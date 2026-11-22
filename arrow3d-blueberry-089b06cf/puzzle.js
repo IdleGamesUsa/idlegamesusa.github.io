@@ -1,5 +1,9 @@
 /**
- * Arrow Trails 3D — blueberry puzzle logic (v2)
+ * Arrow Trails 3D — blueberry puzzle logic (v3)
+ *
+ * Visuals and HUD match the current 2D Arrow Trails game; the only change
+ * is that the board wraps a rotatable blueberry. Arrow colors use the
+ * official 2D palette (not picture sampling — the picture is a 2D reward).
  *
  * 3D EXIT RULE
  * ------------
@@ -153,6 +157,29 @@ export function canFireCells(cells, dir, otherCells) {
   }
   return true;
 }
+
+/** Closest other arrow sitting in the head-exit corridor, or null if the way is clear. */
+export function findBlocker(arrow, arrows) {
+  const head = arrow.cells[arrow.cells.length - 1];
+  let best = null;
+  let bestDist = Infinity;
+  const i = dirAxis(arrow.dir);
+  const h = [head.x, head.y, head.z][i];
+  const s = arrow.dir[i];
+  for (const b of arrows) {
+    if (b.id === arrow.id) continue;
+    for (const c of b.cells) {
+      if (!voxelBlocks(head, c, arrow.dir)) continue;
+      const dist = (s > 0 ? [c.x, c.y, c.z][i] - h : h - [c.x, c.y, c.z][i]);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = b;
+      }
+    }
+  }
+  return best;
+}
+
 
 export function canFireArrow(arrow, remaining) {
   const others = [];
@@ -308,42 +335,24 @@ export function colorForCell(cell) {
   return lerpHex("#0a1248", "#1a2db8", t / 0.18);
 }
 
+/** Official Arrow Trails palette (src/app.js COL). Colors cycle by arrow id. */
+export const ARROW_COLORS = ["#2a8c86", "#e0664f", "#d4a23a", "#4f9a5a", "#1b4d35"];
+
 export function colorForArrow(arrow) {
-  // Weight toward the brightest cell so highlight runs pop like the reel
-  let best = arrow.cells[0];
-  let bestT = -1;
-  let acc = [0, 0, 0];
-  for (const c of arrow.cells) {
-    const t = surfaceLight(c.x, c.y, c.z, c.nx, c.ny, c.nz);
-    if (t > bestT) {
-      bestT = t;
-      best = c;
-    }
-    const hex = colorForCell({ ...c, part: arrow.part || c.part });
-    const p = parseInt(hex.slice(1), 16);
-    acc[0] += (p >> 16) & 255;
-    acc[1] += (p >> 8) & 255;
-    acc[2] += p & 255;
-  }
-  const n = arrow.cells.length;
-  const avg = `#${(
-    ((Math.round(acc[0] / n) << 16) | (Math.round(acc[1] / n) << 8) | Math.round(acc[2] / n)) >>>
-    0
-  )
-    .toString(16)
-    .padStart(6, "0")}`;
-  const hot = colorForCell({ ...best, part: arrow.part || best.part });
-  return lerpHex(avg, hot, 0.55);
+  return ARROW_COLORS[(arrow.id >>> 0) % ARROW_COLORS.length];
 }
 
-const BODY_RX = 14.6;
-const BODY_RY = 13.7;
-const BODY_RZ = 14.6;
+// ~36 voxels across: on a phone-size stage a cell is ~7.3px, matching
+// Arrow Trails' 50×50 board pitch, while the whole berry still fits with margin.
+const BODY_RX = 18.0;
+const BODY_RY = 16.8;
+const BODY_RZ = 18.0;
+const SHAPE_SCALE = 18.0 / 14.6;
 
 export function buildBlueberry() {
   const voxels = [];
   const voxelSet = new Set();
-  const R = 16;
+  const R = Math.ceil(Math.max(BODY_RX, BODY_RY, BODY_RZ)) + 2;
   for (let x = -R; x <= R; x++) {
     for (let y = -R; y <= R; y++) {
       for (let z = -R; z <= R; z++) {
@@ -395,13 +404,14 @@ export function buildBlueberry() {
   // 5-point crown, one arm toward +Z (front), two layers tall.
   for (let i = 0; i < 5; i++) {
     const a = Math.PI / 2 + (i * 2 * Math.PI) / 5;
-    for (let r = 0; r <= 5; r++) {
+    const arm = Math.round(5 * SHAPE_SCALE);
+    for (let r = 0; r <= arm; r++) {
       const x = Math.round(Math.cos(a) * r);
       const z = Math.round(Math.sin(a) * r);
       setPart(x, r <= 2 ? y0 : y1, z, "calyx");
-      if (r <= 4) setPart(x, r <= 1 ? y1 : y2, z, "calyx");
+      if (r <= arm - 1) setPart(x, r <= 1 ? y1 : y2, z, "calyx");
       // thicken mid-arm so the star reads at a glance
-      if (r >= 2 && r <= 4) {
+      if (r >= 2 && r <= arm - 1) {
         const tx = -Math.round(Math.sin(a));
         const tz = Math.round(Math.cos(a));
         setPart(x + tx, y1, z + tz, "calyx");
@@ -429,6 +439,7 @@ export function buildBlueberry() {
 
   // Pointed leaf off the right-front of the crown, slightly down
   const leaf = [];
+  const sc = (x) => Math.round(x * SHAPE_SCALE);
   const leafPath = [
     [4, y1, 2],
     [5, y1, 3],
@@ -440,7 +451,7 @@ export function buildBlueberry() {
     [11, y0 - 1, 6],
     [12, y0 - 1, 6],
     [13, y0 - 2, 6],
-  ];
+  ].map(([x, y, z]) => [sc(x), y, sc(z)]);
   for (const [x, y, z] of leafPath) {
     leaf.push([x, y, z]);
     leaf.push([x, y, z + 1]);
@@ -462,7 +473,7 @@ export function buildBlueberry() {
     [12, y0 - 1, 7],
     [13, y0 - 2, 5],
     [14, y0 - 2, 6],
-  ]) {
+  ].map(([x, y, z]) => [sc(x), y, sc(z)])) {
     leaf.push([x, y, z]);
   }
   for (const [x, y, z] of leaf) setPart(x, y, z, "leaf");
