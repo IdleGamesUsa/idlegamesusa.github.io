@@ -11,29 +11,38 @@
   <link rel="icon" type="image/png" href="./favicon.png">
   <style>
     :root {
-      --bg: #000000;
       --txt: #eef4ff;
       --dim: #8aa0c4;
       --acc: #9ec5ff;
-      --glow: #6aa8ff;
-      --heart: #ff5b7d;
-      --good: #5dffb0;
-      --bad: #ff6b6b;
+      --heart: #ff4d75;
       --safe-t: env(safe-area-inset-top, 0px);
       --safe-b: env(safe-area-inset-bottom, 0px);
     }
     * { box-sizing: border-box; }
     html, body {
-      margin: 0; height: 100%; background: var(--bg); color: var(--txt);
+      margin: 0; height: 100%; background: #000; color: var(--txt);
       font-family: ui-rounded, "SF Pro Rounded", "Trebuchet MS", system-ui, sans-serif;
       overflow: hidden; touch-action: none; overscroll-behavior: none;
       -webkit-tap-highlight-color: transparent; user-select: none;
     }
     #c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+    #vignette {
+      position: fixed; inset: 0; pointer-events: none; z-index: 2;
+      background: radial-gradient(ellipse at 50% 46%, transparent 42%, #000000d0 100%);
+    }
+    #progressBar {
+      position: fixed; left: 0; right: 0; top: 0; height: 3px; z-index: 6;
+      background: #0a122244; pointer-events: none;
+    }
+    #progressBar > i {
+      display: block; height: 100%; width: 0%;
+      background: linear-gradient(90deg, #3a6bff, #cfe6ff);
+      box-shadow: 0 0 8px #8cb4ffaa;
+      transition: width .25s ease;
+    }
     header {
       position: fixed; left: 0; right: 0; top: 0; z-index: 5;
-      padding: calc(10px + var(--safe-t)) 16px 28px;
-      background: linear-gradient(180deg, #000d 0%, #0000 100%);
+      padding: calc(12px + var(--safe-t)) 16px 20px;
       display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 8px;
       pointer-events: none;
     }
@@ -42,16 +51,20 @@
     .kicker { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); font-weight: 700; }
     h1 { margin: 0; font-size: 22px; letter-spacing: -0.03em; font-weight: 800; line-height: 1.05;
       text-shadow: 0 0 18px #6aa8ff88, 0 2px 8px #000; }
-    .hearts { display:flex; gap:3px; align-items:center; height:20px; }
+    .hearts { display:flex; gap:3px; align-items:center; height:20px; filter: drop-shadow(0 0 6px #ff4d7588); }
     .hearts svg { display:block; }
-    .count { font-variant-numeric: tabular-nums; font-weight: 800; font-size: 20px; color: var(--acc);
-      text-shadow: 0 0 12px #6aa8ffaa; }
-    .count small { display: block; font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
-      color: var(--dim); font-weight: 700; text-shadow: none; }
+    .countwrap { position: relative; width: 58px; height: 58px; }
+    .countwrap svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+    .countwrap .num {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      font-variant-numeric: tabular-nums; font-weight: 800; font-size: 16px; color: var(--acc);
+      text-shadow: 0 0 12px #6aa8ffaa; line-height: 1;
+    }
+    .countwrap .num small { font-size: 8px; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); font-weight: 700; margin-top: 1px; text-shadow: none; }
     footer {
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
-      padding: 24px 16px calc(14px + var(--safe-b));
-      background: linear-gradient(0deg, #000e 0%, #0000 100%);
+      padding: 18px 16px calc(14px + var(--safe-b));
       display: flex; flex-direction: column; align-items: center; gap: 10px;
     }
     .btns { display: flex; gap: 10px; width: min(420px, 100%); }
@@ -72,61 +85,57 @@
       box-shadow: 0 10px 30px #000c;
     }
     #toast.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
-    #overlay {
+    #overlay, #info {
       position: fixed; inset: 0; z-index: 10; background: #000a;
       display: none; align-items: center; justify-content: center; padding: 24px;
     }
-    #overlay.show { display: flex; }
-    #overlay .card {
-      width: min(380px, 100%); background: radial-gradient(circle at 50% 0%, #1a2a55, #070b14 62%);
+    #overlay.show, #info.show { display: flex; }
+    #overlay .card, #info .card {
+      width: min(380px, 100%);
+      background: radial-gradient(circle at 50% 0%, #1a2a55, #070b14 62%);
       border: 1px solid #8cb4ff55; border-radius: 22px; padding: 26px 22px 20px; text-align: center;
       box-shadow: 0 0 40px #3a6cff33, 0 20px 50px #000c;
     }
-    #overlay h2 { margin: 0 0 8px; font-size: 28px; letter-spacing: -0.03em; }
-    #overlay p { margin: 0 0 18px; color: var(--dim); font-size: 15px; line-height: 1.4; }
-    #overlay button {
+    #info .card { text-align: left; }
+    #overlay h2, #info h2 { margin: 0 0 8px; font-size: 28px; letter-spacing: -0.03em; }
+    #info h2 { font-size: 18px; }
+    #overlay p, #info p { margin: 0 0 10px; color: var(--dim); font-size: 15px; line-height: 1.45; }
+    #info p { color: #c5d4ee; font-size: 14px; }
+    #overlay button, #info button {
       appearance: none; border: 0; background: var(--acc); color: #071018; font: inherit;
       font-weight: 800; font-size: 16px; border-radius: 999px; padding: 12px 22px; cursor: pointer;
-      width: 100%;
+      width: 100%; margin-top: 8px;
     }
-    #info {
-      position: fixed; inset: 0; z-index: 11; background: #000a; display: none;
-      align-items: center; justify-content: center; padding: 24px;
+    #fps {
+      position: fixed; left: 10px; bottom: calc(90px + var(--safe-b)); z-index: 6;
+      font: 11px/1 ui-monospace, monospace; color: #8cffb0; text-shadow: 0 1px 4px #000;
+      display: none; pointer-events: none;
     }
-    #info.show { display: flex; }
-    #info .card {
-      width: min(420px, 100%); background: #0a101c; border: 1px solid #3a527a; border-radius: 18px;
-      padding: 20px 18px; box-shadow: 0 16px 40px #000c;
-    }
-    #info h2 { margin: 0 0 10px; font-size: 18px; }
-    #info p { margin: 0 0 8px; color: #c5d4ee; font-size: 14px; line-height: 1.45; }
-    #info button {
-      margin-top: 12px; width: 100%; appearance: none; border: 0; background: var(--acc);
-      color: #071018; font: inherit; font-weight: 800; border-radius: 999px; padding: 11px; cursor: pointer;
-    }
-    .infobtn {
-      pointer-events: auto; width: 28px; height: 28px; border-radius: 50%; border: 1px solid #6aa8ff55;
-      background: #0a1224cc; color: var(--acc); font-weight: 800; font-size: 14px; cursor: pointer;
-      display: inline-flex; align-items: center; justify-content: center; margin-left: 8px;
-    }
-    header .title-row { display: flex; align-items: center; justify-content: center; }
   </style>
 </head>
 <body>
   <canvas id="c"></canvas>
+  <div id="vignette"></div>
+  <div id="progressBar"><i id="progressFill"></i></div>
   <header>
     <div class="left">
       <div class="kicker">Lives</div>
-      <div class="hearts" id="hearts" aria-label="3 hearts">♥♥♥</div>
+      <div class="hearts" id="hearts" aria-label="3 hearts"></div>
     </div>
-    <div class="title-row">
-      <div style="text-align:center">
-        <div class="kicker">Arrow Trails 3D</div>
-        <h1>Blueberry</h1>
-      </div>
+    <div style="text-align:center">
+      <div class="kicker">Arrow Trails 3D</div>
+      <h1>Blueberry</h1>
     </div>
     <div class="right">
-      <div class="count" id="count">0<small>left</small></div>
+      <div class="countwrap" aria-live="polite">
+        <svg viewBox="0 0 58 58" aria-hidden="true">
+          <circle cx="29" cy="29" r="24" fill="none" stroke="#1a2744" stroke-width="3.5"/>
+          <circle id="ring" cx="29" cy="29" r="24" fill="none" stroke="#9ec5ff" stroke-width="3.5"
+            stroke-linecap="round" stroke-dasharray="150.8" stroke-dashoffset="0"
+            style="filter:drop-shadow(0 0 4px #8cb4ff)"/>
+        </svg>
+        <div class="num" id="count">0<small>left</small></div>
+      </div>
     </div>
   </header>
   <footer>
@@ -148,12 +157,13 @@
   <div id="info">
     <div class="card">
       <h2>How to play</h2>
-      <p>This blueberry is a 3D Arrow Trails puzzle. Drag to spin it all the way around, then tap a glowing arrow to slide it off.</p>
-      <p>An arrow can leave only if the path in the direction of its head is clear — all the way off the berry. Other arrows can block it, even ones on the far side or on a sticking-out step. The berry itself does not block, only arrows.</p>
+      <p>This blueberry is a dense 3D Arrow Trails puzzle. Drag to spin it, pinch to zoom, then tap a glowing line to slide it off.</p>
+      <p>An arrow can leave only if the corridor in front of its head is clear — all the way off the berry, including arrows on the far side. The berry itself does not block, only other arrows.</p>
       <p>A blocked tap flashes red and costs a heart. You have three. Use a hint if you get stuck.</p>
       <button type="button" id="infoClose">Got it</button>
     </div>
   </div>
+  <div id="fps"></div>
   <script type="module" src="./game.js"></script>
 </body>
 </html>
