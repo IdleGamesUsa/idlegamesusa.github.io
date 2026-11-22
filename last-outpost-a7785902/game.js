@@ -11,6 +11,11 @@
   let SHIP_Y = 1390;
   const CONSOLE_H = 510;
   const STORAGE_KEY = "idleusa.lastOutpost.v2";
+  const MAX_PARTICLES = 90;
+  const MAX_FLOATERS = 18;
+  const MAX_PICKUPS = 48;
+  const HIT_PAD = 7;
+  const STEP = 1 / 60;
 
   const C = {
     cyan: "#00f6ff", magenta: "#ff2bd6", pink: "#ff4aa8", lime: "#c8ff00",
@@ -19,45 +24,84 @@
   };
 
   const BAL = {
-    baseDmg: 11, dmgPerLv: 5, baseInterval: 0.34, rateDecay: 0.88, minInterval: 0.10,
-    baseHp: 100, hpPerBuy: 15, hpHealFrac: 0.42, permaDmg: 5, permaHp: 30,
-    permaArmor: 0.05, permaCrit: 0.05, permaStartCoins: 35, permaCoinValue: 0.18,
-    permaGemBonus: 0.15, permaShield: 20, interestPerWave: 10, gemPerWave: 10,
-    gemKillDiv: 5, gemPerBoss: 28, hpScale: 1.148, spdScale: 1.04, dmgScale: 1.11,
-    countBase: 5, countPerWave: 1.18, countMax: 30, bulletSpd: 980,
-    waveBreak: 1.7, bossIntro: 2.1, maxShieldBase: 50, shieldPerLv: 28,
+    baseDmg: 10, dmgPerLv: 6, baseInterval: 0.36, rateDecay: 0.885, minInterval: 0.09,
+    baseHp: 100, hpPerBuy: 16, hpHealFrac: 0.42, permaDmg: 5, permaHp: 28,
+    permaArmor: 0.04, permaCrit: 0.04, permaStartCoins: 35, permaCoinValue: 0.16,
+    permaGemBonus: 0.14, permaShield: 20, interestPerWave: 8, gemPerWave: 10,
+    gemKillDiv: 5, gemPerBoss: 28, countBase: 5, countPerWave: 1.12, countMax: 24,
+    bulletSpd: 980, waveBreak: 1.55, bossIntro: 2.0, maxShieldBase: 50, shieldPerLv: 26,
     shieldRegenDelay: 3.0, shieldRegenPerSec: 10
   };
 
   const UPGRADES = [
-    { id: "dmg",     name: "DAMAGE",    base: 25,  grow: 1.45, max: 12, unlock: 0 },
-    { id: "rate",    name: "FIRE RATE", base: 40,  grow: 1.50, max: 12, unlock: 0 },
-    { id: "hp",      name: "HEALTH",    base: 30,  grow: 1.40, max: 12, unlock: 0 },
-    { id: "shield",  name: "SHIELD",    base: 80,  grow: 1.55, max: 8,  unlock: 4 },
-    { id: "spread",  name: "SPREAD",    base: 55,  grow: 1.55, max: 5,  unlock: 3 },
-    { id: "laser",   name: "LASER",     base: 200, grow: 1.60, max: 5,  unlock: 6 },
-    { id: "missile", name: "MISSILES",  base: 250, grow: 1.65, max: 5,  unlock: 8 },
-    { id: "drone",   name: "DRONE",     base: 180, grow: 1.60, max: 4,  unlock: 7 }
+    { id: "dmg",      name: "DAMAGE",     tab: "atk",  base: 25,  grow: 1.38, max: 40, unlock: 0 },
+    { id: "rate",     name: "FIRE RATE",  tab: "atk",  base: 40,  grow: 1.40, max: 40, unlock: 0 },
+    { id: "spread",   name: "SPREAD",     tab: "atk",  base: 55,  grow: 1.48, max: 12, unlock: 3 },
+    { id: "crit",     name: "CRIT %",     tab: "atk",  base: 70,  grow: 1.42, max: 20, unlock: 4 },
+    { id: "critDmg",  name: "CRIT DMG",   tab: "atk",  base: 80,  grow: 1.45, max: 20, unlock: 5 },
+    { id: "pierce",   name: "PIERCE",     tab: "atk",  base: 90,  grow: 1.50, max: 12, unlock: 6 },
+    { id: "multi",    name: "MULTISHOT",  tab: "atk",  base: 100, grow: 1.50, max: 10, unlock: 8 },
+    { id: "bspd",     name: "BULLET SPD", tab: "atk",  base: 60,  grow: 1.40, max: 15, unlock: 2 },
+    { id: "burn",     name: "BURN",       tab: "atk",  base: 110, grow: 1.48, max: 15, unlock: 10 },
+    { id: "chain",    name: "CHAIN",      tab: "atk",  base: 140, grow: 1.50, max: 12, unlock: 14 },
+    { id: "laser",    name: "LASER",      tab: "atk",  base: 200, grow: 1.50, max: 15, unlock: 6 },
+    { id: "missile",  name: "MISSILES",   tab: "atk",  base: 250, grow: 1.50, max: 15, unlock: 8 },
+    { id: "hp",       name: "HEALTH",     tab: "def",  base: 30,  grow: 1.36, max: 40, unlock: 0 },
+    { id: "shield",   name: "SHIELD",     tab: "def",  base: 80,  grow: 1.45, max: 20, unlock: 4 },
+    { id: "shRegen",  name: "SH. REGEN",  tab: "def",  base: 90,  grow: 1.42, max: 15, unlock: 6 },
+    { id: "armor",    name: "ARMOR",      tab: "def",  base: 70,  grow: 1.45, max: 15, unlock: 5 },
+    { id: "regen",    name: "REGEN",      tab: "def",  base: 85,  grow: 1.42, max: 15, unlock: 7 },
+    { id: "thorns",   name: "THORNS",     tab: "def",  base: 95,  grow: 1.45, max: 12, unlock: 9 },
+    { id: "knock",    name: "KNOCKBACK",  tab: "def",  base: 75,  grow: 1.42, max: 12, unlock: 8 },
+    { id: "freeze",   name: "FREEZE",     tab: "def",  base: 120, grow: 1.48, max: 12, unlock: 12 },
+    { id: "drone",    name: "DRONE",      tab: "util", base: 180, grow: 1.48, max: 15, unlock: 7 },
+    { id: "dcount",   name: "DRONE #",    tab: "util", base: 220, grow: 1.50, max: 6,  unlock: 10 },
+    { id: "dmgDrone", name: "DRONE DMG",  tab: "util", base: 150, grow: 1.45, max: 20, unlock: 9 },
+    { id: "laserW",   name: "LASER W",    tab: "util", base: 130, grow: 1.45, max: 12, unlock: 8 },
+    { id: "mcount",   name: "MISSILE #",  tab: "util", base: 200, grow: 1.50, max: 8,  unlock: 11 },
+    { id: "ricochet", name: "RICOCHET",   tab: "util", base: 160, grow: 1.50, max: 8,  unlock: 13 },
+    { id: "magnet",   name: "MAGNET",     tab: "util", base: 50,  grow: 1.38, max: 15, unlock: 2 },
+    { id: "coinVal",  name: "COIN VALUE", tab: "util", base: 60,  grow: 1.40, max: 20, unlock: 3 },
+    { id: "interest", name: "INTEREST",   tab: "util", base: 90,  grow: 1.42, max: 15, unlock: 5 },
+    { id: "skip",     name: "WAVE SKIP",  tab: "util", base: 150, grow: 1.50, max: 10, unlock: 12 },
+    { id: "orbit",    name: "ORBITAL",    tab: "util", base: 400, grow: 1.55, max: 12, unlock: 25, milestone: 25 },
+    { id: "emp",      name: "EMP PULSE",  tab: "util", base: 700, grow: 1.55, max: 10, unlock: 50, milestone: 50 }
+  ];
+  const UP_BY_ID = {};
+  for (let i = 0; i < UPGRADES.length; i++) UP_BY_ID[UPGRADES[i].id] = UPGRADES[i];
+
+  const TABS = [
+    { id: "atk", label: "ATTACK" },
+    { id: "def", label: "DEFENSE" },
+    { id: "util", label: "UTILITY" }
   ];
 
   const PERMA = {
     atk: [
-      { id: "dmg", name: "Starting Damage", max: 8, base: 35, grow: 1.5 },
-      { id: "rate", name: "Starting Fire Rate", max: 8, base: 35, grow: 1.5 },
-      { id: "crit", name: "Crit Chance", max: 8, base: 50, grow: 1.55 },
-      { id: "slot", name: "Weapon Slot", max: 2, base: 120, grow: 1.7 }
+      { id: "dmg", name: "Starting Damage", max: 20, base: 35, grow: 1.42 },
+      { id: "rate", name: "Starting Fire Rate", max: 20, base: 35, grow: 1.42 },
+      { id: "crit", name: "Crit Chance", max: 15, base: 50, grow: 1.48 },
+      { id: "critDmg", name: "Crit Damage", max: 15, base: 55, grow: 1.48 },
+      { id: "pierce", name: "Starting Pierce", max: 8, base: 80, grow: 1.52 },
+      { id: "multi", name: "Starting Multishot", max: 6, base: 90, grow: 1.55 },
+      { id: "slot", name: "Weapon Slot", max: 4, base: 120, grow: 1.65 }
     ],
     def: [
-      { id: "hp", name: "Max Health", max: 8, base: 40, grow: 1.5 },
-      { id: "shield", name: "Shield Strength", max: 8, base: 60, grow: 1.55 },
-      { id: "armor", name: "Armor", max: 6, base: 45, grow: 1.5 },
+      { id: "hp", name: "Max Health", max: 20, base: 40, grow: 1.42 },
+      { id: "shield", name: "Shield Strength", max: 15, base: 60, grow: 1.48 },
+      { id: "armor", name: "Armor", max: 12, base: 45, grow: 1.48 },
+      { id: "regen", name: "Hull Regen", max: 12, base: 55, grow: 1.48 },
+      { id: "shRegen", name: "Shield Regen", max: 12, base: 60, grow: 1.48 },
+      { id: "thorns", name: "Thorns", max: 10, base: 70, grow: 1.5 },
       { id: "wind", name: "Second Wind", max: 1, base: 200, grow: 1 }
     ],
     eco: [
-      { id: "startCoins", name: "Starting Coins", max: 8, base: 28, grow: 1.5 },
-      { id: "coinValue", name: "Coin Value", max: 8, base: 40, grow: 1.5 },
-      { id: "gemBonus", name: "Gem Bonus", max: 6, base: 80, grow: 1.6 },
-      { id: "interest", name: "Interest", max: 5, base: 100, grow: 1.55 }
+      { id: "startCoins", name: "Starting Coins", max: 20, base: 28, grow: 1.42 },
+      { id: "coinValue", name: "Coin Value", max: 15, base: 40, grow: 1.45 },
+      { id: "gemBonus", name: "Gem Bonus", max: 12, base: 80, grow: 1.52 },
+      { id: "interest", name: "Interest", max: 12, base: 90, grow: 1.48 },
+      { id: "magnet", name: "Coin Magnet", max: 10, base: 40, grow: 1.42 },
+      { id: "skip", name: "Wave Skip", max: 8, base: 110, grow: 1.52 }
     ]
   };
 
@@ -89,7 +133,7 @@
     const name = tier <= 50 ? table.name : table.name + " " + (roman[Math.floor(tier / 10) - 4] || String(tier));
     const kind = tier <= 40 ? table.kind : (tier === 50 ? "eclipse" : (tier % 40 === 0 ? "harbinger" : table.kind));
     const src = BOSS[Math.min(50, tier)] || BOSS[50];
-    return { name, kind, hp: Math.floor(src.hp * Math.pow(1.32, extra)), r: src.r, coins: Math.floor(src.coins * (1 + extra * 0.4)) };
+    return { name, kind, hp: Math.floor(src.hp * Math.pow(1.28, extra)), r: src.r, coins: Math.floor(src.coins * (1 + extra * 0.4)) };
   }
 
   function makeRng(seed) {
@@ -103,25 +147,43 @@
   }
 
   function defaultPerma() {
-    return { dmg: 0, rate: 0, crit: 0, slot: 0, hp: 0, shield: 0, armor: 0, wind: 0, startCoins: 0, coinValue: 0, gemBonus: 0, interest: 0 };
+    return {
+      dmg: 0, rate: 0, crit: 0, critDmg: 0, pierce: 0, multi: 0, slot: 0,
+      hp: 0, shield: 0, armor: 0, regen: 0, shRegen: 0, thorns: 0, wind: 0,
+      startCoins: 0, coinValue: 0, gemBonus: 0, interest: 0, magnet: 0, skip: 0
+    };
   }
   function defaultMid() {
-    return { dmg: 0, rate: 0, hp: 0, shield: 0, spread: 0, laser: 0, missile: 0, drone: 0 };
+    return {
+      dmg: 0, rate: 0, spread: 0, crit: 0, critDmg: 0, pierce: 0, multi: 0, bspd: 0, burn: 0, chain: 0, laser: 0, missile: 0,
+      hp: 0, shield: 0, shRegen: 0, armor: 0, regen: 0, thorns: 0, knock: 0, freeze: 0,
+      drone: 0, dcount: 0, dmgDrone: 0, laserW: 0, mcount: 0, ricochet: 0,
+      magnet: 0, coinVal: 0, interest: 0, skip: 0, orbit: 0, emp: 0
+    };
   }
-  function defaultSave() { return { bestWave: 0, gems: 0, perma: defaultPerma(), mid: defaultMid(), carryCoins: 0, mute: false }; }
+  function defaultSave() {
+    return { bestWave: 0, gems: 0, perma: defaultPerma(), mid: defaultMid(), carryCoins: 0, mute: false, ver: 3 };
+  }
+
+  function migrateSave(s) {
+    const d = defaultSave();
+    if (!s || typeof s !== "object") return d;
+    d.bestWave = s.bestWave | 0;
+    d.gems = s.gems | 0;
+    d.mute = !!s.mute;
+    d.carryCoins = Math.max(0, s.carryCoins | 0);
+    d.perma = Object.assign(defaultPerma(), s.perma || {});
+    d.mid = Object.assign(defaultMid(), s.mid || {});
+    d.ver = 3;
+    return d;
+  }
 
   function loadSave() {
     if (typeof localStorage === "undefined") return defaultSave();
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return defaultSave();
-      const s = JSON.parse(raw);
-      const d = defaultSave();
-      d.bestWave = s.bestWave | 0; d.gems = s.gems | 0; d.mute = !!s.mute;
-      d.perma = Object.assign(defaultPerma(), s.perma || {});
-      d.mid = Object.assign(defaultMid(), s.mid || {});
-      d.carryCoins = Math.max(0, s.carryCoins | 0);
-      return d;
+      return migrateSave(JSON.parse(raw));
     } catch (e) { return defaultSave(); }
   }
   function writeSave(save) {
@@ -130,49 +192,96 @@
   }
 
   function costOf(def, level) { return Math.floor(def.base * Math.pow(def.grow, level)); }
-  function midCost(id, level) { return costOf(UPGRADES.find(u => u.id === id), level); }
+  function midCost(id, level) { return costOf(UP_BY_ID[id], level); }
 
-  function isUnlocked(id, wave, up) {
-    const def = UPGRADES.find(u => u.id === id);
+  function isUnlocked(id, wave, up, bestWave) {
+    const def = UP_BY_ID[id];
     if (!def) return false;
     if ((up[id] || 0) > 0) return true;
+    const best = bestWave || 0;
+    if (def.milestone && wave < def.milestone && best < def.milestone) return false;
     if (wave >= def.unlock) return true;
     if (id === "spread" && (up.dmg + up.rate) >= 3) return true;
     if (id === "shield" && up.hp >= 1) return true;
     if (id === "laser" && up.spread >= 1) return true;
     if (id === "missile" && (up.laser >= 1 || up.spread >= 2)) return true;
     if (id === "drone" && up.spread >= 1) return true;
+    if (id === "shRegen" && up.shield >= 1) return true;
+    if (id === "laserW" && up.laser >= 1) return true;
+    if (id === "mcount" && up.missile >= 1) return true;
+    if (id === "dcount" && up.drone >= 1) return true;
+    if (id === "dmgDrone" && up.drone >= 1) return true;
     return false;
   }
 
   function hpScale(wave) {
     const n = Math.max(0, wave - 1);
-    // early waves stay close to the original curve; later waves ramp so kept upgrades don't steamroll
-    return Math.pow(1.148, Math.min(n, 6)) * Math.pow(1.17, Math.max(0, Math.min(n, 16) - 6)) * Math.pow(1.19, Math.max(0, Math.min(n, 26) - 16)) * Math.pow(1.215, Math.max(0, n - 26));
+    return Math.pow(1.16, Math.min(n, 6))
+      * Math.pow(1.205, Math.max(0, Math.min(n, 22) - 6))
+      * Math.pow(1.13, Math.max(0, Math.min(n, 40) - 22))
+      * Math.pow(1.095, Math.max(0, Math.min(n, 70) - 40))
+      * Math.pow(1.11, Math.max(0, n - 70));
   }
   function spdScale(wave) {
     const n = Math.max(0, wave - 1);
-    return Math.min(2.45, Math.pow(1.035, Math.min(n, 6)) * Math.pow(1.048, Math.max(0, n - 6)));
+    return Math.min(2.35, Math.pow(1.032, Math.min(n, 6)) * Math.pow(1.03, Math.max(0, n - 6)));
   }
   function dmgScale(wave) {
     const n = Math.max(0, wave - 1);
-    return Math.pow(1.11, Math.min(n, 8)) * Math.pow(1.125, Math.max(0, n - 8));
+    return Math.pow(1.10, Math.min(n, 8)) * Math.pow(1.08, Math.max(0, Math.min(n, 40) - 8)) * Math.pow(1.10, Math.max(0, n - 40));
   }
 
   function playerStats(run) {
     const p = run.perma, u = run.up;
-    const dmg = BAL.baseDmg + BAL.dmgPerLv * (u.dmg + p.dmg);
-    const interval = Math.max(BAL.minInterval, BAL.baseInterval * Math.pow(BAL.rateDecay, u.rate + p.rate));
-    const maxHp = BAL.baseHp + BAL.hpPerBuy * u.hp + BAL.permaHp * p.hp;
-    const armor = Math.min(0.45, p.armor * BAL.permaArmor);
-    const crit = Math.min(0.45, p.crit * BAL.permaCrit);
-    const coinMul = 1 + p.coinValue * BAL.permaCoinValue;
-    const gemMul = 1 + p.gemBonus * BAL.permaGemBonus;
+    let st = run._st;
+    if (!st) st = run._st = {};
+    st.dmg = BAL.baseDmg + BAL.dmgPerLv * (u.dmg + p.dmg);
+    st.interval = Math.max(BAL.minInterval, BAL.baseInterval * Math.pow(BAL.rateDecay, u.rate + p.rate));
+    st.maxHp = BAL.baseHp + BAL.hpPerBuy * u.hp + BAL.permaHp * p.hp;
+    st.armor = Math.min(0.6, p.armor * BAL.permaArmor + u.armor * 0.035);
+    st.crit = Math.min(0.7, p.crit * BAL.permaCrit + u.crit * 0.035);
+    st.critMul = 2 + u.critDmg * 0.22 + (p.critDmg || 0) * 0.18;
+    st.coinMul = 1 + p.coinValue * BAL.permaCoinValue + u.coinVal * 0.10;
+    st.gemMul = 1 + p.gemBonus * BAL.permaGemBonus;
+    st.bulletSpd = BAL.bulletSpd * (1 + 0.10 * u.bspd);
+    st.pierce = (u.pierce || 0) + (p.pierce || 0);
+    st.multi = (u.multi || 0) + (p.multi || 0);
+    st.regen = (u.regen || 0) * 2.2 + (p.regen || 0) * 2.0;
+    st.thorns = (u.thorns || 0) * 0.14 + (p.thorns || 0) * 0.12;
+    st.knock = (u.knock || 0) * 18;
+    st.chill = Math.min(0.55, (u.freeze || 0) * 0.06);
+    st.burn = (u.burn || 0) * 0.22;
+    st.chain = u.chain || 0;
+    st.ricochet = u.ricochet || 0;
+    st.magnet = 0 + u.magnet * 70 + (p.magnet || 0) * 55;
+    st.laserW = 12 + (u.laserW || 0) * 5;
+    st.mcount = 1 + (u.mcount || 0);
+    st.drones = Math.min(6, (u.drone > 0 ? 1 : 0) + (u.dcount || 0));
+    st.droneDmg = 0.55 + (u.dmgDrone || 0) * 0.18;
+    st.shRegen = BAL.shieldRegenPerSec + (u.shRegen || 0) * 6 + (p.shRegen || 0) * 5;
     let maxShield = 0;
     if (u.shield > 0) maxShield += BAL.maxShieldBase + BAL.shieldPerLv * (u.shield - 1);
     if (p.shield > 0) maxShield += BAL.permaShield * p.shield;
-    return { dmg, interval, maxHp, armor, crit, coinMul, gemMul, maxShield };
+    st.maxShield = maxShield;
+    st.orbits = u.orbit || 0;
+    st.emp = u.emp || 0;
+    st.skip = (u.skip || 0) + (p.skip || 0);
+    return st;
   }
+
+  const pool = { bullets: [], particles: [], floaters: [], pickups: [], lasers: [] };
+  function take(name) { return pool[name].length ? pool[name].pop() : {}; }
+  function give(name, obj) {
+    for (const k in obj) obj[k] = undefined;
+    pool[name].push(obj);
+  }
+  function popAt(arr, i) {
+    const o = arr[i];
+    const last = arr.pop();
+    if (i < arr.length) arr[i] = last;
+    return o;
+  }
+
 
   function createRun(perma, opts) {
     opts = opts || {};
@@ -184,7 +293,8 @@
       dead: false, dyingT: 0, time: 0, waveTime: 0,
       phase: "break", phaseT: 0, pending: [], spawnCd: 0,
       enemies: [], bullets: [], pickups: [], floaters: [], particles: [], lasers: [],
-      fireCd: 0, missileCd: 0, laserCd: 0, droneFire: [0, 0],
+      fireCd: 0, missileCd: 0, laserCd: 0, droneFire: [0, 0, 0, 0, 0, 0],
+      empCd: 0, orbitT: 0, hullAng: -Math.PI / 2, aimAng: -Math.PI / 2,
       shake: 0, flash: 0, banner: null,
       rng: makeRng(opts.seed || (Date.now() & 0x7fffffff)),
       bestWave: opts.bestWave || 0,
@@ -192,6 +302,8 @@
     };
     if (run.perma.slot >= 1) run.up.spread = Math.max(run.up.spread, 1);
     if (run.perma.slot >= 2) run.up.laser = Math.max(run.up.laser, 1);
+    if (run.perma.slot >= 3) run.up.missile = Math.max(run.up.missile, 1);
+    if (run.perma.slot >= 4) run.up.drone = Math.max(run.up.drone, 1);
     const st = playerStats(run);
     run.hp = st.maxHp;
     run.shield = st.maxShield;
@@ -201,13 +313,17 @@
 
   function settlePickups(run) {
     if (!run || !run.pickups) return;
-    for (let i = 0; i < run.pickups.length; i++) run.coins += run.pickups[i].v;
-    run.pickups = [];
+    for (let i = 0; i < run.pickups.length; i++) run.coins += run.pickups[i].v || 0;
+    while (run.pickups.length) give("pickups", run.pickups.pop());
   }
 
   function beginWave(run, n) {
     run.wave = n; run.waveTime = 0; run.pending = []; run.spawnCd = 0;
-    if (n > 1 && run.perma.interest > 0) run.coins += BAL.interestPerWave * run.perma.interest;
+    const st = playerStats(run);
+    if (n > 1) {
+      const interestLv = (run.perma.interest || 0) + (run.up.interest || 0);
+      if (interestLv > 0) run.coins += BAL.interestPerWave * interestLv;
+    }
     if (n % 10 === 0) {
       run.phase = "intro"; run.phaseT = BAL.bossIntro;
       run.banner = { type: "boss", name: bossInfo(n).name, t: BAL.bossIntro };
@@ -230,20 +346,31 @@
       return;
     }
     const count = Math.min(BAL.countMax, Math.floor(BAL.countBase + n * BAL.countPerWave));
-    const pool = ["spark", "drifter"];
-    if (n >= 3) pool.push("razor");
-    if (n >= 6) pool.push("shooter");
-    if (n >= 7) pool.push("shellback");
-    if (n >= 9) pool.push("splitter");
-    if (n >= 12) pool.push("needle");
-    if (n >= 15) pool.push("coil");
-    if (n >= 18) pool.push("brood");
-    const weights = pool.map((t) => t === "spark" || t === "drifter" ? 3 : (t === "brood" || t === "shellback" ? 0.8 : 1.4));
+    const poolE = ["spark", "drifter"];
+    if (n >= 3) poolE.push("razor");
+    if (n >= 6) poolE.push("shooter");
+    if (n >= 7) poolE.push("shellback");
+    if (n >= 9) poolE.push("splitter");
+    if (n >= 12) poolE.push("needle");
+    if (n >= 15) poolE.push("coil");
+    if (n >= 18) poolE.push("brood");
+    const weights = poolE.map((t) => t === "spark" || t === "drifter" ? 3 : (t === "brood" || t === "shellback" ? 0.8 : 1.4));
     const wsum = weights.reduce((a, b) => a + b, 0);
     for (let i = 0; i < count; i++) {
-      let r = run.rng() * wsum, pick = pool[0];
-      for (let k = 0; k < pool.length; k++) { r -= weights[k]; if (r <= 0) { pick = pool[k]; break; } }
+      let r = run.rng() * wsum, pick = poolE[0];
+      for (let k = 0; k < poolE.length; k++) { r -= weights[k]; if (r <= 0) { pick = poolE[k]; break; } }
       run.pending.push({ type: pick, delay: 0.12 + i * (n < 5 ? 0.32 : 0.22) });
+    }
+    const skipN = Math.min(run.pending.length - 1, playerStats(run).skip | 0);
+    if (skipN > 0 && n % 10 !== 0) {
+      let granted = 0;
+      for (let s = 0; s < skipN; s++) {
+        const p = run.pending.shift();
+        if (!p) break;
+        const def = ENEMY[p.type];
+        if (def) granted += Math.max(1, Math.round(def.coins * playerStats(run).coinMul));
+      }
+      run.coins += granted;
     }
   }
 
@@ -258,7 +385,8 @@
         hp: b.hp, maxHp: b.hp, r: b.r, dmg: 22 * dmgScale(run.wave),
         coins: b.coins, color: C.magenta, t: 0, fireCd: 1.2, fireEvery: 1.35,
         weave: b.kind === "twin" ? 1.4 : 0.7, weaveAmp: b.kind === "harbinger" ? 80 : 140,
-        vx: 0, shield: 0, phase: rnd() * 6
+        vx: 0, vy: 0, shield: 0, phase: rnd() * 6, burn: 0, burnDps: 0, chill: 0, stun: 0,
+        hitCd: 0
       };
       run.enemies.push(e);
       return e;
@@ -276,7 +404,7 @@
       shotDmg: def.shotDmg ? def.shotDmg * scD : 0, split: def.split || 0,
       spawnCd: def.spawn || 0, phase: rnd() * 6.28, cx: 0,
       dashing: false, dashT: 0, dashEvery: 1.8 + rnd() * 1.4, phaseT: rnd() * 0.8,
-      orbit: rnd() * 6.28
+      orbit: rnd() * 6.28, vx: 0, vy: 0, burn: 0, burnDps: 0, chill: 0, stun: 0, hitCd: 0
     };
     e.maxHp = e.hp + e.shield;
     e.cx = e.x;
@@ -288,23 +416,23 @@
   function shootEnemyAtPlayer(run, e) {
     const ang = Math.atan2(SHIP_Y - e.y, SHIP_X - e.x);
     const spd = 280 + 20 * Math.min(run.wave, 20);
-    run.bullets.push({
-      x: e.x, y: e.y + e.r, vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd,
-      r: 6, dmg: e.shotDmg || 7, friendly: false, color: e.color || C.magenta, life: 3
-    });
+    const b = take("bullets");
+    b.x = e.x; b.y = e.y + e.r; b.vx = Math.cos(ang) * spd; b.vy = Math.sin(ang) * spd;
+    b.r = 6; b.dmg = e.shotDmg || 7; b.friendly = false; b.color = e.color || C.magenta;
+    b.life = 3; b.kind = "enemy"; b.crit = false; b.pierce = 0; b.bounces = 0; b.target = null; b.turn = 0;
+    run.bullets.push(b);
   }
 
   function threatScore(e, fromX, fromY) {
     const dx = e.x - fromX, dy = e.y - fromY;
-    // Closest to the ship; a modest bias toward lower (near-rail) threats so leaks get priority.
     return Math.sqrt(dx * dx + dy * dy) - 0.2 * Math.max(0, e.y);
   }
 
-  function closestEnemy(run, fromX, fromY) {
+  function closestEnemy(run, fromX, fromY, ignore) {
     let best = null, bestS = 1e15;
     for (let i = 0; i < run.enemies.length; i++) {
       const e = run.enemies[i];
-      if (e.y < -40 || e.hp <= 0) continue;
+      if (e === ignore || e.y < -40 || e.hp <= 0) continue;
       const s = threatScore(e, fromX, fromY);
       if (s < bestS) { bestS = s; best = e; }
     }
@@ -319,14 +447,8 @@
       list.push(e);
     }
     list.sort((a, b) => threatScore(a, fromX, fromY) - threatScore(b, fromX, fromY));
-    return list.slice(0, n);
-  }
-
-  function aimAngle(run) {
-    const best = closestEnemy(run, SHIP_X, SHIP_Y);
-    if (!best) return -Math.PI / 2;
-    // Full-width aim: no forward-cone clamp, so side enemies near the rail get shot.
-    return Math.atan2(best.y - SHIP_Y, best.x - SHIP_X);
+    if (list.length > n) list.length = n;
+    return list;
   }
 
   function distToSegment(px, py, x0, y0, x1, y1) {
@@ -337,79 +459,142 @@
     return Math.hypot(px - (x0 + t * dx), py - (y0 + t * dy));
   }
 
+  function leadPoint(fromX, fromY, e, projSpd) {
+    const vx = e.vx || 0, vy = e.vy || 0;
+    const dx = e.x - fromX, dy = e.y - fromY;
+    const a = vx * vx + vy * vy - projSpd * projSpd;
+    const b = 2 * (dx * vx + dy * vy);
+    const c = dx * dx + dy * dy;
+    let t = -1;
+    if (Math.abs(a) < 1e-4) {
+      t = (Math.abs(b) < 1e-4) ? -1 : -c / b;
+    } else {
+      const disc = b * b - 4 * a * c;
+      if (disc >= 0) {
+        const s = Math.sqrt(disc);
+        const t1 = (-b - s) / (2 * a), t2 = (-b + s) / (2 * a);
+        t = (t1 > 0.02 && t2 > 0.02) ? Math.min(t1, t2) : (t1 > 0.02 ? t1 : t2);
+      }
+    }
+    if (!(t > 0) || t > 1.8) return { x: e.x, y: e.y, ang: Math.atan2(dy, dx) };
+    const ix = e.x + vx * t, iy = e.y + vy * t;
+    return { x: ix, y: iy, ang: Math.atan2(iy - fromY, ix - fromX) };
+  }
+
+  function muzzle(run) {
+    const a = run.hullAng != null ? run.hullAng : -Math.PI / 2;
+    return { x: SHIP_X + Math.cos(a) * 78, y: SHIP_Y + Math.sin(a) * 78 };
+  }
+
+  function aimAngle(run, fromX, fromY, spd) {
+    const best = closestEnemy(run, SHIP_X, SHIP_Y);
+    if (!best) return -Math.PI / 2;
+    return leadPoint(fromX, fromY, best, spd).ang;
+  }
+
   function fireBlaster(run, st) {
-    const ang = aimAngle(run);
-    const ways = run.up.spread <= 0 ? 1 : (run.up.spread === 1 ? 3 : 5);
-    const spreadW = ways === 1 ? 0 : (ways === 3 ? 0.22 : 0.16);
+    const m = muzzle(run);
+    const ang = aimAngle(run, m.x, m.y, st.bulletSpd);
+    run.aimAng = ang;
+    const spreadWays = run.up.spread <= 0 ? 1 : (run.up.spread === 1 ? 3 : (run.up.spread < 4 ? 5 : 7));
+    const extra = st.multi || 0;
+    const ways = Math.min(9, spreadWays + extra);
+    const spreadW = ways === 1 ? 0 : (ways <= 3 ? 0.18 : (ways <= 5 ? 0.14 : 0.11));
     const start = -((ways - 1) / 2);
+    const mid = (ways - 1) / 2;
     for (let i = 0; i < ways; i++) {
       const a = ang + (start + i) * spreadW;
       const crit = run.rng() < st.crit;
-      const dmg = st.dmg * (crit ? 2 : 1) * (ways > 1 && i !== (ways - 1) / 2 ? 0.85 : 1);
-      run.bullets.push({
-        x: SHIP_X + Math.cos(a) * 20, y: SHIP_Y - 78,
-        vx: Math.cos(a) * BAL.bulletSpd, vy: Math.sin(a) * BAL.bulletSpd,
-        r: crit ? 7 : 5, dmg: dmg, friendly: true, color: crit ? C.white : C.cyan,
-        life: 1.85, crit: crit, kind: "blast"
-      });
+      const dmg = st.dmg * (crit ? st.critMul : 1) * (ways > 1 && i !== mid ? 0.85 : 1);
+      const b = take("bullets");
+      b.x = m.x + Math.cos(a) * 8; b.y = m.y + Math.sin(a) * 8;
+      b.vx = Math.cos(a) * st.bulletSpd; b.vy = Math.sin(a) * st.bulletSpd;
+      b.r = crit ? 7 : 5; b.dmg = dmg; b.friendly = true; b.color = crit ? C.white : C.cyan;
+      b.life = 1.85; b.crit = crit; b.kind = "blast"; b.target = null; b.turn = 0;
+      b.pierce = st.pierce; b.bounces = st.ricochet; b.hitSet = 0;
+      run.bullets.push(b);
     }
   }
 
   function fireMissile(run, st) {
-    const target = closestEnemy(run, SHIP_X, SHIP_Y);
-    const ang = target ? Math.atan2(target.y - SHIP_Y, target.x - SHIP_X) : -Math.PI / 2;
-    run.bullets.push({
-      x: SHIP_X, y: SHIP_Y - 40, vx: Math.cos(ang) * 320, vy: Math.sin(ang) * 320,
-      r: 8, dmg: st.dmg * (2.4 + 0.5 * run.up.missile), friendly: true, color: C.orange,
-      life: 2.4, kind: "missile", target: target, turn: 7
-    });
+    const n = Math.max(1, st.mcount | 0);
+    const m = muzzle(run);
+    const targets = closestEnemies(run, SHIP_X, SHIP_Y, n);
+    for (let i = 0; i < n; i++) {
+      const target = targets[i] || targets[0];
+      const ang = target ? leadPoint(m.x, m.y, target, 420).ang : -Math.PI / 2;
+      const b = take("bullets");
+      const off = (i - (n - 1) / 2) * 18;
+      b.x = m.x + Math.cos(ang + Math.PI / 2) * off;
+      b.y = m.y + Math.sin(ang + Math.PI / 2) * off;
+      b.vx = Math.cos(ang) * 340; b.vy = Math.sin(ang) * 340;
+      b.r = 8; b.dmg = st.dmg * (2.4 + 0.5 * run.up.missile); b.friendly = true;
+      b.color = C.orange; b.life = 2.6; b.kind = "missile"; b.crit = false;
+      b.target = target; b.turn = 7; b.pierce = 0; b.bounces = 0;
+      run.bullets.push(b);
+    }
   }
 
   function fireLaser(run, st) {
     const beams = run.up.laser >= 2 ? 2 : 1;
     const targets = closestEnemies(run, SHIP_X, SHIP_Y, beams);
+    const m = muzzle(run);
     for (let i = 0; i < beams; i++) {
       const e = targets[i] || targets[0];
-      const x0 = SHIP_X + (beams === 2 ? (i === 0 ? -24 : 24) : 0);
-      const y0 = SHIP_Y - 80;
+      const x0 = m.x + (beams === 2 ? (i === 0 ? -24 : 24) : 0);
+      const y0 = m.y;
       let tx = e ? e.x : SHIP_X, ty = e ? e.y : 80;
+      if (e) { const lp = leadPoint(x0, y0, e, 2200); tx = lp.x; ty = lp.y; }
       const d = Math.hypot(tx - x0, ty - y0) || 1;
-      const x1 = x0 + (tx - x0) / d * 1700;
-      const y1 = y0 + (ty - y0) / d * 1700;
-      run.lasers.push({
-        x0: x0, y0: y0, x1: x1, y1: y1,
-        t: 0.18, dmg: st.dmg * (1.1 + 0.35 * run.up.laser), tick: 0
-      });
+      const L = take("lasers");
+      L.x0 = x0; L.y0 = y0; L.x1 = x0 + (tx - x0) / d * 1700; L.y1 = y0 + (ty - y0) / d * 1700;
+      L.t = 0.18; L.dmg = st.dmg * (1.1 + 0.35 * run.up.laser); L.tick = 0; L.w = st.laserW;
+      run.lasers.push(L);
     }
   }
 
   function fireDrone(run, st, x, y) {
     const e = closestEnemy(run, SHIP_X, SHIP_Y);
-    const ang = e ? Math.atan2(e.y - y, e.x - x) : -Math.PI / 2;
-    run.bullets.push({
-      x: x, y: y, vx: Math.cos(ang) * 860, vy: Math.sin(ang) * 860,
-      r: 4, dmg: st.dmg * 0.55, friendly: true, color: C.lime, life: 1.2, kind: "drone"
-    });
+    const spd = st.bulletSpd * 0.88;
+    const ang = e ? leadPoint(x, y, e, spd).ang : -Math.PI / 2;
+    const b = take("bullets");
+    b.x = x; b.y = y; b.vx = Math.cos(ang) * spd; b.vy = Math.sin(ang) * spd;
+    b.r = 4; b.dmg = st.dmg * st.droneDmg; b.friendly = true; b.color = C.lime;
+    b.life = 1.3; b.kind = "drone"; b.crit = false; b.target = e; b.turn = 0;
+    b.pierce = Math.min(1, st.pierce); b.bounces = 0;
+    run.bullets.push(b);
   }
 
-  function dronePos(i, t) {
-    const side = i === 0 ? -1 : 1;
-    return { x: SHIP_X + side * 190, y: SHIP_Y - 30 + Math.sin(t * 3 + i) * 8 };
+  function dronePos(i, t, n) {
+    const total = Math.max(1, n || 2);
+    const side = (i % 2 === 0) ? -1 : 1;
+    const row = Math.floor(i / 2);
+    return { x: SHIP_X + side * (190 + row * 40), y: SHIP_Y - 30 - row * 50 + Math.sin(t * 3 + i) * 8 };
   }
+
 
   function burst(run, x, y, color, n) {
-    if (run.particles.length > 260) return;
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2 + run.rng() * 0.4;
+    if (run.particles.length >= MAX_PARTICLES) return;
+    const count = Math.min(n, MAX_PARTICLES - run.particles.length, 12);
+    for (let i = 0; i < count; i++) {
+      const a = (i / count) * Math.PI * 2 + run.rng() * 0.4;
       const s = 80 + run.rng() * 260;
-      run.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0.35 + run.rng() * 0.4, t: 0, color: color, r: 2 + run.rng() * 3 });
+      const p = take("particles");
+      p.x = x; p.y = y; p.vx = Math.cos(a) * s; p.vy = Math.sin(a) * s;
+      p.life = 0.28 + run.rng() * 0.28; p.t = 0; p.color = color; p.r = 2 + run.rng() * 3;
+      run.particles.push(p);
     }
   }
   function floater(run, x, y, text, color, kind) {
-    run.floaters.push({ x, y, text, color, kind: kind || "dmg", t: 0, life: 0.7, vy: -60 });
+    if (run.floaters.length >= MAX_FLOATERS) {
+      give("floaters", popAt(run.floaters, 0));
+    }
+    const f = take("floaters");
+    f.x = x; f.y = y; f.text = text; f.color = color; f.kind = kind || "dmg"; f.t = 0; f.life = 0.55; f.vy = -60;
+    run.floaters.push(f);
   }
 
-  function hurt(run, dmg) {
+  function hurt(run, dmg, src) {
     if (run.dead || run.invuln > 0) return;
     const st = playerStats(run);
     dmg = dmg * (1 - st.armor);
@@ -419,6 +604,9 @@
     }
     if (dmg <= 0) { run.shake = Math.max(run.shake, 6); return; }
     run.hp -= dmg; run.invuln = 0.55; run.shake = 14; run.flash = 0.18;
+    if (src && st.thorns > 0 && src.hp > 0) {
+      hitEnemy(run, src, dmg * st.thorns, false, true);
+    }
     if (run.hp <= 0) {
       if (run.perma.wind && !run.usedWind) {
         run.usedWind = true;
@@ -426,8 +614,7 @@
         run.invuln = 1.6; run.flash = 0.5;
       } else {
         run.hp = 0; run.dead = true; run.dyingT = 1.15;
-        burst(run, SHIP_X, SHIP_Y, C.cyan, 28);
-        burst(run, SHIP_X, SHIP_Y, C.magenta, 16);
+        burst(run, SHIP_X, SHIP_Y, C.cyan, 16);
       }
     }
   }
@@ -438,10 +625,9 @@
     if (idx >= 0) run.enemies.splice(idx, 1);
     run.kills++;
     if (e.type === "boss") run.bossesBeaten++;
-    burst(run, e.x, e.y, e.color || C.orange, e.type === "boss" ? 36 : 14);
+    burst(run, e.x, e.y, e.color || C.orange, e.type === "boss" ? 16 : 8);
     if (giveCoins !== false) {
-      const c = Math.max(1, Math.round(e.coins * st.coinMul));
-      run.pickups.push({ x: e.x, y: e.y, v: c, t: 0, wait: 0.12, vx: (run.rng() - 0.5) * 80, vy: -80 });
+      spawnCoin(run, e.x, e.y, Math.max(1, Math.round(e.coins * st.coinMul)));
     }
     if (e.split && e.type === "splitter") {
       spawnEnemy(run, "spark", { x: e.x - 18, y: e.y });
@@ -449,13 +635,43 @@
     }
   }
 
-  function hitEnemy(run, e, dmg, crit) {
+  function spawnCoin(run, x, y, v) {
+    if (run.pickups.length >= MAX_PICKUPS) {
+      const old = popAt(run.pickups, 0);
+      run.coins += old.v || 0;
+      give("pickups", old);
+    }
+    const p = take("pickups");
+    p.x = x; p.y = y; p.v = v; p.t = 0; p.wait = 0.12; p.vx = (run.rng() - 0.5) * 80; p.vy = -80;
+    run.pickups.push(p);
+  }
+
+  function applyOnHit(run, e, dmg, crit, st) {
+    if (st.burn > 0) { e.burn = Math.max(e.burn, 1.6 + run.up.burn * 0.15); e.burnDps = st.dmg * st.burn; }
+    if (st.chill > 0) e.chill = Math.max(e.chill, 0.7);
+    if (st.knock > 0 && e.type !== "boss") e.y -= st.knock * 0.35;
+    if (st.chain > 0) {
+      const hops = Math.min(4, 1 + (st.chain / 3 | 0));
+      let from = e, carry = dmg * (0.40 + 0.04 * st.chain);
+      for (let h = 0; h < hops; h++) {
+        const nxt = closestEnemy(run, from.x, from.y, from);
+        if (!nxt || Math.hypot(nxt.x - from.x, nxt.y - from.y) > 220 + st.chain * 8) break;
+        hitEnemy(run, nxt, carry, false, true);
+        carry *= 0.7;
+        from = nxt;
+      }
+    }
+  }
+
+  function hitEnemy(run, e, dmg, crit, noProc) {
+    if (!e || e.hp <= 0) return;
     if (e.shield > 0) {
       const used = Math.min(e.shield, dmg);
       e.shield -= used; dmg -= used;
     }
     if (dmg > 0) e.hp -= dmg;
     floater(run, e.x + (run.rng() - 0.5) * 20, e.y - e.r, String(Math.round(Math.max(1, dmg))), crit ? C.white : C.yellow, "dmg");
+    if (!noProc && e.hp > 0) applyOnHit(run, e, dmg, crit, playerStats(run));
     if (e.hp <= 0) killEnemy(run, e, true);
   }
 
@@ -465,10 +681,63 @@
     return Math.max(1, Math.round(raw * st.gemMul));
   }
 
+  function updatePickups(run, dt) {
+    const st = playerStats(run);
+    const tx = 980, ty = 58;
+    const wait = Math.max(0.04, 0.12 - (run.up.magnet || 0) * 0.012);
+    for (let i = run.pickups.length - 1; i >= 0; i--) {
+      const p = run.pickups[i];
+      p.t += dt;
+      const dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy) || 1;
+      const startFly = p.t >= wait || d < 80 + st.magnet;
+      if (!startFly && p.t < 1.2) {
+        p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 200 * dt;
+        continue;
+      }
+      const spd = 1200 + p.t * 700;
+      const step = spd * dt;
+      if (d <= Math.max(30, step + 4) || p.t >= 1.2) {
+        run.coins += p.v || 0;
+        floater(run, tx, ty + 18, "+" + (p.v || 0), C.yellow, "coin");
+        give("pickups", popAt(run.pickups, i));
+        continue;
+      }
+      p.x += dx / d * step;
+      p.y += dy / d * step;
+    }
+  }
+
+  function retargetMissile(run, b) {
+    const closest = closestEnemy(run, SHIP_X, SHIP_Y);
+    let tgt = b.target && run.enemies.indexOf(b.target) >= 0 && b.target.hp > 0 ? b.target : null;
+    if (!tgt) { tgt = closest; b.target = tgt; }
+    else if (closest && closest !== tgt) {
+      if (threatScore(closest, SHIP_X, SHIP_Y) + 8 < threatScore(tgt, SHIP_X, SHIP_Y)) {
+        tgt = closest; b.target = tgt;
+      }
+    }
+    return tgt;
+  }
+
+  function bounceBullet(run, b, e) {
+    if (!b.bounces) return false;
+    const nxt = closestEnemy(run, b.x, b.y, e);
+    if (!nxt) return false;
+    b.bounces--;
+    const spd = Math.hypot(b.vx, b.vy) || BAL.bulletSpd;
+    const ang = Math.atan2(nxt.y - b.y, nxt.x - b.x);
+    b.vx = Math.cos(ang) * spd; b.vy = Math.sin(ang) * spd;
+    b.life = Math.max(b.life, 0.5);
+    return true;
+  }
+
   function updateRun(run, dt) {
     if (dt > 0.05) dt = 0.05;
     if (run.dead) {
-      run.dyingT -= dt; run.time += dt; updateFx(run, dt); return;
+      run.dyingT -= dt; run.time += dt;
+      updatePickups(run, dt);
+      updateFx(run, dt);
+      return;
     }
     run.time += dt; run.waveTime += dt;
     if (run.invuln > 0) run.invuln -= dt;
@@ -476,9 +745,10 @@
     if (run.flash > 0) run.flash = Math.max(0, run.flash - dt);
     const st = playerStats(run);
 
+    if (st.regen > 0 && run.hp < st.maxHp) run.hp = Math.min(st.maxHp, run.hp + st.regen * dt);
     if (st.maxShield > 0) {
       if (run.shieldWait > 0) run.shieldWait -= dt;
-      else if (run.shield < st.maxShield) run.shield = Math.min(st.maxShield, run.shield + BAL.shieldRegenPerSec * dt);
+      else if (run.shield < st.maxShield) run.shield = Math.min(st.maxShield, run.shield + st.shRegen * dt);
     }
 
     if (run.wave === 0) beginWave(run, 1);
@@ -492,29 +762,79 @@
       }
     } else if (run.phase === "combat") {
       for (let i = 0; i < run.pending.length; i++) run.pending[i].delay -= dt;
-      const ready = run.pending.filter(p => p.delay <= 0);
-      run.pending = run.pending.filter(p => p.delay > 0);
-      for (const p of ready) spawnEnemy(run, p.type, p);
+      let write = 0;
+      for (let i = 0; i < run.pending.length; i++) {
+        const p = run.pending[i];
+        if (p.delay <= 0) spawnEnemy(run, p.type, p);
+        else run.pending[write++] = p;
+      }
+      run.pending.length = write;
       if (run.pending.length === 0 && run.enemies.length === 0 && run.waveTime > 0.6) beginWave(run, run.wave + 1);
     }
+
+    const want = aimAngle(run, SHIP_X, SHIP_Y - 78, st.bulletSpd);
+    run.aimAng = want;
+    const midA = -Math.PI / 2, maxDev = 0.5;
+    let targetHull = want;
+    if (targetHull < midA - maxDev) targetHull = midA - maxDev;
+    if (targetHull > midA + maxDev) targetHull = midA + maxDev;
+    let da = targetHull - (run.hullAng || midA);
+    while (da > Math.PI) da -= Math.PI * 2;
+    while (da < -Math.PI) da += Math.PI * 2;
+    run.hullAng = (run.hullAng || midA) + da * Math.min(1, 10 * dt);
 
     run.fireCd -= dt;
     if (run.fireCd <= 0) { fireBlaster(run, st); run.fireCd = st.interval; }
     if (run.up.missile > 0) {
       run.missileCd -= dt;
-      if (run.missileCd <= 0 && run.enemies.length) { fireMissile(run, st); run.missileCd = 1.35 * Math.pow(0.9, run.up.missile - 1); }
+      if (run.missileCd <= 0 && run.enemies.length) { fireMissile(run, st); run.missileCd = 1.35 * Math.pow(0.9, Math.min(8, run.up.missile - 1)); }
     }
     if (run.up.laser > 0) {
       run.laserCd -= dt;
-      if (run.laserCd <= 0 && run.enemies.length) { fireLaser(run, st); run.laserCd = 1.25 * Math.pow(0.9, run.up.laser - 1); }
+      if (run.laserCd <= 0 && run.enemies.length) { fireLaser(run, st); run.laserCd = 1.25 * Math.pow(0.9, Math.min(8, run.up.laser - 1)); }
     }
-    const drones = Math.min(2, run.up.drone);
+    const drones = st.drones;
     for (let i = 0; i < drones; i++) {
-      run.droneFire[i] -= dt;
+      run.droneFire[i] = (run.droneFire[i] || 0) - dt;
       if (run.droneFire[i] <= 0 && run.enemies.length) {
-        const p = dronePos(i, run.time);
+        const p = dronePos(i, run.time, drones);
         fireDrone(run, st, p.x, p.y);
         run.droneFire[i] = st.interval * 1.15;
+      }
+    }
+
+    if (st.emp > 0) {
+      run.empCd = (run.empCd || 0) - dt;
+      if (run.empCd <= 0 && run.enemies.length) {
+        run.empCd = Math.max(1.4, 3.2 - st.emp * 0.12);
+        const rad = 200 + st.emp * 28;
+        run.flash = Math.max(run.flash, 0.2);
+        for (let k = run.enemies.length - 1; k >= 0; k--) {
+          const e = run.enemies[k];
+          if (Math.hypot(e.x - SHIP_X, e.y - SHIP_Y) < rad) {
+            hitEnemy(run, e, st.dmg * (1.1 + 0.25 * st.emp), false);
+            if (e.hp > 0) e.stun = Math.max(e.stun || 0, 0.35 + st.emp * 0.05);
+          }
+        }
+      }
+    }
+
+    if (st.orbits > 0 && run.enemies.length) {
+      run.orbitT = (run.orbitT || 0) + dt;
+      const n = 2 + Math.min(4, st.orbits >> 1);
+      const rad = 130 + st.orbits * 6;
+      for (let i = 0; i < n; i++) {
+        const a = run.orbitT * 2.4 + i * (Math.PI * 2 / n);
+        const ox = SHIP_X + Math.cos(a) * rad;
+        const oy = SHIP_Y + Math.sin(a) * rad * 0.7;
+        for (let k = run.enemies.length - 1; k >= 0; k--) {
+          const e = run.enemies[k];
+          if ((e.hitCd || 0) > 0) continue;
+          if (Math.hypot(e.x - ox, e.y - oy) < e.r + 16) {
+            hitEnemy(run, e, st.dmg * (0.55 + 0.12 * st.orbits), false);
+            e.hitCd = 0.18;
+          }
+        }
       }
     }
 
@@ -523,33 +843,25 @@
       L.t -= dt; L.tick -= dt;
       if (L.tick <= 0) {
         L.tick = 0.05;
+        const pad = (L.w || 12);
         for (let k = run.enemies.length - 1; k >= 0; k--) {
           const e = run.enemies[k];
-          const x0 = L.x0 != null ? L.x0 : L.x, y0 = L.y0;
-          const x1 = L.x1 != null ? L.x1 : L.x, y1 = L.y1 != null ? L.y1 : 80;
-          if (distToSegment(e.x, e.y, x0, y0, x1, y1) < e.r + 12) hitEnemy(run, e, L.dmg * 0.35, false);
+          if (!e || e.hp <= 0) continue;
+          if (distToSegment(e.x, e.y, L.x0, L.y0, L.x1, L.y1) < e.r + pad) hitEnemy(run, e, L.dmg * 0.35, false);
         }
       }
-      if (L.t <= 0) run.lasers.splice(i, 1);
+      if (L.t <= 0) give("lasers", popAt(run.lasers, i));
     }
 
     for (let i = run.bullets.length - 1; i >= 0; i--) {
       const b = run.bullets[i];
       if (b.kind === "missile") {
-        const closest = closestEnemy(run, SHIP_X, SHIP_Y);
-        let tgt = b.target && run.enemies.indexOf(b.target) >= 0 ? b.target : null;
-        if (!tgt) {
-          tgt = closest;
-          b.target = tgt;
-        } else if (closest && closest !== tgt) {
-          const cur = threatScore(tgt, SHIP_X, SHIP_Y);
-          const nxt = threatScore(closest, SHIP_X, SHIP_Y);
-          if (nxt + 8 < cur) { tgt = closest; b.target = tgt; }
-        }
+        const tgt = retargetMissile(run, b);
         if (tgt) {
-          const want = Math.atan2(tgt.y - b.y, tgt.x - b.x);
+          const lp = leadPoint(b.x, b.y, tgt, Math.hypot(b.vx, b.vy) + 80);
+          const wantA = lp.ang;
           let have = Math.atan2(b.vy, b.vx);
-          let diff = want - have;
+          let diff = wantA - have;
           while (diff > Math.PI) diff -= Math.PI * 2;
           while (diff < -Math.PI) diff += Math.PI * 2;
           have += Math.max(-b.turn * dt, Math.min(b.turn * dt, diff));
@@ -557,93 +869,102 @@
           b.vx = Math.cos(have) * spd; b.vy = Math.sin(have) * spd;
         }
       }
+      const x0 = b.x, y0 = b.y;
       b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
-      if (b.life <= 0 || b.x < -40 || b.x > W + 40 || b.y < -60 || b.y > RAIL_Y + 40) {
-        run.bullets.splice(i, 1); continue;
+      if (b.life <= 0 || b.x < -80 || b.x > W + 80 || b.y < -80 || b.y > RAIL_Y + 60) {
+        give("bullets", popAt(run.bullets, i)); continue;
       }
       if (b.friendly) {
+        let hit = false;
         for (let k = run.enemies.length - 1; k >= 0; k--) {
           const e = run.enemies[k];
-          if (Math.hypot(e.x - b.x, e.y - b.y) < e.r + b.r) {
+          if (!e || e.hp <= 0) continue;
+          if (distToSegment(e.x, e.y, x0, y0, b.x, b.y) < e.r + b.r + HIT_PAD) {
             hitEnemy(run, e, b.dmg, b.crit);
-            if (b.kind !== "pierce") run.bullets.splice(i, 1);
+            hit = true;
+            if (b.pierce && b.pierce > 0) { b.pierce--; continue; }
+            if (bounceBullet(run, b, e)) break;
+            give("bullets", popAt(run.bullets, i));
             break;
           }
         }
-      } else if (Math.hypot(SHIP_X - b.x, SHIP_Y - b.y) < ((st.maxShield > 0 && run.shield > 0) ? 95 : 36) + b.r) {
+        if (hit && !run.bullets[i]) continue;
+      } else if (distToSegment(SHIP_X, SHIP_Y, x0, y0, b.x, b.y) < ((st.maxShield > 0 && run.shield > 0) ? 95 : 36) + b.r) {
         hurt(run, b.dmg);
-        run.bullets.splice(i, 1);
+        give("bullets", popAt(run.bullets, i));
       }
     }
 
     for (let i = run.enemies.length - 1; i >= 0; i--) {
       const e = run.enemies[i];
+      if (!e) continue;
+      if (e.hitCd > 0) e.hitCd -= dt;
+      if (e.burn > 0) {
+        e.burn -= dt;
+        e.hp -= e.burnDps * dt;
+        if (e.hp <= 0) { killEnemy(run, e, true); continue; }
+      }
+      if (e.chill > 0) e.chill -= dt;
+      if (e.stun > 0) e.stun -= dt;
       if (run.enemies.indexOf(e) < 0) continue;
       stepEnemy(run, e, dt);
       if (run.dead) break;
     }
 
-    for (let i = run.pickups.length - 1; i >= 0; i--) {
-      const p = run.pickups[i];
-      p.t += dt;
-      if (p.t < p.wait) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 200 * dt; }
-      else {
-        const tx = 920, ty = 56;
-        const dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy) || 1;
-        const spd = 900 + p.t * 400;
-        p.x += dx / d * spd * dt; p.y += dy / d * spd * dt;
-        if (d < 24) {
-          run.coins += p.v;
-          floater(run, tx, ty + 20, "+" + p.v, C.yellow, "coin");
-          run.pickups.splice(i, 1);
-        }
-      }
-    }
+    updatePickups(run, dt);
     updateFx(run, dt);
   }
 
   function stepEnemy(run, e, dt) {
-    switch (e.type) {
-      case "spark":
-        e.x += Math.sin(e.phase + run.time * 3.2) * 28 * dt; e.y += e.spd * dt; break;
-      case "drifter":
-        e.x += Math.sin(run.time * 0.9 + e.phase) * 18 * dt; e.y += e.spd * dt; break;
-      case "razor":
-        e.phaseT += dt;
-        if (e.dashing) { e.y += e.spd * 1.7 * dt; e.dashT -= dt; if (e.dashT <= 0) e.dashing = false; }
-        else {
-          e.x += Math.sin(run.time * 4.2 + e.phase) * 90 * dt; e.y += e.spd * 0.65 * dt;
-          if (e.phaseT > e.dashEvery) { e.dashing = true; e.dashT = 0.28; e.phaseT = 0; }
-        }
-        break;
-      case "shooter":
-        e.y += e.spd * dt; e.x += Math.sin(run.time * 1.2 + e.phase) * 22 * dt;
-        e.fireCd -= dt;
-        if (e.fireCd <= 0 && e.y > 40 && e.y < RAIL_Y - 80) { shootEnemyAtPlayer(run, e); e.fireCd = e.fireEvery; }
-        break;
-      case "shellback": e.y += e.spd * dt; break;
-      case "splitter": e.y += e.spd * dt; e.x += Math.sin(run.time * 2.2 + e.phase) * 34 * dt; break;
-      case "needle": e.y += e.spd * dt; break;
-      case "coil": e.orbit += dt * 2.6; e.x = e.cx + Math.sin(e.orbit) * 56; e.y += e.spd * dt; break;
-      case "brood":
-        e.y += e.spd * dt; e.spawnCd -= dt;
-        if (e.spawnCd <= 0 && run.enemies.length < 36) { spawnEnemy(run, "spark", { x: e.x, y: e.y + 20 }); e.spawnCd = ENEMY.brood.spawn; }
-        break;
-      case "boss": stepBoss(run, e, dt); break;
-    }
-    e.x = Math.max(40, Math.min(W - 40, e.x));
-    const hitShip = Math.hypot(e.x - SHIP_X, e.y - SHIP_Y) < e.r + 42;
-    const hitRail = e.y + e.r >= RAIL_Y;
-    if (hitShip || hitRail) {
-      hurt(run, e.dmg);
-      if (e.type === "boss") e.y = Math.min(e.y, RAIL_Y - e.r - 8);
-      else {
-        burst(run, e.x, e.y, e.color, 10);
-        const idx = run.enemies.indexOf(e);
-        if (idx >= 0) run.enemies.splice(idx, 1);
+    const lx = e.x, ly = e.y;
+    const slow = (e.stun > 0) ? 0.15 : (e.chill > 0 ? (1 - Math.min(0.55, playerStats(run).chill || 0.25)) : 1);
+    const sdt = dt * slow;
+    if (e.type === "boss") stepBoss(run, e, sdt);
+    else {
+      switch (e.type) {
+        case "spark":
+          e.x += Math.sin(e.phase + run.time * 3.2) * 28 * sdt; e.y += e.spd * sdt; break;
+        case "drifter":
+          e.x += Math.sin(run.time * 0.9 + e.phase) * 18 * sdt; e.y += e.spd * sdt; break;
+        case "razor":
+          e.phaseT += sdt;
+          if (e.dashing) { e.y += e.spd * 1.7 * sdt; e.dashT -= sdt; if (e.dashT <= 0) e.dashing = false; }
+          else {
+            e.x += Math.sin(run.time * 4.2 + e.phase) * 90 * sdt; e.y += e.spd * 0.65 * sdt;
+            if (e.phaseT > e.dashEvery) { e.dashing = true; e.dashT = 0.28; e.phaseT = 0; }
+          }
+          break;
+        case "shooter":
+          e.y += e.spd * sdt; e.x += Math.sin(run.time * 1.2 + e.phase) * 22 * sdt;
+          e.fireCd -= sdt;
+          if (e.y > 80 && e.fireCd <= 0) { shootEnemyAtPlayer(run, e); e.fireCd = e.fireEvery; }
+          break;
+        case "shellback":
+          e.y += e.spd * sdt; e.x += Math.sin(run.time * 0.7 + e.phase) * 12 * sdt; break;
+        case "splitter":
+          e.y += e.spd * sdt; e.x += Math.sin(run.time * 1.6 + e.phase) * 30 * sdt; break;
+        case "needle":
+          e.y += e.spd * sdt; e.x += Math.sin(run.time * 5 + e.phase) * 16 * sdt; break;
+        case "coil":
+          e.orbit += sdt * 1.4;
+          e.x = e.cx + Math.sin(e.orbit) * 70; e.y += e.spd * 0.85 * sdt; break;
+        case "brood":
+          e.y += e.spd * sdt;
+          e.spawnCd -= sdt;
+          if (e.spawnCd <= 0 && run.enemies.length < BAL.countMax + 6) {
+            spawnEnemy(run, "spark", { x: e.x, y: e.y + 10 });
+            e.spawnCd = ENEMY.brood.spawn;
+          }
+          break;
+        default:
+          e.y += e.spd * sdt;
       }
     }
+    e.vx = (e.x - lx) / Math.max(dt, 1e-4);
+    e.vy = (e.y - ly) / Math.max(dt, 1e-4);
+    finishEnemyStep(run, e, dt);
   }
+
 
   function stepBoss(run, e, dt) {
     e.t += dt;
@@ -658,41 +979,69 @@
       const base = Math.atan2(SHIP_Y - e.y, SHIP_X - e.x);
       for (let i = 0; i < n; i++) {
         const a = base + (i - (n - 1) / 2) * spread;
-        run.bullets.push({ x: e.x, y: e.y + 30, vx: Math.cos(a) * 260, vy: Math.sin(a) * 260, r: 7, dmg: 9 * dmgScale(run.wave), friendly: false, color: C.magenta, life: 4 });
+        const b = take("bullets");
+        b.x = e.x; b.y = e.y + 30; b.vx = Math.cos(a) * 260; b.vy = Math.sin(a) * 260;
+        b.r = 7; b.dmg = 9 * dmgScale(run.wave); b.friendly = false; b.color = C.magenta;
+        b.life = 4; b.kind = "enemy"; b.crit = false; b.pierce = 0; b.bounces = 0; b.target = null; b.turn = 0;
+        run.bullets.push(b);
       }
       if (e.bossKind === "harbinger" || e.bossKind === "lattice" || e.bossKind === "eclipse") {
-        for (const sx of [-180, 180]) {
-          run.bullets.push({ x: e.x + sx * (e.r / 110), y: e.y + 40, vx: 0, vy: 300, r: 6, dmg: 10 * dmgScale(run.wave), friendly: false, color: C.pink, life: 4 });
+        for (let s = 0; s < 2; s++) {
+          const sx = s === 0 ? -180 : 180;
+          const b = take("bullets");
+          b.x = e.x + sx * (e.r / 110); b.y = e.y + 40; b.vx = 0; b.vy = 300;
+          b.r = 6; b.dmg = 10 * dmgScale(run.wave); b.friendly = false; b.color = C.pink;
+          b.life = 4; b.kind = "enemy"; b.crit = false; b.pierce = 0; b.bounces = 0; b.target = null; b.turn = 0;
+          run.bullets.push(b);
         }
       }
       e.fireCd = e.fireEvery;
     }
   }
 
+  function finishEnemyStep(run, e, dt) {
+    e.x = Math.max(40, Math.min(W - 40, e.x));
+    const hitShip = Math.hypot(e.x - SHIP_X, e.y - SHIP_Y) < e.r + 42;
+    const hitRail = e.y + e.r >= RAIL_Y;
+    if (hitShip || hitRail) {
+      hurt(run, e.dmg, e);
+      if (e.type === "boss") e.y = Math.min(e.y, RAIL_Y - e.r - 8);
+      else {
+        burst(run, e.x, e.y, e.color, 8);
+        const idx = run.enemies.indexOf(e);
+        if (idx >= 0) run.enemies.splice(idx, 1);
+      }
+    }
+  }
+
+  // patch: call finishEnemyStep at end of stepEnemy (rail/ship already handled there — replace)
+  // We keep a hook used from stepEnemy below via wrapping after the file concat: see stepEnemy end.
+
   function updateFx(run, dt) {
     for (let i = run.particles.length - 1; i >= 0; i--) {
       const p = run.particles[i];
       p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.98; p.vy *= 0.98;
-      if (p.t >= p.life) run.particles.splice(i, 1);
+      if (p.t >= p.life) give("particles", popAt(run.particles, i));
     }
     for (let i = run.floaters.length - 1; i >= 0; i--) {
       const f = run.floaters[i];
       f.t += dt; f.y += f.vy * dt;
-      if (f.t >= f.life) run.floaters.splice(i, 1);
+      if (f.t >= f.life) give("floaters", popAt(run.floaters, i));
     }
   }
 
   function tryBuy(run, id) {
     if (run.dead) return false;
-    const def = UPGRADES.find(u => u.id === id);
+    const def = UP_BY_ID[id];
     if (!def) return false;
-    if (!isUnlocked(id, run.wave, run.up)) return false;
+    if (!isUnlocked(id, run.wave, run.up, run.bestWave)) return false;
     const lv = run.up[id] || 0;
     if (lv >= def.max) return false;
     const cost = midCost(id, lv);
     if (run.coins < cost) return false;
     run.coins -= cost;
     run.up[id] = lv + 1;
+    run._st = null;
     if (id === "hp") {
       const st = playerStats(run);
       run.hp = Math.min(st.maxHp, run.hp + Math.round(st.maxHp * BAL.hpHealFrac));
@@ -708,12 +1057,16 @@
     const st = playerStats(run);
     const hpFrac = run.hp / st.maxHp;
     const order = [];
-    if (hpFrac < 0.35 && isUnlocked("hp", run.wave, run.up)) order.push("hp");
-    if (run.up.rate < run.up.dmg) order.push("rate", "dmg"); else order.push("dmg", "rate");
-    order.push("spread");
-    if (hpFrac < 0.6) order.push("hp");
-    order.push("drone", "shield", "laser", "missile", "hp");
-    for (const id of order) { if (tryBuy(run, id)) return true; }
+    if (hpFrac < 0.35) order.push("hp", "regen", "shield");
+    if ((run.up.rate || 0) < (run.up.dmg || 0)) order.push("rate", "dmg"); else order.push("dmg", "rate");
+    order.push("spread", "bspd", "magnet", "coinVal");
+    if (hpFrac < 0.6) order.push("hp", "armor", "shield");
+    order.push("pierce", "multi", "crit", "critDmg", "burn");
+    order.push("drone", "laser", "missile", "interest");
+    order.push("shRegen", "regen", "knock", "freeze", "thorns");
+    order.push("dcount", "dmgDrone", "laserW", "mcount", "chain", "ricochet");
+    order.push("skip", "orbit", "emp", "hp");
+    for (let i = 0; i < order.length; i++) { if (tryBuy(run, order[i])) return true; }
     return false;
   }
 
@@ -737,13 +1090,13 @@
   }
 
   function autoBuyPerma(perma, gems) {
-    const order = ["dmg", "hp", "startCoins", "rate", "coinValue", "armor", "shield", "crit", "interest", "slot", "gemBonus", "wind"];
+    const order = ["dmg", "hp", "startCoins", "rate", "coinValue", "armor", "shield", "crit", "critDmg", "regen", "interest", "magnet", "pierce", "shRegen", "multi", "slot", "gemBonus", "thorns", "skip", "wind"];
     let changed = true;
     while (changed) {
       changed = false;
-      for (const id of order) {
+      for (let i = 0; i < order.length; i++) {
         const before = gems;
-        gems = tryBuyPerma(perma, gems, id);
+        gems = tryBuyPerma(perma, gems, order[i]);
         if (gems !== before) { changed = true; break; }
       }
     }
@@ -753,10 +1106,10 @@
   function simulateUntilDeath(run, opts) {
     opts = opts || {};
     const dt = opts.dt || 1 / 30;
-    const maxT = opts.maxTime || 60 * 18;
+    const maxT = opts.maxTime || 60 * 24;
     let t = 0;
-    while (!run.dead && t < maxT && run.wave < 200) {
-      if (opts.autoBuy) { for (let k = 0; k < 4; k++) if (!autoBuyMid(run)) break; }
+    while (!run.dead && t < maxT && run.wave < 250) {
+      if (opts.autoBuy) { for (let k = 0; k < 6; k++) if (!autoBuyMid(run)) break; }
       updateRun(run, dt);
       t += dt;
       if (run.dead) { run.dyingT = 0; break; }
@@ -792,11 +1145,12 @@
   }
 
   const LO = {
-    BAL, UPGRADES, PERMA, ENEMY,
+    BAL, UPGRADES, PERMA, ENEMY, TABS,
     createRun, updateRun, tryBuy, tryBuyPerma, autoBuyMid, autoBuyPerma,
     playerStats, gemsFor, simulateUntilDeath, simulateRuns, beginWave, spawnEnemy,
-    defaultPerma, defaultMid, defaultSave, loadSave, writeSave, midCost, costOf, isUnlocked,
-    bossInfo, W, H, RAIL_Y, SHIP_X, SHIP_Y, C
+    defaultPerma, defaultMid, defaultSave, loadSave, writeSave, migrateSave, midCost, costOf, isUnlocked,
+    bossInfo, settlePickups, W, get H() { return H; }, get RAIL_Y() { return RAIL_Y; }, SHIP_X,
+    get SHIP_Y() { return SHIP_Y; }, C
   };
 
   if (typeof document === "undefined") {
@@ -805,10 +1159,11 @@
     return;
   }
 
+
   const stage = document.getElementById("stage");
   const frame = document.getElementById("frame");
   const canvas = document.getElementById("fx");
-  const ctx = canvas.getContext("2d", { alpha: false });
+  const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
   let dprScale = 1;
   let save = loadSave();
   let mode = "title";
@@ -816,6 +1171,9 @@
   let speed = 1;
   let run = null;
   let demo = null;
+  let consoleTab = "atk";
+  let hudDirty = true;
+  let consoleDirty = true;
   try { demo = new URLSearchParams(location.search).get("demo"); } catch (e) { demo = null; }
 
   const audio = {
@@ -829,24 +1187,21 @@
       this.master.gain.value = this.mute ? 0 : 0.18;
       this.master.connect(this.ctx.destination);
     },
-    setMute(m) { this.mute = m; if (this.master) this.master.gain.value = m ? 0 : 0.18; },
-    tone(freq, dur, type, vol, slide) {
-      if (this.mute || !this.ctx) return;
-      const t0 = this.ctx.currentTime;
-      const o = this.ctx.createOscillator();
-      const g = this.ctx.createGain();
-      o.type = type || "square";
-      o.frequency.setValueAtTime(freq, t0);
-      if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, slide), t0 + dur);
-      g.gain.setValueAtTime(0.0001, t0);
-      g.gain.exponentialRampToValueAtTime(vol || 0.12, t0 + 0.01);
-      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-      o.connect(g); g.connect(this.master);
-      o.start(t0); o.stop(t0 + dur + 0.02);
+    setMute(v) {
+      this.mute = v;
+      if (this.master) this.master.gain.value = v ? 0 : 0.18;
     },
-    shoot() { this.tone(720, 0.05, "square", 0.04, 420); },
-    explode() { this.tone(180, 0.22, "sawtooth", 0.1, 60); },
-    coin() { this.tone(880, 0.07, "square", 0.07); setTimeout(() => this.tone(1180, 0.08, "square", 0.06), 40); },
+    tone(freq, dur, type, vol, slide) {
+      if (!this.ctx || this.mute) return;
+      const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.type = type || "square"; o.frequency.value = freq;
+      if (slide) o.frequency.linearRampToValueAtTime(slide, this.ctx.currentTime + dur);
+      g.gain.value = vol || 0.08;
+      g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
+      o.connect(g); g.connect(this.master); o.start(); o.stop(this.ctx.currentTime + dur + 0.02);
+    },
+    coin() { this.tone(880, 0.06, "square", 0.05, 1320); },
+    explode() { this.tone(180, 0.12, "sawtooth", 0.08, 60); },
     hurt() { this.tone(140, 0.16, "sawtooth", 0.12, 70); },
     buy() { this.tone(520, 0.08, "square", 0.08, 800); },
     deny() { this.tone(120, 0.1, "triangle", 0.06); },
@@ -869,13 +1224,17 @@
     frame.style.width = Math.round(W * scale) + "px";
     frame.style.height = Math.round(H * scale) + "px";
     stage.style.transform = "scale(" + scale + ")";
-    const want = Math.min(window.devicePixelRatio || 1, 2);
-    dprScale = want;
+    // Backing store tracks the *displayed* size, not 1080 * devicePixelRatio.
+    const cap = 1.5;
+    dprScale = Math.min((window.devicePixelRatio || 1), cap) * scale;
+    dprScale = Math.max(0.5, Math.min(2, dprScale));
     canvas.width = Math.round(W * dprScale);
     canvas.height = Math.round(H * dprScale);
     canvas.style.width = W + "px";
     canvas.style.height = H + "px";
     ctx.setTransform(dprScale, 0, 0, dprScale, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    bgCache = { play: null, title: null, over: null, h: -1 };
   }
 
   function neonStroke(g, color, width, pathFn, opts) {
@@ -901,6 +1260,7 @@
   }
 
   const sprites = {};
+  const glows = {};
   function sprite(key, w, h, draw) {
     if (sprites[key]) return sprites[key];
     const pad = 28;
@@ -915,6 +1275,28 @@
   }
   function blit(g, key, x, y, s) {
     const im = sprites[key];
+    if (!im) return;
+    s = s || 1;
+    g.drawImage(im, x - im._ox * s, y - im._oy * s, im.width * s, im.height * s);
+  }
+  function makeGlow(key, color, r, bloom) {
+    const size = Math.ceil((r + bloom) * 2);
+    const c = document.createElement("canvas");
+    c.width = size; c.height = size;
+    const g = c.getContext("2d");
+    const grd = g.createRadialGradient(size / 2, size / 2, r * 0.15, size / 2, size / 2, r + bloom);
+    grd.addColorStop(0, "#fff");
+    grd.addColorStop(0.18, color);
+    grd.addColorStop(0.45, color);
+    grd.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = grd;
+    g.beginPath(); g.arc(size / 2, size / 2, r + bloom, 0, Math.PI * 2); g.fill();
+    c._ox = size / 2; c._oy = size / 2;
+    glows[key] = c;
+    return c;
+  }
+  function blitGlow(g, key, x, y, s) {
+    const im = glows[key];
     if (!im) return;
     s = s || 1;
     g.drawImage(im, x - im._ox * s, y - im._oy * s, im.width * s, im.height * s);
@@ -998,7 +1380,32 @@
       const body = () => { g.beginPath(); g.moveTo(0, -28); g.lineTo(18, 0); g.lineTo(0, 18); g.lineTo(-18, 0); g.closePath(); };
       neonFill(g, C.lime, body, 0.16); neonStroke(g, C.lime, 2, body, { bloom: 12 });
     });
+    sprite("engine", 40, 70, g => {
+      g.fillStyle = C.cyan; g.shadowColor = C.cyan; g.shadowBlur = 18;
+      g.beginPath(); g.moveTo(-7, 0); g.lineTo(7, 0); g.lineTo(2, 48); g.lineTo(-2, 48); g.closePath(); g.fill();
+      g.fillStyle = "#fff"; g.shadowBlur = 8;
+      g.beginPath(); g.moveTo(-3, 0); g.lineTo(3, 0); g.lineTo(1, 32); g.lineTo(-1, 32); g.closePath(); g.fill();
+    });
+    sprite("shield", 280, 240, g => {
+      g.globalAlpha = 0.16; g.fillStyle = C.cyan; g.shadowColor = C.cyan; g.shadowBlur = 24;
+      g.beginPath(); g.ellipse(0, 0, 128, 110, 0, 0, Math.PI * 2); g.fill();
+      g.globalAlpha = 1;
+      neonStroke(g, C.cyan, 2.2, () => { g.beginPath(); g.ellipse(0, 0, 128, 110, 0, 0, Math.PI * 2); }, { bloom: 14 });
+    });
+    ["herald", "twin", "lattice", "harbinger", "eclipse"].forEach(kind => {
+      sprite("boss-" + kind, 700, 420, g => { drawHarbinger(g, 0, 0, 1, kind === "eclipse" ? "harbinger" : kind); });
+    });
+    makeGlow("bolt", C.cyan, 5, 14);
+    makeGlow("boltW", C.white, 6, 14);
+    makeGlow("boltO", C.orange, 7, 16);
+    makeGlow("boltL", C.lime, 4, 12);
+    makeGlow("boltM", C.magenta, 6, 12);
+    makeGlow("boltP", C.pink, 6, 12);
+    makeGlow("coin", C.yellow, 9, 16);
+    makeGlow("spark", C.cyan, 3, 10);
+    makeGlow("orb", C.violet, 10, 16);
   }
+
 
   function drawHarbinger(g, x, y, s, kind) {
     g.save(); g.translate(x, y); g.scale(s, s);
@@ -1044,23 +1451,23 @@
   const stars = [];
   (function () {
     const rnd = makeRng(42);
-    for (let i = 0; i < 180; i++) {
+    for (let i = 0; i < 140; i++) {
       stars.push({ x: rnd() * W, y: rnd() * 2600, r: rnd() < 0.12 ? 1.5 + rnd() * 1.3 : 0.6 + rnd() * 0.9, a: 0.35 + rnd() * 0.65, col: rnd() < 0.12 ? C.magenta : rnd() < 0.22 ? C.cyan : "#dcefff", tw: rnd() < 0.1 });
     }
   })();
 
   function drawStars(g) {
-    for (const s of stars) {
-      g.save(); g.globalAlpha = s.a; g.fillStyle = s.col;
-      if (s.r > 1.4) { g.shadowColor = s.col; g.shadowBlur = 8; }
+    for (let i = 0; i < stars.length; i++) {
+      const s = stars[i];
+      g.globalAlpha = s.a; g.fillStyle = s.col;
       g.beginPath(); g.arc(s.x, s.y, s.r, 0, Math.PI * 2); g.fill();
       if (s.tw) {
-        g.globalAlpha = s.a * 0.6; g.strokeStyle = s.col; g.lineWidth = 0.7; g.shadowBlur = 6;
+        g.globalAlpha = s.a * 0.55; g.strokeStyle = s.col; g.lineWidth = 0.7;
         g.beginPath(); g.moveTo(s.x - s.r * 3, s.y); g.lineTo(s.x + s.r * 3, s.y);
         g.moveTo(s.x, s.y - s.r * 3); g.lineTo(s.x, s.y + s.r * 3); g.stroke();
       }
-      g.restore();
     }
+    g.globalAlpha = 1;
   }
 
   function drawGrid(g, horizon, bottom, vanishY, alpha) {
@@ -1088,165 +1495,155 @@
     g.restore();
   }
 
-  function drawEngines(g, x, y, s, t) {
-    g.save(); g.translate(x, y); g.scale(s, s);
-    const flick = 0.85 + Math.sin(t * 30) * 0.15;
-    for (const sx of [-11, 11]) {
-      g.save(); g.globalAlpha = 0.55 * flick; g.fillStyle = C.cyan; g.shadowColor = C.cyan; g.shadowBlur = 20;
-      g.beginPath(); g.moveTo(sx - 6, 44); g.lineTo(sx + 6, 44); g.lineTo(sx + 1.5, 92); g.lineTo(sx - 1.5, 92); g.closePath(); g.fill();
-      g.globalAlpha = 0.95 * flick; g.fillStyle = "#fff"; g.shadowBlur = 10;
-      g.beginPath(); g.moveTo(sx - 2.4, 44); g.lineTo(sx + 2.4, 44); g.lineTo(sx + 0.7, 76); g.lineTo(sx - 0.7, 76); g.closePath(); g.fill();
-      g.restore();
-    }
-    g.restore();
-  }
-
-  function drawShield(g, x, y, t, frac) {
-    g.save(); g.translate(x, y);
-    g.globalAlpha = 0.12 + 0.08 * frac;
-    g.fillStyle = C.cyan; g.shadowColor = C.cyan; g.shadowBlur = 24;
-    g.beginPath(); g.ellipse(0, 0, 128, 110, 0, 0, Math.PI * 2); g.fill();
-    g.restore();
-    g.save(); g.translate(x, y);
-    neonStroke(g, C.cyan, 2.2, () => { g.beginPath(); g.ellipse(0, 0, 128, 110, 0, 0, Math.PI * 2); }, { bloom: 14 });
-    g.restore();
-  }
-
-  let titleShots = [];
-  function drawBackground(g, kind) {
+  let bgCache = { play: null, title: null, over: null, h: -1 };
+  function ensureBg(kind) {
+    if (bgCache.h === H && bgCache[kind]) return bgCache[kind];
+    if (bgCache.h !== H) { bgCache = { play: null, title: null, over: null, h: H }; }
+    const c = document.createElement("canvas");
+    c.width = W; c.height = H;
+    const g = c.getContext("2d");
     const grd = g.createRadialGradient(W / 2, 420, 40, W / 2, 800, 1200);
     if (kind === "over") { grd.addColorStop(0, "#14000c"); grd.addColorStop(0.45, "#050008"); grd.addColorStop(1, "#000"); }
     else { grd.addColorStop(0, "#0a0014"); grd.addColorStop(0.45, "#000008"); grd.addColorStop(1, "#000"); }
     g.fillStyle = grd; g.fillRect(0, 0, W, H);
     drawStars(g);
     if (kind === "title") drawGrid(g, 860, H, 620, 0.42);
-    if (kind === "over") drawGrid(g, Math.min(1200, H - 720), H, Math.min(1036, H - 900), 0.3);
+    else if (kind === "over") drawGrid(g, Math.min(1200, H - 720), H, Math.min(1036, H - 900), 0.3);
+    else {
+      const haze = g.createLinearGradient(0, RAIL_Y - 210, 0, RAIL_Y);
+      haze.addColorStop(0, "rgba(0,246,255,0)"); haze.addColorStop(1, "rgba(0,246,255,0.07)");
+      g.fillStyle = haze; g.fillRect(0, RAIL_Y - 210, W, 220);
+    }
+    bgCache[kind] = c;
+    return c;
   }
 
+  let titleShots = [];
   function render() {
     const g = ctx;
     g.setTransform(dprScale, 0, 0, dprScale, 0, 0);
     const kind = mode === "title" ? "title" : (mode === "over" ? "over" : "play");
     const sh = (run && run.shake) ? run.shake : 0;
     if (sh > 0) { g.save(); g.translate((Math.random() - 0.5) * sh, (Math.random() - 0.5) * sh); }
-    drawBackground(g, kind);
+    g.drawImage(ensureBg(kind), 0, 0);
 
     if (mode === "title") {
       const t = performance.now() / 1000;
       blit(g, "player", SHIP_X, 1120, 1.25);
-      drawEngines(g, SHIP_X, 1120, 1.25, t);
+      blit(g, "engine", SHIP_X - 11, 1120 + 44, 1.1);
+      blit(g, "engine", SHIP_X + 11, 1120 + 44, 1.1);
       if (titleShots.length === 0 || titleShots[titleShots.length - 1].y < 980) titleShots.push({ x: 540, y: 1040 });
       g.save(); g.globalCompositeOperation = "lighter";
-      for (const s of titleShots) {
-        s.y -= 6;
-        g.strokeStyle = C.cyan; g.shadowColor = C.cyan; g.shadowBlur = 12; g.lineWidth = 3; g.lineCap = "round";
-        g.beginPath(); g.moveTo(s.x, s.y + 10); g.lineTo(s.x, s.y - 10); g.stroke();
+      for (let i = 0; i < titleShots.length; i++) {
+        titleShots[i].y -= 6;
+        blitGlow(g, "bolt", titleShots[i].x, titleShots[i].y, 1);
       }
       g.restore();
-      titleShots = titleShots.filter(s => s.y > 580);
+      if (titleShots.length && titleShots[0].y <= 580) titleShots.shift();
     } else if (mode === "over") {
-      blit(g, "player", 900, 1310, 0.58);
+      blit(g, "player", 900, Math.min(H - 200, 1310), 0.58);
     } else if (run) {
       const t = run.time;
-      g.save();
-      const haze = g.createLinearGradient(0, RAIL_Y - 210, 0, RAIL_Y);
-      haze.addColorStop(0, "rgba(0,246,255,0)"); haze.addColorStop(1, "rgba(0,246,255,0.07)");
-      g.fillStyle = haze; g.fillRect(0, RAIL_Y - 210, W, 220); g.restore();
+      const st = playerStats(run);
 
-      for (const e of run.enemies) {
+      for (let i = 0; i < run.enemies.length; i++) {
+        const e = run.enemies[i];
         if (e.type === "boss") {
-          const sc = e.bossKind === "harbinger" ? 1.05 : (e.bossKind === "lattice" ? 0.95 : 0.85);
-          drawHarbinger(g, e.x, e.y, sc, e.bossKind);
+          const sc = e.bossKind === "harbinger" || e.bossKind === "eclipse" ? 1.05 : (e.bossKind === "lattice" ? 0.95 : 0.85);
+          const key = "boss-" + (e.bossKind === "eclipse" ? "harbinger" : e.bossKind);
+          blit(g, key, e.x, e.y, sc);
         } else {
-          blit(g, sprites[e.type] ? e.type : "spark", e.x, e.y, 1);
+          blit(g, e.type, e.x, e.y, 1);
           if (e.shield > 0) {
-            g.save(); g.strokeStyle = C.violet; g.shadowColor = C.violet; g.shadowBlur = 8; g.lineWidth = 2; g.globalAlpha = 0.7;
-            g.beginPath(); g.arc(e.x, e.y, e.r + 6, 0, Math.PI * 2); g.stroke(); g.restore();
+            g.save(); g.globalCompositeOperation = "lighter"; blitGlow(g, "orb", e.x, e.y, 0.7); g.restore();
           }
+          if (e.burn > 0) { g.save(); g.globalCompositeOperation = "lighter"; blitGlow(g, "boltO", e.x, e.y, 0.8); g.restore(); }
         }
       }
 
-      for (const L of run.lasers) {
-        const x0 = L.x0 != null ? L.x0 : L.x, y0 = L.y0;
-        const x1 = L.x1 != null ? L.x1 : L.x, y1 = L.y1 != null ? L.y1 : 80;
-        g.save();
-        g.strokeStyle = C.lime; g.shadowColor = C.lime; g.shadowBlur = 18; g.lineWidth = 6; g.globalAlpha = 0.35 * (L.t / 0.18);
-        g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
-        g.globalAlpha = Math.max(0, L.t / 0.18); g.lineWidth = 2.2; g.strokeStyle = "#f5ffd8";
-        g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
-        g.restore();
+      g.save(); g.globalCompositeOperation = "lighter";
+      for (let i = 0; i < run.lasers.length; i++) {
+        const L = run.lasers[i];
+        const a = Math.max(0, L.t / 0.18);
+        g.strokeStyle = C.lime; g.globalAlpha = 0.35 * a; g.lineWidth = (L.w || 12) * 0.5;
+        g.beginPath(); g.moveTo(L.x0, L.y0); g.lineTo(L.x1, L.y1); g.stroke();
+        g.globalAlpha = a; g.lineWidth = 2.2; g.strokeStyle = "#f5ffd8";
+        g.beginPath(); g.moveTo(L.x0, L.y0); g.lineTo(L.x1, L.y1); g.stroke();
       }
-
-      for (const b of run.bullets) {
-        g.save();
-        if (b.kind === "missile") {
-          const a = Math.atan2(b.vy, b.vx);
-          g.translate(b.x, b.y); g.rotate(a);
-          g.strokeStyle = C.orange; g.shadowColor = C.orange; g.shadowBlur = 12; g.lineWidth = 3;
-          g.beginPath(); g.moveTo(-16, 0); g.lineTo(-4, 0); g.stroke();
-          g.fillStyle = C.orange;
-          g.beginPath(); g.moveTo(10, 0); g.lineTo(-6, 4); g.lineTo(-6, -4); g.closePath(); g.fill();
-        } else if (!b.friendly) {
-          g.translate(b.x, b.y);
-          g.fillStyle = b.color; g.shadowColor = b.color; g.shadowBlur = 10;
-          g.beginPath(); g.moveTo(0, 8); g.lineTo(3.5, -4); g.lineTo(0, -2); g.lineTo(-3.5, -4); g.closePath(); g.fill();
+      for (let i = 0; i < run.bullets.length; i++) {
+        const b = run.bullets[i];
+        const key = b.kind === "missile" ? "boltO" : (b.kind === "drone" ? "boltL" : (b.friendly ? (b.crit ? "boltW" : "bolt") : (b.color === C.pink ? "boltP" : "boltM")));
+        if (b.kind === "missile" || !b.friendly) {
+          blitGlow(g, key, b.x, b.y, 1);
         } else {
           const a = Math.atan2(b.vy, b.vx);
-          g.translate(b.x, b.y); g.rotate(a);
-          g.strokeStyle = b.color; g.shadowColor = b.color; g.shadowBlur = 12; g.lineWidth = 3; g.lineCap = "round";
-          g.beginPath(); g.moveTo(-8, 0); g.lineTo(8, 0); g.stroke();
-          g.strokeStyle = "#fff"; g.lineWidth = 1.3; g.shadowBlur = 4;
-          g.beginPath(); g.moveTo(-5, 0); g.lineTo(5, 0); g.stroke();
+          g.save(); g.translate(b.x, b.y); g.rotate(a);
+          blitGlow(g, key, 0, 0, 1);
+          g.restore();
         }
+      }
+      for (let i = 0; i < run.pickups.length; i++) blitGlow(g, "coin", run.pickups[i].x, run.pickups[i].y, 1);
+      for (let i = 0; i < run.particles.length; i++) {
+        const p = run.particles[i];
+        g.globalAlpha = Math.max(0, 1 - p.t / p.life);
+        blitGlow(g, "spark", p.x, p.y, 0.7);
+      }
+      g.globalAlpha = 1;
+      if (st.orbits > 0) {
+        const n = 2 + Math.min(4, st.orbits >> 1);
+        const rad = 130 + st.orbits * 6;
+        for (let i = 0; i < n; i++) {
+          const a = (run.orbitT || 0) * 2.4 + i * (Math.PI * 2 / n);
+          blitGlow(g, "orb", SHIP_X + Math.cos(a) * rad, SHIP_Y + Math.sin(a) * rad * 0.7, 0.85);
+        }
+      }
+      g.restore();
+
+      const drones = st.drones;
+      for (let i = 0; i < drones; i++) {
+        const p = dronePos(i, t, drones);
+        blit(g, "drone", p.x, p.y, 0.85);
+      }
+      if (st.maxShield > 0 && run.shield > 0) {
+        g.save(); g.globalAlpha = 0.55 + 0.45 * (run.shield / st.maxShield);
+        blit(g, "shield", SHIP_X, SHIP_Y, 1);
         g.restore();
       }
-
-      for (const p of run.pickups) {
-        g.save(); g.translate(p.x, p.y);
-        g.fillStyle = C.yellow; g.shadowColor = C.yellow; g.shadowBlur = 10;
-        g.beginPath(); g.arc(0, 0, 8, 0, Math.PI * 2); g.fill();
-        g.strokeStyle = "#fff4c2"; g.lineWidth = 2; g.beginPath(); g.arc(0, 0, 8, 0, Math.PI * 2); g.stroke();
-        g.restore();
-      }
-      for (const p of run.particles) {
-        g.save(); g.globalAlpha = 1 - p.t / p.life;
-        g.fillStyle = p.color; g.shadowColor = p.color; g.shadowBlur = 8;
-        g.beginPath(); g.arc(p.x, p.y, p.r, 0, Math.PI * 2); g.fill(); g.restore();
-      }
-
-      if (!run.dead) {
-        const st = playerStats(run);
-        const drones = Math.min(2, run.up.drone);
-        for (let i = 0; i < drones; i++) {
-          const p = dronePos(i, t);
-          blit(g, "drone", p.x, p.y, 0.85);
-        }
-        if (st.maxShield > 0 && run.shield > 0) drawShield(g, SHIP_X, SHIP_Y, t, run.shield / st.maxShield);
-        const blink = run.invuln > 0 && Math.sin(t * 30) > 0;
-        if (!blink) { blit(g, "player", SHIP_X, SHIP_Y, 1.05); drawEngines(g, SHIP_X, SHIP_Y, 1.05, t); }
-      }
-
-      g.font = "700 22px Orbitron, sans-serif"; g.textAlign = "center";
-      for (const f of run.floaters) {
-        g.save(); g.globalAlpha = 1 - f.t / f.life;
-        g.fillStyle = f.color; g.shadowColor = f.color; g.shadowBlur = 8;
-        g.fillText(f.text, f.x, f.y); g.restore();
-      }
-      if (run.flash > 0) {
+      const blink = run.invuln > 0 && Math.sin(t * 30) > 0;
+      if (!blink) {
         g.save();
+        g.translate(SHIP_X, SHIP_Y);
+        g.rotate((run.hullAng || -Math.PI / 2) + Math.PI / 2);
+        blit(g, "player", 0, 0, 1.05);
+        blit(g, "engine", -11, 44, 1);
+        blit(g, "engine", 11, 44, 1);
+        g.restore();
+      }
+
+      g.font = "700 22px Orbitron, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
+      for (let i = 0; i < run.floaters.length; i++) {
+        const f = run.floaters[i];
+        g.globalAlpha = 1 - f.t / f.life;
+        g.fillStyle = f.color;
+        g.fillText(f.text, f.x, f.y);
+      }
+      g.globalAlpha = 1;
+      if (run.flash > 0) {
         g.fillStyle = run.phase === "intro" ? "rgba(255,43,214,0.22)" : "rgba(255,80,80,0.18)";
         g.globalAlpha = Math.min(1, run.flash * 1.4);
         g.fillRect(0, 0, W, RAIL_Y);
-        g.restore();
+        g.globalAlpha = 1;
       }
     }
     if (sh > 0) g.restore();
   }
 
+
   const el = (id) => document.getElementById(id);
 
   function railTicks() {
     const rail = el("rail-ticks");
+    if (!rail) return;
     rail.innerHTML = "";
     for (let i = 0; i < 11; i++) {
       const s = document.createElement("span");
@@ -1255,65 +1652,89 @@
     }
   }
 
+  function setTab(tab) {
+    consoleTab = tab;
+    document.querySelectorAll(".up-tab").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
+    document.querySelectorAll("#up-grid .up-btn").forEach(b => {
+      b.style.display = b.dataset.tab === tab ? "" : "none";
+    });
+    consoleDirty = true;
+    refreshConsole(true);
+  }
+
   function buildUpgradeGrid() {
     const grid = el("up-grid");
     grid.innerHTML = "";
     UPGRADES.forEach(def => {
       const b = document.createElement("button");
-      b.className = "up-btn"; b.dataset.id = def.id;
+      b.className = "up-btn"; b.dataset.id = def.id; b.dataset.tab = def.tab;
       b.innerHTML = '<div class="name"></div><div class="lvl"></div><div class="cost"></div>';
       b.addEventListener("click", () => onBuyMid(def.id));
+      if (def.tab !== consoleTab) b.style.display = "none";
       grid.appendChild(b);
     });
-  }
-
-  function pipsHtml(n, max) {
-    let h = '<span class="pips">';
-    for (let i = 0; i < max; i++) h += '<span class="pip' + (i < n ? " on" : "") + '"></span>';
-    return h + "</span>";
+    document.querySelectorAll(".up-tab").forEach(btn => {
+      btn.onclick = () => setTab(btn.dataset.tab);
+    });
   }
 
   function onBuyMid(id) {
     if (!run || mode !== "play" || paused) return;
     audio.unlock();
-    if (tryBuy(run, id)) { audio.buy(); refreshConsole(); }
+    if (tryBuy(run, id)) { audio.buy(); consoleDirty = true; hudDirty = true; refreshConsole(true); refreshHud(true); }
     else audio.deny();
   }
 
-  function refreshConsole() {
+  let lastConsoleKey = "";
+  function refreshConsole(force) {
     if (!run) return;
     const st = playerStats(run);
+    const key = consoleTab + "|" + (run.wave|0) + "|" + (run.coins|0) + "|" + JSON.stringify(run.up);
+    if (!force && !consoleDirty && key === lastConsoleKey) return;
+    lastConsoleKey = key; consoleDirty = false;
     const armed = [];
     if (run.up.spread) armed.push("SPREAD");
     if (run.up.laser) armed.push("LASER");
     if (run.up.missile) armed.push("MISSILES");
     if (run.up.drone) armed.push("DRONE");
-    el("console-sub").textContent = armed.length ? "WEAPONS ONLINE" : "TRAINING FIRE  ·  SINGLE BLASTER";
-    document.querySelectorAll("#up-grid .up-btn").forEach(btn => {
+    if (run.up.orbit) armed.push("ORBITAL");
+    if (run.up.emp) armed.push("EMP");
+    const sub = el("console-sub");
+    if (sub) sub.textContent = armed.length ? "WEAPONS ONLINE" : "TRAINING FIRE  ·  SINGLE BLASTER";
+    const buttons = document.querySelectorAll("#up-grid .up-btn");
+    for (let i = 0; i < buttons.length; i++) {
+      const btn = buttons[i];
       const id = btn.dataset.id;
-      const def = UPGRADES.find(u => u.id === id);
+      const def = UP_BY_ID[id];
       const lv = run.up[id] || 0;
-      const unlocked = isUnlocked(id, run.wave, run.up);
+      const unlocked = isUnlocked(id, run.wave, run.up, Math.max(run.bestWave || 0, save.bestWave || 0));
       const maxed = lv >= def.max;
       const cost = maxed ? 0 : midCost(id, lv);
       const can = unlocked && !maxed && run.coins >= cost;
-      btn.querySelector(".name").textContent = def.name;
-      btn.querySelector(".lvl").textContent = !unlocked ? "LOCKED" : (maxed ? "MAX" : "Lv. " + lv);
-      btn.querySelector(".cost").textContent = !unlocked ? midCost(id, 0) + " ¢" : (maxed ? "—" : cost + " ¢");
+      const nameEl = btn.querySelector(".name"), lvlEl = btn.querySelector(".lvl"), costEl = btn.querySelector(".cost");
+      if (nameEl.textContent !== def.name) nameEl.textContent = def.name;
+      const lvlTxt = !unlocked ? (def.milestone ? "W" + def.milestone : "LOCKED") : (maxed ? "MAX" : "Lv. " + lv);
+      if (lvlEl.textContent !== lvlTxt) lvlEl.textContent = lvlTxt;
+      const costTxt = !unlocked ? midCost(id, 0) + " ¢" : (maxed ? "—" : cost + " ¢");
+      if (costEl.textContent !== costTxt) costEl.textContent = costTxt;
       let cls = "up-btn";
       if (!unlocked) cls += " locked";
-      else if (maxed) cls += " dim";
-      else if (!can) cls += " dim";
+      else if (maxed || !can) cls += " dim";
       else if (id === "hp" && run.hp < st.maxHp * 0.5) cls += " hot";
-      else if (id === "laser") cls += " hot";
+      else if (id === "laser" || id === "orbit" || id === "emp") cls += " hot";
       else if (id === "shield") cls += " mag";
-      btn.className = cls;
-    });
+      if (btn.className !== cls) btn.className = cls;
+    }
   }
 
-  function refreshHud() {
+  let lastHudKey = "";
+  function refreshHud(force) {
     if (!run) return;
     const st = playerStats(run);
+    const boss = findBoss(run);
+    const key = (run.wave|0) + "|" + (run.coins|0) + "|" + (run.hp|0) + "|" + (run.shield|0) + "|" + (boss ? (boss.hp|0) : "x") + "|" + (run.banner ? run.banner.type + (run.banner.n || run.banner.name) : "");
+    if (!force && !hudDirty && key === lastHudKey) return;
+    lastHudKey = key; hudDirty = false;
     el("hud-wave").textContent = String(run.wave).padStart(2, "0");
     el("hud-coins").textContent = Math.floor(run.coins).toLocaleString("en-US");
     el("hud-best").textContent = String(Math.max(save.bestWave, run.wave, run.bestWave || 0));
@@ -1326,7 +1747,6 @@
       el("sh-fill").style.width = (run.shield / st.maxShield * 100) + "%";
       el("sh-num").textContent = Math.ceil(run.shield) + "/" + st.maxShield;
     } else el("shield-row").style.display = "none";
-    const boss = run.enemies.find(e => e.type === "boss");
     if (boss) {
       el("boss-tag").classList.add("show");
       el("boss-hud").classList.add("show");
@@ -1348,6 +1768,11 @@
     } else { wb.classList.remove("show"); bb.classList.remove("show"); }
   }
 
+  function findBoss(run) {
+    for (let i = 0; i < run.enemies.length; i++) if (run.enemies[i].type === "boss") return run.enemies[i];
+    return null;
+  }
+
   function buildTrees() {
     const host = el("trees");
     host.innerHTML = "";
@@ -1359,18 +1784,17 @@
     groups.forEach(gr => {
       const col = document.createElement("div");
       col.className = "tree " + gr.cls;
-      col.innerHTML = "<h3>" + gr.title + "</h3>";
+      const h = document.createElement("h3"); h.textContent = gr.title; col.appendChild(h);
       PERMA[gr.key].forEach(def => {
         const lv = save.perma[def.id] || 0;
         const maxed = lv >= def.max;
         const cost = maxed ? 0 : costOf(def, lv);
-        const can = !maxed && save.gems >= cost;
         const row = document.createElement("div");
+        const can = !maxed && save.gems >= cost;
         row.className = "upg" + (maxed ? " maxed" : (can ? " buyable" : " costly"));
-        row.dataset.id = def.id;
-        const lvlLine = def.id === "slot" ? (lv + " / " + def.max)
-          : (def.id === "wind" ? (lv ? "READY" : "LOCKED") : ("Lv. " + lv + " " + pipsHtml(lv, def.max)));
-        row.innerHTML = '<div class="un">' + def.name + '</div><div class="ul">' + lvlLine + '</div><div class="uc">' + (maxed ? "MAX" : (cost + " ◆")) + "</div>";
+        const pipMax = Math.min(def.max, 8);
+        const pips = def.max <= 8 ? pipsHtml(lv, pipMax) : "";
+        row.innerHTML = '<div class="un">' + def.name + '</div><div class="ul">Lv ' + lv + (maxed ? " MAX" : "") + pips + '</div><div class="uc">' + (maxed ? "MAX" : cost + " ◆") + '</div>';
         row.addEventListener("click", () => onBuyPerma(def.id));
         col.appendChild(row);
       });
@@ -1378,28 +1802,36 @@
     });
   }
 
+  function pipsHtml(n, max) {
+    let h = '<span class="pips">';
+    for (let i = 0; i < max; i++) h += '<span class="pip' + (i < n ? " on" : "") + '"></span>';
+    return h + "</span>";
+  }
+
   function onBuyPerma(id) {
     audio.unlock();
     const before = save.gems;
-    const g2 = tryBuyPerma(save.perma, save.gems, id);
-    if (g2 === before) { audio.deny(); return; }
-    save.gems = g2; audio.buy();
-    if (!demo) writeSave(save);
-    el("over-bank").textContent = String(save.gems);
-    buildTrees();
+    save.gems = tryBuyPerma(save.perma, save.gems, id);
+    if (save.gems !== before) {
+      audio.buy();
+      if (!demo) writeSave(save);
+      el("over-bank").textContent = String(save.gems);
+      buildTrees();
+    } else audio.deny();
   }
 
   function showTitle() {
     mode = "title"; paused = false;
     el("title").classList.remove("hidden");
-    el("play-ui").classList.add("hidden");
     el("over").classList.remove("show");
+    el("play-ui").classList.add("hidden");
     el("pause").classList.remove("show");
     el("title-best").textContent = String(save.bestWave);
   }
 
   function startRun() {
     audio.unlock();
+    if (run) settlePickups(run);
     run = createRun(save.perma, { bestWave: save.bestWave, persist: !demo, seed: (Date.now() ^ 0x9e3779b9) >>> 0, mid: save.mid, carryCoins: save.carryCoins });
     mode = "play"; paused = false; speed = 1;
     el("btn-speed").textContent = "1x"; el("btn-speed").classList.remove("on");
@@ -1409,7 +1841,8 @@
     el("play-ui").classList.remove("hidden");
     beginWave(run, run.wave || 1);
     audio.banner();
-    refreshHud(); refreshConsole();
+    hudDirty = true; consoleDirty = true;
+    refreshHud(true); refreshConsole(true);
   }
 
   function finishRun() {
@@ -1471,10 +1904,12 @@
       else if (paused) setPaused(false);
     }
     if (ev.code === "Escape" && mode === "play") setPaused(!paused);
+    if (ev.code === "Digit1") setTab("atk");
+    if (ev.code === "Digit3") setTab("def");
+    if (ev.code === "Digit4") setTab("util");
   });
 
   let lastCoins = 0, lastHp = 999, lastKills = 0, lastBanner = null;
-
   function tickSfx() {
     if (!run || mode !== "play") return;
     if (run.coins > lastCoins) audio.coin();
@@ -1486,43 +1921,54 @@
     lastCoins = run.coins; lastHp = run.hp; lastKills = run.kills; lastBanner = run.banner;
   }
 
-  let lastT = 0, hudAcc = 0;
+  let lastT = 0, acc = 0, hudAcc = 0;
   function loop(ts) {
     if (!lastT) lastT = ts;
     let dt = (ts - lastT) / 1000;
     lastT = ts;
     if (dt > 0.05) dt = 0.05;
     if (mode === "play" && run && !paused) {
-      for (let i = 0; i < speed; i++) {
+      acc += dt * speed;
+      let steps = 0;
+      while (acc >= STEP && steps < 4) {
         const wasAlive = !run.dead;
-        updateRun(run, dt);
+        updateRun(run, STEP);
         if (wasAlive && run.dead) audio.death();
+        acc -= STEP;
+        steps++;
       }
+      if (acc > STEP * 3) acc = 0;
       if (run.dead && run.dyingT <= 0) finishRun();
       tickSfx();
     }
     render();
     hudAcc += dt;
-    if (hudAcc > 0.08 && mode === "play" && run) { hudAcc = 0; refreshHud(); refreshConsole(); }
+    if (hudAcc > 0.12 && mode === "play" && run) {
+      hudAcc = 0;
+      hudDirty = true; consoleDirty = true;
+      refreshHud(); refreshConsole();
+    }
     requestAnimationFrame(loop);
   }
 
   function applyDemo(name) {
     if (!name) return;
     save = defaultSave();
-    save.bestWave = 47; save.gems = 260;
+    save.bestWave = 47; save.gems = 860;
     if (name === "title") { showTitle(); return; }
     if (name === "over") {
-      save.perma = { dmg: 3, rate: 2, crit: 1, slot: 0, hp: 4, shield: 1, armor: 2, wind: 0, startCoins: 3, coinValue: 2, gemBonus: 1, interest: 0 };
+      save.perma = { dmg: 5, rate: 3, crit: 2, critDmg: 1, pierce: 1, multi: 0, slot: 1, hp: 6, shield: 2, armor: 3, regen: 1, shRegen: 1, thorns: 0, wind: 0, startCoins: 4, coinValue: 2, gemBonus: 1, interest: 1, magnet: 2, skip: 0 };
       run = createRun(save.perma, { bestWave: 47, persist: false, seed: 23 });
       run.wave = 23; run.kills = 80; run.bossesBeaten = 2; run.dead = true;
+      run.up = Object.assign(defaultMid(), { dmg: 8, rate: 6, hp: 5, shield: 2, spread: 3, laser: 2, missile: 1, drone: 1, crit: 2, magnet: 2, coinVal: 2 });
+      run.coins = 48;
       mode = "over";
       el("title").classList.add("hidden");
       el("play-ui").classList.add("hidden");
       el("over").classList.add("show");
       el("over-wave").textContent = "23";
       el("over-earned").textContent = "+184";
-      el("over-bank").textContent = "260";
+      el("over-bank").textContent = "860";
       el("over-best").textContent = "47";
       el("over-carry").textContent = "+24 coins carried (50%)";
       buildTrees();
@@ -1532,25 +1978,37 @@
       startRun();
       run.wave = 0; beginWave(run, 5);
       run.phase = "combat"; run.phaseT = 0; run.banner = null; run.pending = [];
-      run.up = { dmg: 3, rate: 2, hp: 1, shield: 0, spread: 1, laser: 0, missile: 1, drone: 0 };
-      run.coins = 80;
+      run.up = Object.assign(defaultMid(), { dmg: 3, rate: 2, hp: 1, spread: 1, missile: 1, bspd: 1 });
+      run.coins = 80; run._st = null;
       const st = playerStats(run); run.hp = st.maxHp;
       run.enemies = [];
-      // Low-left threat is closest to the ship/rail; high-center should NOT steal aim.
       spawnEnemy(run, "shellback", { x: 130, y: SHIP_Y - 220 });
       spawnEnemy(run, "spark", { x: 70, y: SHIP_Y - 340 });
       spawnEnemy(run, "drifter", { x: 210, y: SHIP_Y - 430 });
       spawnEnemy(run, "spark", { x: 540, y: 240 });
       spawnEnemy(run, "spark", { x: 980, y: 360 });
       spawnEnemy(run, "coil", { x: 860, y: 520 });
-      refreshHud(); refreshConsole();
+      hudDirty = true; consoleDirty = true; refreshHud(true); refreshConsole(true);
+      return;
+    }
+    if (name === "console") {
+      startRun();
+      run.wave = 0; beginWave(run, 16);
+      run.phase = "combat"; run.phaseT = 0; run.banner = null; run.pending = [];
+      run.up = Object.assign(defaultMid(), { dmg: 6, rate: 5, hp: 4, shield: 2, spread: 3, laser: 2, missile: 1, drone: 1, crit: 2, critDmg: 1, pierce: 1, bspd: 2, magnet: 2, coinVal: 2, armor: 1 });
+      run.coins = 420; run._st = null;
+      const st = playerStats(run); run.hp = Math.round(st.maxHp * 0.8); run.shield = st.maxShield;
+      run.enemies = [];
+      [["spark",200,400],["drifter",700,360],["razor",400,500],["shellback",900,480]].forEach(p => spawnEnemy(run, p[0], { x: p[1], y: p[2] }));
+      setTab("atk");
+      hudDirty = true; consoleDirty = true; refreshHud(true); refreshConsole(true);
       return;
     }
     startRun();
     if (name === "early") {
       run.wave = 0; beginWave(run, 3);
       run.phase = "combat"; run.phaseT = 0; run.banner = null; run.pending = [];
-      run.coins = 48; run.up.dmg = 1; run.up.rate = 1; run.up.hp = 1;
+      run.coins = 48; run.up.dmg = 1; run.up.rate = 1; run.up.hp = 1; run._st = null;
       run.hp = Math.min(80, playerStats(run).maxHp); run.enemies = [];
       [["spark",330,310],["spark",780,270],["spark",200,470],["spark",900,430],["drifter",540,400],["drifter",820,560],["spark",470,220]]
         .forEach(p => spawnEnemy(run, p[0], { x: p[1], y: p[2] }));
@@ -1558,8 +2016,8 @@
     if (name === "late") {
       run.wave = 0; beginWave(run, 37);
       run.phase = "combat"; run.phaseT = 0; run.banner = null; run.pending = [];
-      run.up = { dmg: 8, rate: 7, hp: 5, shield: 3, spread: 4, laser: 3, missile: 2, drone: 2 };
-      run.coins = 1240;
+      run.up = Object.assign(defaultMid(), { dmg: 10, rate: 8, hp: 7, shield: 3, spread: 4, laser: 3, missile: 2, drone: 2, crit: 3, critDmg: 2, pierce: 2, multi: 1, bspd: 3, burn: 2, magnet: 3, coinVal: 2, dcount: 1, orbit: 2 });
+      run.coins = 1240; run._st = null;
       const st = playerStats(run); run.hp = Math.round(st.maxHp * 0.85); run.shield = st.maxShield;
       run.enemies = [];
       [["spark",140,260],["spark",260,210],["spark",400,190],["spark",700,200],["spark",860,240],["spark",980,300],
@@ -1571,8 +2029,8 @@
     if (name === "boss") {
       run.wave = 0; beginWave(run, 40);
       run.phase = "combat"; run.phaseT = 0; run.banner = null; run.pending = [];
-      run.up = { dmg: 8, rate: 7, hp: 5, shield: 3, spread: 4, laser: 3, missile: 2, drone: 2 };
-      run.coins = 980;
+      run.up = Object.assign(defaultMid(), { dmg: 10, rate: 8, hp: 7, shield: 3, spread: 4, laser: 3, missile: 2, drone: 2, crit: 3, pierce: 2, bspd: 3, orbit: 1 });
+      run.coins = 980; run._st = null;
       const st = playerStats(run); run.hp = Math.round(st.maxHp * 0.55); run.shield = st.maxShield * 0.6;
       run.enemies = [];
       const b = spawnEnemy(run, "boss", { boss: bossInfo(40), x: 540, y: 560 });
@@ -1580,7 +2038,7 @@
       [["spark",160,480],["spark",920,500],["coil",150,880],["coil",930,860],["needle",80,600],["needle",1000,620]]
         .forEach(p => spawnEnemy(run, p[0], { x: p[1], y: p[2] }));
     }
-    refreshHud(); refreshConsole();
+    hudDirty = true; consoleDirty = true; refreshHud(true); refreshConsole(true);
   }
 
   function boot() {
@@ -1598,15 +2056,9 @@
     document.body.dataset.ready = "1";
   }
 
-  if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(boot);
-    setTimeout(() => { if (!document.body.dataset.ready) boot(); }, 1500);
-  } else boot();
-
-  LO.startRun = startRun;
-  LO.showTitle = showTitle;
-  LO.getRun = () => run;
-  LO.getSave = () => save;
+  LO._getRun = function () { return run; };
   root.LastOutpost = LO;
   if (typeof module !== "undefined") module.exports = LO;
-})(typeof globalThis !== "undefined" ? globalThis : this);
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+  else boot();
+})(typeof window !== "undefined" ? window : (typeof global !== "undefined" ? global : this));
