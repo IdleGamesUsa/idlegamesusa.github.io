@@ -273,7 +273,19 @@ canvas { position: absolute; inset: 0; z-index: 1; display: block; }
 .go-gem-box .lbl { font-family: Tomorrow, sans-serif; font-weight: 600; font-size: 18px; letter-spacing: 0.2em; color: #c9d3e0; margin-bottom: 4px; }
 .go-gem-box .val { font-family: Orbitron, sans-serif; font-weight: 800; font-size: 44px; letter-spacing: 0.04em; }
 .gem-ico { display: inline-block; width: 22px; height: 22px; background: #ff2bd6; transform: rotate(45deg); box-shadow: 0 0 10px #ff2bd6, 0 0 20px #ff2bd6; margin-right: 10px; vertical-align: 2px; }
-.perm-wrap { position: absolute; left: 32px; right: 32px; top: 590px; pointer-events: none; }
+
+.go-kept { margin-top: 22px; text-align: center; }
+.go-kept-title {
+  font-family: Tomorrow, sans-serif; font-weight: 700; font-size: 22px;
+  letter-spacing: 0.24em; padding-left: 0.24em;
+  color: #f5ffd8; text-shadow: 0 0 8px #c8ff00, 0 0 18px #c8ff00;
+}
+.go-kept-coins {
+  margin-top: 8px;
+  font-family: Orbitron, sans-serif; font-weight: 700; font-size: 24px;
+  color: #fff4c2; text-shadow: 0 0 8px #ffe500;
+}
+.perm-wrap { position: absolute; left: 32px; right: 32px; top: 650px; pointer-events: none; }
 .perm-head {
   text-align: center; font-family: Tomorrow, sans-serif; font-weight: 700; font-size: 22px;
   letter-spacing: 0.32em; padding-left: 0.32em; color: #9ef7ff; text-shadow: 0 0 8px #00f6ff;
@@ -408,6 +420,10 @@ canvas { position: absolute; inset: 0; z-index: 1; display: block; }
             <div class="lbl">GEM BANK</div>
             <div class="val cyan"><span class="gem-ico" style="background:#00f6ff;box-shadow:0 0 10px #00f6ff,0 0 20px #00f6ff"></span><span id="over-bank">0</span></div>
           </div>
+        </div>
+        <div class="go-kept">
+          <div class="go-kept-title">UPGRADES KEPT</div>
+          <div class="go-kept-coins" id="over-carry">+0 coins carried (50%)</div>
         </div>
       </div>
       <div class="perm-wrap">

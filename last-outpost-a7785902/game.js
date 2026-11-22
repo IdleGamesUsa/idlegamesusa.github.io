@@ -10,7 +10,7 @@
   const SHIP_X = 540;
   let SHIP_Y = 1390;
   const CONSOLE_H = 510;
-  const STORAGE_KEY = "idleusa.lastOutpost.v1";
+  const STORAGE_KEY = "idleusa.lastOutpost.v2";
 
   const C = {
     cyan: "#00f6ff", magenta: "#ff2bd6", pink: "#ff4aa8", lime: "#c8ff00",
@@ -23,8 +23,8 @@
     baseHp: 100, hpPerBuy: 15, hpHealFrac: 0.42, permaDmg: 5, permaHp: 30,
     permaArmor: 0.05, permaCrit: 0.05, permaStartCoins: 35, permaCoinValue: 0.18,
     permaGemBonus: 0.15, permaShield: 20, interestPerWave: 10, gemPerWave: 10,
-    gemKillDiv: 5, gemPerBoss: 28, hpScale: 1.145, spdScale: 1.04, dmgScale: 1.10,
-    countBase: 5, countPerWave: 1.15, countMax: 26, bulletSpd: 980,
+    gemKillDiv: 5, gemPerBoss: 28, hpScale: 1.148, spdScale: 1.04, dmgScale: 1.11,
+    countBase: 5, countPerWave: 1.18, countMax: 30, bulletSpd: 980,
     waveBreak: 1.7, bossIntro: 2.1, maxShieldBase: 50, shieldPerLv: 28,
     shieldRegenDelay: 3.0, shieldRegenPerSec: 10
   };
@@ -105,7 +105,10 @@
   function defaultPerma() {
     return { dmg: 0, rate: 0, crit: 0, slot: 0, hp: 0, shield: 0, armor: 0, wind: 0, startCoins: 0, coinValue: 0, gemBonus: 0, interest: 0 };
   }
-  function defaultSave() { return { bestWave: 0, gems: 0, perma: defaultPerma(), mute: false }; }
+  function defaultMid() {
+    return { dmg: 0, rate: 0, hp: 0, shield: 0, spread: 0, laser: 0, missile: 0, drone: 0 };
+  }
+  function defaultSave() { return { bestWave: 0, gems: 0, perma: defaultPerma(), mid: defaultMid(), carryCoins: 0, mute: false }; }
 
   function loadSave() {
     if (typeof localStorage === "undefined") return defaultSave();
@@ -116,6 +119,8 @@
       const d = defaultSave();
       d.bestWave = s.bestWave | 0; d.gems = s.gems | 0; d.mute = !!s.mute;
       d.perma = Object.assign(defaultPerma(), s.perma || {});
+      d.mid = Object.assign(defaultMid(), s.mid || {});
+      d.carryCoins = Math.max(0, s.carryCoins | 0);
       return d;
     } catch (e) { return defaultSave(); }
   }
@@ -130,6 +135,7 @@
   function isUnlocked(id, wave, up) {
     const def = UPGRADES.find(u => u.id === id);
     if (!def) return false;
+    if ((up[id] || 0) > 0) return true;
     if (wave >= def.unlock) return true;
     if (id === "spread" && (up.dmg + up.rate) >= 3) return true;
     if (id === "shield" && up.hp >= 1) return true;
@@ -139,9 +145,19 @@
     return false;
   }
 
-  function hpScale(wave) { return Math.pow(BAL.hpScale, Math.max(0, wave - 1)); }
-  function spdScale(wave) { return Math.min(2.15, Math.pow(BAL.spdScale, Math.max(0, wave - 1))); }
-  function dmgScale(wave) { return Math.pow(BAL.dmgScale, Math.max(0, wave - 1)); }
+  function hpScale(wave) {
+    const n = Math.max(0, wave - 1);
+    // early waves stay close to the original curve; later waves ramp so kept upgrades don't steamroll
+    return Math.pow(1.148, Math.min(n, 6)) * Math.pow(1.17, Math.max(0, Math.min(n, 16) - 6)) * Math.pow(1.19, Math.max(0, Math.min(n, 26) - 16)) * Math.pow(1.215, Math.max(0, n - 26));
+  }
+  function spdScale(wave) {
+    const n = Math.max(0, wave - 1);
+    return Math.min(2.45, Math.pow(1.035, Math.min(n, 6)) * Math.pow(1.048, Math.max(0, n - 6)));
+  }
+  function dmgScale(wave) {
+    const n = Math.max(0, wave - 1);
+    return Math.pow(1.11, Math.min(n, 8)) * Math.pow(1.125, Math.max(0, n - 8));
+  }
 
   function playerStats(run) {
     const p = run.perma, u = run.up;
@@ -162,7 +178,7 @@
     opts = opts || {};
     const run = {
       perma: Object.assign(defaultPerma(), perma || {}),
-      up: { dmg: 0, rate: 0, hp: 0, shield: 0, spread: 0, laser: 0, missile: 0, drone: 0 },
+      up: Object.assign(defaultMid(), opts.mid || {}),
       wave: 0, coins: 0, kills: 0, bossesBeaten: 0,
       hp: 0, shield: 0, shieldWait: 0, invuln: 0, usedWind: false,
       dead: false, dyingT: 0, time: 0, waveTime: 0,
@@ -174,13 +190,19 @@
       bestWave: opts.bestWave || 0,
       persist: opts.persist !== false
     };
-    if (run.perma.slot >= 1) run.up.spread = 1;
-    if (run.perma.slot >= 2) run.up.laser = 1;
+    if (run.perma.slot >= 1) run.up.spread = Math.max(run.up.spread, 1);
+    if (run.perma.slot >= 2) run.up.laser = Math.max(run.up.laser, 1);
     const st = playerStats(run);
     run.hp = st.maxHp;
-    run.shield = run.perma.shield > 0 ? Math.min(st.maxShield, BAL.permaShield * run.perma.shield) : 0;
-    run.coins = run.perma.startCoins * BAL.permaStartCoins;
+    run.shield = st.maxShield;
+    run.coins = (opts.carryCoins || 0) + run.perma.startCoins * BAL.permaStartCoins;
     return run;
+  }
+
+  function settlePickups(run) {
+    if (!run || !run.pickups) return;
+    for (let i = 0; i < run.pickups.length; i++) run.coins += run.pickups[i].v;
+    run.pickups = [];
   }
 
   function beginWave(run, n) {
@@ -272,21 +294,47 @@
     });
   }
 
-  function aimAngle(run) {
-    let best = null, bd = 1e9;
+  function threatScore(e, fromX, fromY) {
+    const dx = e.x - fromX, dy = e.y - fromY;
+    // Closest to the ship; a modest bias toward lower (near-rail) threats so leaks get priority.
+    return Math.sqrt(dx * dx + dy * dy) - 0.2 * Math.max(0, e.y);
+  }
+
+  function closestEnemy(run, fromX, fromY) {
+    let best = null, bestS = 1e15;
     for (let i = 0; i < run.enemies.length; i++) {
       const e = run.enemies[i];
-      if (e.y < -20) continue;
-      const dx = e.x - SHIP_X, dy = e.y - SHIP_Y;
-      const d = dx * dx + dy * dy;
-      if (d < bd) { bd = d; best = e; }
+      if (e.y < -40 || e.hp <= 0) continue;
+      const s = threatScore(e, fromX, fromY);
+      if (s < bestS) { bestS = s; best = e; }
     }
+    return best;
+  }
+
+  function closestEnemies(run, fromX, fromY, n) {
+    const list = [];
+    for (let i = 0; i < run.enemies.length; i++) {
+      const e = run.enemies[i];
+      if (e.y < -40 || e.hp <= 0) continue;
+      list.push(e);
+    }
+    list.sort((a, b) => threatScore(a, fromX, fromY) - threatScore(b, fromX, fromY));
+    return list.slice(0, n);
+  }
+
+  function aimAngle(run) {
+    const best = closestEnemy(run, SHIP_X, SHIP_Y);
     if (!best) return -Math.PI / 2;
-    let a = Math.atan2(best.y - SHIP_Y, best.x - SHIP_X);
-    const mid = -Math.PI / 2, maxDev = 0.42;
-    if (a < mid - maxDev) a = mid - maxDev;
-    if (a > mid + maxDev) a = mid + maxDev;
-    return a;
+    // Full-width aim: no forward-cone clamp, so side enemies near the rail get shot.
+    return Math.atan2(best.y - SHIP_Y, best.x - SHIP_X);
+  }
+
+  function distToSegment(px, py, x0, y0, x1, y1) {
+    const dx = x1 - x0, dy = y1 - y0;
+    const l2 = dx * dx + dy * dy || 1;
+    let t = ((px - x0) * dx + (py - y0) * dy) / l2;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(px - (x0 + t * dx), py - (y0 + t * dy));
   }
 
   function fireBlaster(run, st) {
@@ -302,18 +350,13 @@
         x: SHIP_X + Math.cos(a) * 20, y: SHIP_Y - 78,
         vx: Math.cos(a) * BAL.bulletSpd, vy: Math.sin(a) * BAL.bulletSpd,
         r: crit ? 7 : 5, dmg: dmg, friendly: true, color: crit ? C.white : C.cyan,
-        life: 1.4, crit: crit, kind: "blast"
+        life: 1.85, crit: crit, kind: "blast"
       });
     }
   }
 
   function fireMissile(run, st) {
-    let target = null, best = -1;
-    for (let i = 0; i < run.enemies.length; i++) {
-      const e = run.enemies[i];
-      const score = e.hp + (e.type === "boss" ? 500 : 0);
-      if (score > best) { best = score; target = e; }
-    }
+    const target = closestEnemy(run, SHIP_X, SHIP_Y);
     const ang = target ? Math.atan2(target.y - SHIP_Y, target.x - SHIP_X) : -Math.PI / 2;
     run.bullets.push({
       x: SHIP_X, y: SHIP_Y - 40, vx: Math.cos(ang) * 320, vy: Math.sin(ang) * 320,
@@ -324,17 +367,25 @@
 
   function fireLaser(run, st) {
     const beams = run.up.laser >= 2 ? 2 : 1;
+    const targets = closestEnemies(run, SHIP_X, SHIP_Y, beams);
     for (let i = 0; i < beams; i++) {
+      const e = targets[i] || targets[0];
+      const x0 = SHIP_X + (beams === 2 ? (i === 0 ? -24 : 24) : 0);
+      const y0 = SHIP_Y - 80;
+      let tx = e ? e.x : SHIP_X, ty = e ? e.y : 80;
+      const d = Math.hypot(tx - x0, ty - y0) || 1;
+      const x1 = x0 + (tx - x0) / d * 1700;
+      const y1 = y0 + (ty - y0) / d * 1700;
       run.lasers.push({
-        x: beams === 1 ? SHIP_X : (i === 0 ? SHIP_X - 70 : SHIP_X + 70),
-        y0: SHIP_Y - 80, y1: 80, t: 0.18,
-        dmg: st.dmg * (1.1 + 0.35 * run.up.laser), tick: 0
+        x0: x0, y0: y0, x1: x1, y1: y1,
+        t: 0.18, dmg: st.dmg * (1.1 + 0.35 * run.up.laser), tick: 0
       });
     }
   }
 
   function fireDrone(run, st, x, y) {
-    const ang = aimAngle(run);
+    const e = closestEnemy(run, SHIP_X, SHIP_Y);
+    const ang = e ? Math.atan2(e.y - y, e.x - x) : -Math.PI / 2;
     run.bullets.push({
       x: x, y: y, vx: Math.cos(ang) * 860, vy: Math.sin(ang) * 860,
       r: 4, dmg: st.dmg * 0.55, friendly: true, color: C.lime, life: 1.2, kind: "drone"
@@ -474,7 +525,9 @@
         L.tick = 0.05;
         for (let k = run.enemies.length - 1; k >= 0; k--) {
           const e = run.enemies[k];
-          if (Math.abs(e.x - L.x) < e.r + 10 && e.y < L.y0 && e.y > L.y1 - 20) hitEnemy(run, e, L.dmg * 0.35, false);
+          const x0 = L.x0 != null ? L.x0 : L.x, y0 = L.y0;
+          const x1 = L.x1 != null ? L.x1 : L.x, y1 = L.y1 != null ? L.y1 : 80;
+          if (distToSegment(e.x, e.y, x0, y0, x1, y1) < e.r + 12) hitEnemy(run, e, L.dmg * 0.35, false);
         }
       }
       if (L.t <= 0) run.lasers.splice(i, 1);
@@ -483,14 +536,15 @@
     for (let i = run.bullets.length - 1; i >= 0; i--) {
       const b = run.bullets[i];
       if (b.kind === "missile") {
+        const closest = closestEnemy(run, SHIP_X, SHIP_Y);
         let tgt = b.target && run.enemies.indexOf(b.target) >= 0 ? b.target : null;
         if (!tgt) {
-          let bd = 1e9;
-          for (const e of run.enemies) {
-            const d = Math.hypot(e.x - b.x, e.y - b.y);
-            if (d < bd) { bd = d; tgt = e; }
-          }
+          tgt = closest;
           b.target = tgt;
+        } else if (closest && closest !== tgt) {
+          const cur = threatScore(tgt, SHIP_X, SHIP_Y);
+          const nxt = threatScore(closest, SHIP_X, SHIP_Y);
+          if (nxt + 8 < cur) { tgt = closest; b.target = tgt; }
         }
         if (tgt) {
           const want = Math.atan2(tgt.y - b.y, tgt.x - b.x);
@@ -716,18 +770,22 @@
 
   function simulateRuns(n, opts) {
     opts = opts || {};
-    let perma = defaultPerma(), gems = 0, best = 0;
+    let perma = defaultPerma(), gems = 0, best = 0, mid = defaultMid(), carryCoins = 0;
     const rows = [];
     for (let i = 0; i < n; i++) {
       gems = autoBuyPerma(perma, gems);
-      const run = createRun(perma, { seed: (opts.seed || 77001) + i * 997, bestWave: best, persist: false });
+      const run = createRun(perma, { seed: (opts.seed || 77001) + i * 997, bestWave: best, persist: false, mid: mid, carryCoins: carryCoins });
       const end = simulateUntilDeath(run, { autoBuy: true });
+      settlePickups(run);
+      mid = Object.assign(defaultMid(), end.up);
+      carryCoins = Math.floor(run.coins / 2);
       gems += end.gemsEarned;
       best = Math.max(best, end.waveReached);
       rows.push({
         run: i + 1, wave: end.waveReached, kills: end.kills, gemsEarned: end.gemsEarned,
-        gemsBank: gems, bosses: end.bossesBeaten, time: Math.round(end.time * 10) / 10,
-        perma: Object.assign({}, perma), mid: end.up
+        gemsBank: gems, carryCoins: carryCoins, bosses: end.bossesBeaten,
+        time: Math.round(end.time * 10) / 10,
+        perma: Object.assign({}, perma), mid: Object.assign({}, mid)
       });
     }
     return rows;
@@ -737,7 +795,7 @@
     BAL, UPGRADES, PERMA, ENEMY,
     createRun, updateRun, tryBuy, tryBuyPerma, autoBuyMid, autoBuyPerma,
     playerStats, gemsFor, simulateUntilDeath, simulateRuns, beginWave, spawnEnemy,
-    defaultPerma, defaultSave, loadSave, writeSave, midCost, costOf, isUnlocked,
+    defaultPerma, defaultMid, defaultSave, loadSave, writeSave, midCost, costOf, isUnlocked,
     bossInfo, W, H, RAIL_Y, SHIP_X, SHIP_Y, C
   };
 
@@ -1091,9 +1149,9 @@
     } else if (run) {
       const t = run.time;
       g.save();
-      const haze = g.createLinearGradient(0, 1200, 0, 1410);
+      const haze = g.createLinearGradient(0, RAIL_Y - 210, 0, RAIL_Y);
       haze.addColorStop(0, "rgba(0,246,255,0)"); haze.addColorStop(1, "rgba(0,246,255,0.07)");
-      g.fillStyle = haze; g.fillRect(0, 1200, W, 220); g.restore();
+      g.fillStyle = haze; g.fillRect(0, RAIL_Y - 210, W, 220); g.restore();
 
       for (const e of run.enemies) {
         if (e.type === "boss") {
@@ -1109,11 +1167,13 @@
       }
 
       for (const L of run.lasers) {
+        const x0 = L.x0 != null ? L.x0 : L.x, y0 = L.y0;
+        const x1 = L.x1 != null ? L.x1 : L.x, y1 = L.y1 != null ? L.y1 : 80;
         g.save();
         g.strokeStyle = C.lime; g.shadowColor = C.lime; g.shadowBlur = 18; g.lineWidth = 6; g.globalAlpha = 0.35 * (L.t / 0.18);
-        g.beginPath(); g.moveTo(L.x, L.y0); g.lineTo(L.x, L.y1); g.stroke();
+        g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
         g.globalAlpha = Math.max(0, L.t / 0.18); g.lineWidth = 2.2; g.strokeStyle = "#f5ffd8";
-        g.beginPath(); g.moveTo(L.x, L.y0); g.lineTo(L.x, L.y1); g.stroke();
+        g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
         g.restore();
       }
 
@@ -1131,10 +1191,12 @@
           g.fillStyle = b.color; g.shadowColor = b.color; g.shadowBlur = 10;
           g.beginPath(); g.moveTo(0, 8); g.lineTo(3.5, -4); g.lineTo(0, -2); g.lineTo(-3.5, -4); g.closePath(); g.fill();
         } else {
+          const a = Math.atan2(b.vy, b.vx);
+          g.translate(b.x, b.y); g.rotate(a);
           g.strokeStyle = b.color; g.shadowColor = b.color; g.shadowBlur = 12; g.lineWidth = 3; g.lineCap = "round";
-          g.beginPath(); g.moveTo(b.x, b.y + 8); g.lineTo(b.x, b.y - 8); g.stroke();
+          g.beginPath(); g.moveTo(-8, 0); g.lineTo(8, 0); g.stroke();
           g.strokeStyle = "#fff"; g.lineWidth = 1.3; g.shadowBlur = 4;
-          g.beginPath(); g.moveTo(b.x, b.y + 5); g.lineTo(b.x, b.y - 5); g.stroke();
+          g.beginPath(); g.moveTo(-5, 0); g.lineTo(5, 0); g.stroke();
         }
         g.restore();
       }
@@ -1338,7 +1400,7 @@
 
   function startRun() {
     audio.unlock();
-    run = createRun(save.perma, { bestWave: save.bestWave, persist: !demo, seed: (Date.now() ^ 0x9e3779b9) >>> 0 });
+    run = createRun(save.perma, { bestWave: save.bestWave, persist: !demo, seed: (Date.now() ^ 0x9e3779b9) >>> 0, mid: save.mid, carryCoins: save.carryCoins });
     mode = "play"; paused = false; speed = 1;
     el("btn-speed").textContent = "1x"; el("btn-speed").classList.remove("on");
     el("title").classList.add("hidden");
@@ -1352,10 +1414,14 @@
 
   function finishRun() {
     if (!run) return;
+    settlePickups(run);
     const earned = gemsFor(run);
     const reached = run.wave;
+    const carry = Math.floor(Math.max(0, run.coins) / 2);
     if (!demo) {
       save.gems += earned;
+      save.mid = Object.assign(defaultMid(), run.up);
+      save.carryCoins = carry;
       if (reached > save.bestWave) save.bestWave = reached;
       writeSave(save);
     }
@@ -1366,6 +1432,7 @@
     el("over-earned").textContent = "+" + earned;
     el("over-bank").textContent = String(save.gems);
     el("over-best").textContent = String(Math.max(save.bestWave, reached));
+    el("over-carry").textContent = "+" + carry + " coins carried (50%)";
     buildTrees();
   }
 
@@ -1457,7 +1524,26 @@
       el("over-earned").textContent = "+184";
       el("over-bank").textContent = "260";
       el("over-best").textContent = "47";
+      el("over-carry").textContent = "+24 coins carried (50%)";
       buildTrees();
+      return;
+    }
+    if (name === "aim") {
+      startRun();
+      run.wave = 0; beginWave(run, 5);
+      run.phase = "combat"; run.phaseT = 0; run.banner = null; run.pending = [];
+      run.up = { dmg: 3, rate: 2, hp: 1, shield: 0, spread: 1, laser: 0, missile: 1, drone: 0 };
+      run.coins = 80;
+      const st = playerStats(run); run.hp = st.maxHp;
+      run.enemies = [];
+      // Low-left threat is closest to the ship/rail; high-center should NOT steal aim.
+      spawnEnemy(run, "shellback", { x: 130, y: SHIP_Y - 220 });
+      spawnEnemy(run, "spark", { x: 70, y: SHIP_Y - 340 });
+      spawnEnemy(run, "drifter", { x: 210, y: SHIP_Y - 430 });
+      spawnEnemy(run, "spark", { x: 540, y: 240 });
+      spawnEnemy(run, "spark", { x: 980, y: 360 });
+      spawnEnemy(run, "coil", { x: 860, y: 520 });
+      refreshHud(); refreshConsole();
       return;
     }
     startRun();
