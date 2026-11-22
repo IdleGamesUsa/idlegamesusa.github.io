@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Last Outpost</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<style>
+@font-face { font-family: Orbitron; src: url("fonts/orbitron.ttf") format("truetype"); font-weight: 100 900; font-display: block; }
+@font-face { font-family: Tomorrow; src: url("fonts/tomorrow-medium.ttf") format("truetype"); font-weight: 500; font-display: block; }
+@font-face { font-family: Tomorrow; src: url("fonts/tomorrow-semibold.ttf") format("truetype"); font-weight: 600; font-display: block; }
+@font-face { font-family: Tomorrow; src: url("fonts/tomorrow-bold.ttf") format("truetype"); font-weight: 700; font-display: block; }
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body {
+  width: 100%; height: 100%; background: #000; overflow: hidden;
+  color: #eaffff; touch-action: manipulation;
+  user-select: none; -webkit-user-select: none;
+}
+#fit {
+  width: 100vw; height: 100vh; height: 100dvh;
+  display: flex; align-items: center; justify-content: center;
+  background: #000; overflow: hidden;
+}
+#frame {
+  position: relative;
+  overflow: hidden;
+  background: #000;
+  flex: 0 0 auto;
+}
+#stage {
+  position: absolute; top: 0; left: 0;
+  width: 1080px; height: 1920px;
+  background: #000;
+  overflow: hidden;
+  transform-origin: 0 0;
+}
+canvas { position: absolute; inset: 0; z-index: 1; display: block; }
+.scanlines {
+  position: absolute; inset: 0; z-index: 4; pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(180,220,255,0.03) 0px,
+    rgba(180,220,255,0.03) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+.vignette {
+  position: absolute; inset: 0; z-index: 5; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 38%, rgba(0,0,0,0) 35%, rgba(0,0,0,0.5) 100%);
+}
+.ui { position: absolute; inset: 0; z-index: 10; pointer-events: none; }
+.ui .hit { pointer-events: auto; }
+
+.cyan { color: #eaffff; text-shadow: -1px 0 0 rgba(255,43,214,0.35), 1px 0 0 rgba(0,246,255,0.5), 0 0 6px #00f6ff, 0 0 16px #00f6ff, 0 0 36px rgba(0,246,255,0.75); }
+.magenta { color: #ffe6fb; text-shadow: 0 0 6px #ff2bd6, 0 0 16px #ff2bd6, 0 0 36px rgba(255,43,214,0.8); }
+.pink { color: #ffe6f4; text-shadow: 0 0 6px #ff4aa8, 0 0 16px #ff2bd6, 0 0 32px rgba(255,43,214,0.7); }
+
+/* ----- TITLE ----- */
+#title { position: absolute; inset: 0; z-index: 20; }
+.title-scrim {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 640px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.45) 22%, rgba(0,0,0,0.78) 58%, rgba(0,0,0,0.88) 100%);
+  pointer-events: none;
+}
+.title-wrap { position: absolute; left: 0; right: 0; top: 228px; text-align: center; pointer-events: none; }
+.logo-last {
+  font-family: Orbitron, sans-serif; font-weight: 800; font-size: 78px;
+  letter-spacing: 0.46em; padding-left: 0.46em; line-height: 1; margin-bottom: 10px;
+}
+.logo-outpost {
+  font-family: Orbitron, sans-serif; font-weight: 900; font-size: 138px;
+  letter-spacing: 0.045em; line-height: 0.9; padding-left: 0.02em;
+}
+.logo-rule { width: 620px; height: 14px; margin: 28px auto 0; position: relative; }
+.logo-rule::before, .logo-rule::after { content: ""; position: absolute; left: 0; right: 0; }
+.logo-rule::before { top: 0; height: 3px; background: #00f6ff; box-shadow: 0 0 8px #00f6ff, 0 0 20px #00f6ff, 0 0 40px rgba(0,246,255,0.8); }
+.logo-rule::after { top: 8px; height: 2px; background: #ff2bd6; box-shadow: 0 0 8px #ff2bd6, 0 0 20px #ff2bd6; }
+.tagline {
+  margin-top: 26px; font-family: Tomorrow, sans-serif; font-weight: 600; font-size: 28px;
+  letter-spacing: 0.42em; padding-left: 0.42em; color: #9ef7ff; text-shadow: 0 0 8px #00f6ff, 0 0 18px rgba(0,246,255,0.6);
+}
+.title-best {
+  position: absolute; left: 0; right: 0; bottom: 522px; text-align: center;
+  font-family: Tomorrow, sans-serif; font-weight: 600; font-size: 28px;
+  letter-spacing: 0.28em; padding-left: 0.28em; color: #c9d3e0; pointer-events: none;
+}
+.title-best span { font-family: Orbitron, sans-serif; font-weight: 800; font-size: 44px; letter-spacing: 0.06em; margin-left: 12px; vertical-align: -4px; }
+.btn-play, .btn-again {
+  border: 3px solid #00f6ff;
+  background: linear-gradient(180deg, rgba(0,246,255,0.22), rgba(0,246,255,0.06));
+  box-shadow: 0 0 12px #00f6ff, 0 0 36px rgba(0,246,255,0.55), inset 0 0 24px rgba(0,246,255,0.18);
+  clip-path: polygon(28px 0, calc(100% - 28px) 0, 100% 28px, 100% calc(100% - 28px), calc(100% - 28px) 100%, 28px 100%, 0 calc(100% - 28px), 0 28px);
+  display: flex; align-items: center; justify-content: center;
+  font-family: Orbitron, sans-serif; font-weight: 800;
+  color: #eaffff; text-shadow: 0 0 8px #00f6ff, 0 0 22px #00f6ff, 0 0 48px #00f6ff;
+  cursor: pointer; pointer-events: auto;
+}
+.btn-play:active, .btn-again:active { transform: scale(0.98); filter: brightness(1.15); }
+.btn-play {
+  position: absolute; left: 250px; bottom: 280px; width: 580px; height: 132px;
+  font-size: 68px; letter-spacing: 0.22em; padding-left: 0.22em;
+}
+.title-foot {
+  position: absolute; left: 0; right: 0; bottom: 56px; text-align: center;
+  font-family: Tomorrow, sans-serif; font-weight: 500; font-size: 22px;
+  letter-spacing: 0.32em; padding-left: 0.32em; color: #8a93a0; pointer-events: none;
+}
+
+/* ----- HUD ----- */
+#play-ui { position: absolute; inset: 0; }
+.hud { position: absolute; left: 36px; right: 36px; top: 28px; pointer-events: none; }
+.hud-row { display: flex; align-items: flex-end; justify-content: space-between; }
+.hud-wave em {
+  font-family: Tomorrow, sans-serif; font-style: normal; font-weight: 600; font-size: 22px;
+  letter-spacing: 0.22em; color: #8ad8e4; margin-right: 12px; text-shadow: 0 0 8px rgba(0,246,255,0.6);
+}
+.hud-wave .num { font-family: Orbitron, sans-serif; font-weight: 800; font-size: 52px; letter-spacing: 0.04em; line-height: 1; }
+.hud-coins {
+  display: flex; align-items: center; gap: 10px;
+  font-family: Orbitron, sans-serif; font-weight: 700; font-size: 40px;
+  color: #fff4c2; text-shadow: 0 0 8px #ffe500, 0 0 18px rgba(255,180,0,0.7);
+}
+.coin-ico {
+  width: 34px; height: 34px; border-radius: 50%; border: 3px solid #ffe500;
+  box-shadow: 0 0 8px #ffe500, 0 0 16px rgba(255,200,0,0.7), inset 0 0 8px rgba(255,229,0,0.4);
+  display: flex; align-items: center; justify-content: center;
+  font-family: Orbitron, sans-serif; font-weight: 800; font-size: 18px; color: #ffe500; line-height: 1;
+}
+.hud-tools { display: flex; gap: 8px; margin-left: 12px; pointer-events: auto; }
+.tool {
+  width: 56px; height: 48px; border: 2px solid rgba(0,246,255,0.7);
+  background: rgba(0,10,16,0.7); color: #9ef7ff;
+  font-family: Orbitron, sans-serif; font-weight: 700; font-size: 18px;
+  box-shadow: 0 0 8px rgba(0,246,255,0.3);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.tool.on { border-color: #c8ff00; color: #f5ffd8; box-shadow: 0 0 10px rgba(200,255,0,0.45); }
+.tool:active { transform: scale(0.96); }
+.hud-row2 { margin-top: 14px; display: flex; align-items: center; gap: 18px; }
+.hp-wrap { flex: 1; display: flex; align-items: center; gap: 12px; }
+.hp-label {
+  font-family: Tomorrow, sans-serif; font-weight: 700; font-size: 20px;
+  letter-spacing: 0.12em; color: #9ef7ff; width: 96px; flex: 0 0 96px; text-shadow: 0 0 8px #00f6ff;
+}
+.hp-bar, .sh-bar {
+  flex: 1; height: 22px; border: 2px solid #00f6ff; background: rgba(0,20,30,0.7);
+  box-shadow: 0 0 8px rgba(0,246,255,0.55), inset 0 0 8px rgba(0,246,255,0.12); padding: 2px;
+}
+.sh-bar { border-color: #b14cff; box-shadow: 0 0 8px rgba(177,76,255,0.5); margin-top: 6px; }
+.hp-fill { height: 100%; width: 0; background: linear-gradient(180deg, #d9ffff, #00f6ff 40%, #007a99); box-shadow: 0 0 8px #00f6ff, 0 0 16px #00f6ff; }
+.hp-fill.low { background: linear-gradient(180deg, #ffe0a0, #ff7a00 40%, #a33000); box-shadow: 0 0 8px #ff7a00, 0 0 16px #ff7a00; }
+.sh-fill { height: 100%; width: 0; background: linear-gradient(180deg, #f0d8ff, #b14cff 40%, #5a1480); box-shadow: 0 0 8px #b14cff; }
+.hp-num {
+  font-family: Orbitron, sans-serif; font-weight: 700; font-size: 22px; color: #d7fbff;
+  width: 120px; text-align: right; text-shadow: 0 0 6px #00f6ff;
+}
+.hud-best { font-family: Tomorrow, sans-serif; font-weight: 600; font-size: 22px; letter-spacing: 0.12em; color: #c9d3e0; white-space: nowrap; }
+.hud-best b { font-family: Orbitron, sans-serif; font-weight: 800; font-size: 26px; margin-left: 6px; color: #eaffff; text-shadow: 0 0 8px #00f6ff; }
+.boss-tag {
+  display: none; margin-left: 14px; font-family: Orbitron, sans-serif; font-weight: 800; font-size: 22px;
+  letter-spacing: 0.18em; padding: 4px 12px 2px; border: 2px solid #ff2bd6; color: #ffe6fb;
+  text-shadow: 0 0 8px #ff2bd6; box-shadow: 0 0 10px rgba(255,43,214,0.7); vertical-align: 8px;
+}
+.boss-tag.show { display: inline-block; }
+.boss-hud { margin-top: 14px; display: none; }
+.boss-hud.show { display: block; }
+.boss-name {
+  font-family: Orbitron, sans-serif; font-weight: 800; font-size: 26px; letter-spacing: 0.2em;
+  color: #ffe6fb; text-shadow: 0 0 8px #ff2bd6, 0 0 18px #ff2bd6; margin-bottom: 8px; text-align: center;
+}
+.boss-bar-row { display: flex; align-items: center; gap: 12px; }
+.boss-bar {
+  flex: 1; height: 26px; border: 2px solid #ff2bd6; background: rgba(30,0,20,0.75);
+  box-shadow: 0 0 10px rgba(255,43,214,0.7), inset 0 0 8px rgba(255,43,214,0.15); padding: 2px;
+}
+.boss-fill { height: 100%; width: 100%; background: linear-gradient(180deg, #ffd0f5, #ff2bd6 45%, #8a0066); box-shadow: 0 0 8px #ff2bd6, 0 0 16px #ff2bd6; }
+.boss-hp { font-family: Orbitron, sans-serif; font-weight: 700; font-size: 22px; color: #ffe6fb; width: 70px; text-align: right; text-shadow: 0 0 8px #ff2bd6; }
+
+/* ----- CONSOLE ----- */
+.console {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 510px;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,8,16,0.86) 28px, rgba(0,6,14,0.94) 100%);
+  padding: 0 32px 28px; pointer-events: none;
+}
+.rail {
+  height: 18px; margin: 0 -32px 16px; position: relative;
+  background: linear-gradient(180deg, rgba(0,246,255,0.0), rgba(0,246,255,0.05));
+  border-top: 3px solid #00f6ff;
+  box-shadow: 0 -2px 16px #00f6ff, 0 -6px 36px rgba(0,246,255,0.45);
+}
+.rail::before, .rail::after {
+  content: ""; position: absolute; top: -10px; width: 18px; height: 18px;
+  border: 3px solid #00f6ff; background: #001018; box-shadow: 0 0 10px #00f6ff; transform: rotate(45deg);
+}
+.rail::before { left: 40px; }
+.rail::after { right: 40px; }
+.rail .tick { position: absolute; top: -3px; width: 2px; height: 10px; background: #00f6ff; box-shadow: 0 0 6px #00f6ff; }
+.console-head { display: flex; align-items: baseline; justify-content: space-between; margin: 8px 4px 16px; }
+.console-title {
+  font-family: Tomorrow, sans-serif; font-weight: 600; font-size: 22px;
+  letter-spacing: 0.28em; color: #8ad8e4; text-shadow: 0 0 8px rgba(0,246,255,0.55);
+}
+.console-sub { font-family: Tomorrow, sans-serif; font-weight: 500; font-size: 20px; letter-spacing: 0.08em; color: #6a7380; }
+.up-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; pointer-events: auto; }
+.up-btn {
+  position: relative; border: 2px solid #00f6ff;
+  background: linear-gradient(180deg, rgba(0,246,255,0.14), rgba(0,20,30,0.7));
+  box-shadow: 0 0 10px rgba(0,246,255,0.45), inset 0 0 12px rgba(0,246,255,0.08);
+  min-height: 132px; padding: 14px 10px 12px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  cursor: pointer; color: inherit;
+}
+.up-btn .name { font-family: Tomorrow, sans-serif; font-weight: 700; font-size: 22px; letter-spacing: 0.08em; color: #eaffff; text-shadow: 0 0 8px #00f6ff; line-height: 1.1; }
+.up-btn .lvl { font-family: Tomorrow, sans-serif; font-weight: 500; font-size: 18px; letter-spacing: 0.08em; color: #8ad8e4; }
+.up-btn .cost { margin-top: 4px; font-family: Orbitron, sans-serif; font-weight: 700; font-size: 24px; color: #fff4c2; text-shadow: 0 0 8px #ffe500; }
+.up-btn.dim { border-color: #2a4a58; background: linear-gradient(180deg, rgba(20,30,40,0.5), rgba(0,10,16,0.7)); box-shadow: none; cursor: default; }
+.up-btn.dim .name, .up-btn.dim .lvl { color: #6a7a86; text-shadow: none; }
+.up-btn.dim .cost { color: #8a8070; text-shadow: none; }
+.up-btn.locked { border-color: #3a2a58; border-style: dashed; background: rgba(10,8,20,0.7); box-shadow: none; cursor: default; }
+.up-btn.locked .name { color: #6e5a8a; text-shadow: none; }
+.up-btn.locked .lvl, .up-btn.locked .cost { color: #5a4a70; text-shadow: none; }
+.up-btn.hot { border-color: #c8ff00; background: linear-gradient(180deg, rgba(200,255,0,0.14), rgba(10,20,0,0.7)); box-shadow: 0 0 12px rgba(200,255,0,0.45); }
+.up-btn.hot .name { color: #f5ffd8; text-shadow: 0 0 8px #c8ff00; }
+.up-btn.mag { border-color: #ff2bd6; background: linear-gradient(180deg, rgba(255,43,214,0.14), rgba(20,0,16,0.7)); box-shadow: 0 0 12px rgba(255,43,214,0.45); }
+.up-btn.mag .name { color: #ffe6fb; text-shadow: 0 0 8px #ff2bd6; }
+.up-btn:not(.dim):not(.locked):active { transform: scale(0.97); filter: brightness(1.2); }
+
+/* ----- BANNERS / PAUSE ----- */
+.banner {
+  position: absolute; left: 0; right: 0; top: 620px; text-align: center;
+  font-family: Orbitron, sans-serif; font-weight: 800; pointer-events: none;
+  opacity: 0; transition: opacity 0.2s;
+}
+.banner.show { opacity: 1; }
+.banner .k { font-size: 28px; letter-spacing: 0.4em; color: #9ef7ff; text-shadow: 0 0 10px #00f6ff; display: block; margin-bottom: 8px; }
+.banner .v { font-size: 96px; letter-spacing: 0.08em; color: #eaffff; text-shadow: -2px 0 0 rgba(255,43,214,0.5), 2px 0 0 rgba(0,246,255,0.4), 0 0 12px #00f6ff, 0 0 36px #00f6ff; }
+.banner.boss .k { color: #ffe6fb; text-shadow: 0 0 10px #ff2bd6; }
+.banner.boss .v { font-size: 64px; letter-spacing: 0.12em; color: #ffe6fb; text-shadow: 0 0 12px #ff2bd6, 0 0 36px #ff2bd6; }
+#pause {
+  position: absolute; inset: 0; z-index: 30; display: none;
+  background: rgba(0,0,0,0.62); align-items: center; justify-content: center; flex-direction: column; gap: 28px;
+}
+#pause.show { display: flex; }
+#pause h2 {
+  font-family: Orbitron, sans-serif; font-weight: 800; font-size: 72px; letter-spacing: 0.2em;
+  color: #eaffff; text-shadow: 0 0 12px #00f6ff, 0 0 36px #00f6ff;
+}
+.btn-resume {
+  pointer-events: auto; width: 480px; height: 110px; border: 3px solid #00f6ff;
+  background: linear-gradient(180deg, rgba(0,246,255,0.22), rgba(0,246,255,0.06));
+  box-shadow: 0 0 12px #00f6ff, 0 0 36px rgba(0,246,255,0.55);
+  clip-path: polygon(24px 0, calc(100% - 24px) 0, 100% 24px, 100% calc(100% - 24px), calc(100% - 24px) 100%, 24px 100%, 0 calc(100% - 24px), 0 24px);
+  font-family: Orbitron, sans-serif; font-weight: 800; font-size: 40px; letter-spacing: 0.14em;
+  color: #eaffff; text-shadow: 0 0 8px #00f6ff; cursor: pointer;
+}
+
+/* ----- GAME OVER ----- */
+#over { position: absolute; inset: 0; z-index: 25; display: none; }
+#over.show { display: block; }
+.go-banner { position: absolute; left: 0; right: 0; top: 86px; text-align: center; pointer-events: none; }
+.go-kicker { font-family: Tomorrow, sans-serif; font-weight: 700; font-size: 26px; letter-spacing: 0.4em; padding-left: 0.4em; color: #ff4aa8; text-shadow: 0 0 8px #ff2bd6, 0 0 20px #ff2bd6; margin-bottom: 14px; }
+.go-you { font-family: Tomorrow, sans-serif; font-weight: 600; font-size: 28px; letter-spacing: 0.28em; padding-left: 0.28em; color: #c9d3e0; margin-bottom: 6px; }
+.go-wave { font-family: Orbitron, sans-serif; font-weight: 900; font-size: 120px; letter-spacing: 0.02em; line-height: 0.92; color: #eaffff; text-shadow: -2px 0 0 rgba(255,43,214,0.55), 2px 0 0 rgba(0,246,255,0.45), 0 0 10px #00f6ff, 0 0 28px #00f6ff, 0 0 60px rgba(0,246,255,0.7); }
+.go-wave small { display: block; font-size: 30px; letter-spacing: 0.36em; font-weight: 700; margin-bottom: 2px; padding-left: 0.2em; }
+.go-gems { margin-top: 28px; display: flex; justify-content: center; gap: 36px; }
+.go-gem-box { min-width: 280px; border: 2px solid #ff2bd6; background: #140010; box-shadow: 0 0 16px rgba(255,43,214,0.45); padding: 14px 22px 16px; text-align: center; }
+.go-gem-box.cyan { border-color: #00f6ff; background: #001015; box-shadow: 0 0 16px rgba(0,246,255,0.4); }
+.go-gem-box .lbl { font-family: Tomorrow, sans-serif; font-weight: 600; font-size: 18px; letter-spacing: 0.2em; color: #c9d3e0; margin-bottom: 4px; }
+.go-gem-box .val { font-family: Orbitron, sans-serif; font-weight: 800; font-size: 44px; letter-spacing: 0.04em; }
+.gem-ico { display: inline-block; width: 22px; height: 22px; background: #ff2bd6; transform: rotate(45deg); box-shadow: 0 0 10px #ff2bd6, 0 0 20px #ff2bd6; margin-right: 10px; vertical-align: 2px; }
+.perm-wrap { position: absolute; left: 32px; right: 32px; top: 590px; pointer-events: none; }
+.perm-head {
+  text-align: center; font-family: Tomorrow, sans-serif; font-weight: 700; font-size: 22px;
+  letter-spacing: 0.32em; padding-left: 0.32em; color: #9ef7ff; text-shadow: 0 0 8px #00f6ff;
+  margin-bottom: 18px; position: relative;
+}
+.perm-head::before, .perm-head::after { content: ""; position: absolute; top: 50%; width: 160px; height: 2px; background: #00f6ff; box-shadow: 0 0 8px #00f6ff; }
+.perm-head::before { left: 20px; } .perm-head::after { right: 20px; }
+.trees { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; pointer-events: auto; }
+.tree { border: 2px solid rgba(0,246,255,0.45); background: #030a10; padding: 14px 12px 16px; }
+.tree.atk { border-color: rgba(255,122,0,0.7); }
+.tree.def { border-color: rgba(0,246,255,0.7); }
+.tree.eco { border-color: rgba(200,255,0,0.7); }
+.tree h3 { font-family: Orbitron, sans-serif; font-weight: 800; font-size: 22px; letter-spacing: 0.16em; text-align: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.12); }
+.tree.atk h3 { color: #ffd4a8; text-shadow: 0 0 8px #ff7a00; }
+.tree.def h3 { color: #eaffff; text-shadow: 0 0 8px #00f6ff; }
+.tree.eco h3 { color: #f5ffd8; text-shadow: 0 0 8px #c8ff00; }
+.upg {
+  display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto;
+  column-gap: 8px; padding: 10px 8px; margin-bottom: 8px;
+  border: 1px solid rgba(255,255,255,0.1); background: #071016; cursor: pointer;
+}
+.upg:last-child { margin-bottom: 0; }
+.upg .un { font-family: Tomorrow, sans-serif; font-weight: 600; font-size: 18px; color: #e8eef4; letter-spacing: 0.02em; line-height: 1.2; }
+.upg .ul { font-family: Tomorrow, sans-serif; font-weight: 500; font-size: 16px; color: #8ad8e4; grid-column: 1; }
+.upg .uc { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-family: Orbitron, sans-serif; font-weight: 700; font-size: 18px; color: #ffe6fb; text-shadow: 0 0 6px #ff2bd6; white-space: nowrap; text-align: right; }
+.upg.buyable { border-color: rgba(0,246,255,0.55); background: #041820; box-shadow: 0 0 10px rgba(0,246,255,0.2); }
+.upg.buyable:active { filter: brightness(1.25); }
+.upg.costly { cursor: default; }
+.upg.costly .uc { color: #6a7380; text-shadow: none; }
+.upg.maxed { border-color: rgba(200,255,0,0.4); background: #0a1204; cursor: default; }
+.upg.maxed .uc { color: #c8ff00; text-shadow: 0 0 6px #c8ff00; }
+.pips { display: inline-flex; gap: 4px; margin-left: 8px; vertical-align: 1px; }
+.pip { width: 8px; height: 8px; border: 1.5px solid #8ad8e4; transform: rotate(45deg); opacity: 0.3; }
+.pip.on { opacity: 1; background: #00f6ff; border-color: #00f6ff; box-shadow: 0 0 6px #00f6ff; }
+.tree.atk .pip { border-color: #ffb070; }
+.tree.atk .pip.on { background: #ff7a00; border-color: #ff7a00; box-shadow: 0 0 6px #ff7a00; }
+.tree.eco .pip { border-color: #c8e070; }
+.tree.eco .pip.on { background: #c8ff00; border-color: #c8ff00; box-shadow: 0 0 6px #c8ff00; }
+.btn-again {
+  position: absolute; left: 200px; bottom: 290px; width: 680px; height: 120px;
+  font-size: 46px; letter-spacing: 0.14em; padding-left: 0.14em;
+  clip-path: polygon(24px 0, calc(100% - 24px) 0, 100% 24px, 100% calc(100% - 24px), calc(100% - 24px) 100%, 24px 100%, 0 calc(100% - 24px), 0 24px);
+}
+.go-foot {
+  position: absolute; left: 0; right: 0; bottom: 48px; text-align: center;
+  font-family: Tomorrow, sans-serif; font-weight: 500; font-size: 22px; letter-spacing: 0.2em; color: #8a93a0; pointer-events: none;
+}
+.go-foot b { font-family: Orbitron, sans-serif; font-weight: 800; color: #eaffff; text-shadow: 0 0 8px #00f6ff; margin-left: 6px; }
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div id="fit">
+  <div id="frame">
+  <div id="stage">
+    <canvas id="fx" width="1080" height="1920"></canvas>
+    <div class="scanlines"></div>
+    <div class="vignette"></div>
+
+    <div id="play-ui" class="ui hidden">
+      <div class="hud">
+        <div class="hud-row">
+          <div class="hud-wave"><em>WAVE</em><span class="num cyan" id="hud-wave">01</span><span class="boss-tag" id="boss-tag">BOSS</span></div>
+          <div style="display:flex;align-items:center;">
+            <div class="hud-coins"><span class="coin-ico">C</span><span id="hud-coins">0</span></div>
+            <div class="hud-tools">
+              <button class="tool" id="btn-pause" aria-label="Pause">II</button>
+              <button class="tool" id="btn-speed" aria-label="Speed">1x</button>
+              <button class="tool" id="btn-mute" aria-label="Mute">♪</button>
+            </div>
+          </div>
+        </div>
+        <div class="hud-row2">
+          <div class="hp-wrap">
+            <span class="hp-label">HULL</span>
+            <div class="hp-bar"><div class="hp-fill" id="hp-fill"></div></div>
+            <span class="hp-num" id="hp-num">100/100</span>
+          </div>
+          <div class="hud-best">BEST <b id="hud-best">0</b></div>
+        </div>
+        <div class="hp-wrap" id="shield-row" style="display:none;margin-top:8px;">
+          <span class="hp-label" style="color:#e0c0ff;text-shadow:0 0 8px #b14cff;">SHIELD</span>
+          <div class="sh-bar"><div class="sh-fill" id="sh-fill"></div></div>
+          <span class="hp-num" id="sh-num" style="color:#e0c0ff;">0/0</span>
+        </div>
+        <div class="boss-hud" id="boss-hud">
+          <div class="boss-name" id="boss-name">THE HARBINGER</div>
+          <div class="boss-bar-row">
+            <div class="boss-bar"><div class="boss-fill" id="boss-fill"></div></div>
+            <div class="boss-hp" id="boss-hp">100%</div>
+          </div>
+        </div>
+      </div>
+      <div class="console">
+        <div class="rail" id="rail-ticks"></div>
+        <div class="console-head">
+          <span class="console-title">OUTPOST CONSOLE</span>
+          <span class="console-sub" id="console-sub">TRAINING FIRE  ·  SINGLE BLASTER</span>
+        </div>
+        <div class="up-grid" id="up-grid"></div>
+      </div>
+      <div class="banner" id="wave-banner"><span class="k">WAVE</span><span class="v" id="wave-banner-v">01</span></div>
+      <div class="banner boss" id="boss-banner"><span class="k">WARNING</span><span class="v" id="boss-banner-v">THE HARBINGER</span></div>
+    </div>
+
+    <div id="title" class="ui">
+      <div class="title-scrim"></div>
+      <div class="title-wrap">
+        <div class="logo-last magenta">LAST</div>
+        <div class="logo-outpost cyan">OUTPOST</div>
+        <div class="logo-rule"></div>
+        <div class="tagline">DEFEND THE LINE</div>
+      </div>
+      <div class="title-best">BEST WAVE <span class="cyan" id="title-best">0</span></div>
+      <button class="btn-play hit" id="btn-play">PLAY</button>
+      <div class="title-foot">IDLE GAMES USA</div>
+    </div>
+
+    <div id="over">
+      <div class="title-scrim"></div>
+      <div class="go-banner">
+        <div class="go-kicker magenta">SYSTEM DOWN</div>
+        <div class="go-you">YOU REACHED</div>
+        <div class="go-wave cyan"><small>WAVE</small><span id="over-wave">0</span></div>
+        <div class="go-gems">
+          <div class="go-gem-box">
+            <div class="lbl">GEMS EARNED</div>
+            <div class="val pink"><span class="gem-ico"></span><span id="over-earned">+0</span></div>
+          </div>
+          <div class="go-gem-box cyan">
+            <div class="lbl">GEM BANK</div>
+            <div class="val cyan"><span class="gem-ico" style="background:#00f6ff;box-shadow:0 0 10px #00f6ff,0 0 20px #00f6ff"></span><span id="over-bank">0</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="perm-wrap">
+        <div class="perm-head">PERMANENT UPGRADES</div>
+        <div class="trees" id="trees"></div>
+      </div>
+      <button class="btn-again hit" id="btn-again">PLAY AGAIN</button>
+      <div class="go-foot">BEST WAVE <b id="over-best">0</b>  ·  IDLE GAMES USA</div>
+    </div>
+
+    <div id="pause">
+      <h2 class="cyan">PAUSED</h2>
+      <button class="btn-resume" id="btn-resume">RESUME</button>
+    </div>
+  </div>
+  </div>
+</div>
+<script src="game.js"></script>
+</body>
+</html>
