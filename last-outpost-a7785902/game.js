@@ -28,7 +28,7 @@
     baseHp: 100, hpPerBuy: 14, hpHealFrac: 0.40, permaDmg: 4, permaHp: 22,
     permaArmor: 0.035, permaCrit: 0.035, permaStartCoins: 22, permaCoinValue: 0.12,
     permaGemBonus: 0, permaShield: 16, interestPerWave: 4, gemPerWave: 0,
-    gemKillDiv: 99999, gemPerBoss: 10, gemBestWave: 1, gemDaily: 5, coinPayout: 1.32, countBase: 5, countPerWave: 1.10, countMax: 22,
+    gemKillDiv: 99999, gemPerBoss: 10, gemBestWave: 1, gemDaily: 5, coinPayout: 1.38, countBase: 5, countPerWave: 1.10, countMax: 22,
     bulletSpd: 980, waveBreak: 1.55, bossIntro: 2.2, maxShieldBase: 50, shieldPerLv: 24,
     shieldRegenDelay: 3.0, shieldRegenPerSec: 10, coinDrop: 0.55, shipHpPerLv: 18
   };
@@ -69,7 +69,7 @@
     { id: "chain",    name: "CHAIN",      tab: "atk",  base: 150, grow: 1.52, max: 12, unlock: 14 },
     { id: "laser",    name: "LASER",      tab: "atk",  base: 220, grow: 1.52, max: 10, unlock: 6, prestige: true },
     { id: "missile",  name: "MISSILES",   tab: "atk",  base: 260, grow: 1.52, max: 10, unlock: 8, prestige: true },
-    { id: "ship",     name: "SHIP",       tab: "def",  base: 35,  grow: 1.40, max: 10, unlock: 0, prestige: true },
+    { id: "ship",     name: "BASE",       tab: "def",  base: 35,  grow: 1.40, max: 10, unlock: 0, prestige: true },
     { id: "hp",       name: "HEALTH",     tab: "def",  base: 35,  grow: 1.40, max: 20, unlock: 0 },
     { id: "shield",   name: "SHIELD",     tab: "def",  base: 85,  grow: 1.48, max: 10, unlock: 4, prestige: true },
     { id: "shRegen",  name: "SH. REGEN",  tab: "def",  base: 95,  grow: 1.45, max: 15, unlock: 6 },
@@ -147,10 +147,10 @@
       { id: "mines", name: "MINES", cost: 90, blurb: "Each wave, mines are planted across the field and detonate on contact. Upgraded with gems." }
     ],
     cosmo: [
-      { id: "skin_stealth", name: "STEALTH", cost: 55, kind: "skin", value: "stealth", blurb: "Faceted matte hull and sawtooth edges. A real redesign, not a tint." },
-      { id: "skin_racer", name: "RACER", cost: 55, kind: "skin", value: "racer", blurb: "Long-nose racer paint, spine stripe, and a rear spoiler." },
-      { id: "skin_chrome", name: "CHROME", cost: 60, kind: "skin", value: "chrome", blurb: "Mirror hull with rounded leading edges and a cool canopy." },
-      { id: "skin_alien", name: "ALIEN BIO-SHIP", cost: 70, kind: "skin", value: "alien", blurb: "Organic veins, an eye canopy, and stalk-mounted guns." },
+      { id: "skin_stealth", name: "STEALTH", cost: 55, kind: "skin", value: "stealth", blurb: "Faceted matte bunker and sawtooth battlements. A real redesign, not a tint." },
+      { id: "skin_racer", name: "RACER", cost: 55, kind: "skin", value: "racer", blurb: "Racing stripes and spoiler fins on the outpost wall." },
+      { id: "skin_chrome", name: "CHROME", cost: 60, kind: "skin", value: "chrome", blurb: "Mirror-steel citadel with a cool glass core." },
+      { id: "skin_alien", name: "ALIEN BIO-BASE", cost: 70, kind: "skin", value: "alien", blurb: "Organic veins, an eye-core, and stalk-mounted turrets." },
       { id: "trail_spark", name: "SPARK TRAILS", cost: 40, kind: "trail", value: "spark", blurb: "Bullets leave a sparking trail." },
       { id: "trail_prism", name: "PRISM ROUNDS", cost: 40, kind: "trail", value: "prism", blurb: "Shots shimmer with prism color." }
     ],
@@ -217,7 +217,7 @@
   };
 
   const BOSS = {
-    10: { name: "THE HERALD",     kind: "herald",     hp: 13200, r: 155, coins: 70 },
+    10: { name: "THE HERALD",     kind: "herald",     hp: 12400, r: 155, coins: 70 },
     20: { name: "TWIN SPIRE",     kind: "twin",       hp: 18500, r: 170, coins: 110 },
     30: { name: "THE LATTICE",    kind: "lattice",    hp: 23000, r: 180, coins: 150 },
     40: { name: "THE HARBINGER",  kind: "harbinger",  hp: 44000, r: 200, coins: 200 },
@@ -264,7 +264,7 @@
     return { dmg: 0, laser: 0, missile: 0, drone: 0, armor: 0, shield: 0, ship: 0 };
   }
   function defaultSave() {
-    return { bestWave: 0, gems: 0, perma: defaultPerma(), mid: defaultMid(), prest: defaultPrest(), carryCoins: 0, bankCoins: 0, shop: defaultShop(), lastDaily: "", mute: false, ver: 10 };
+    return { bestWave: 0, gems: 0, perma: defaultPerma(), mid: defaultMid(), prest: defaultPrest(), carryCoins: 0, bankCoins: 0, shop: defaultShop(), lastDaily: "", mute: false, ver: 11 };
   }
 
   function convertOverflowToPrestige(mid, prest) {
@@ -378,7 +378,7 @@
       if (sh.skin === "crimson" || sh.skin === "gold" || sh.skin === "ice") sh.skin = "default";
       d.shop = sh;
     }
-    d.ver = 10;
+    d.ver = 11;
     return d;
   }
 
@@ -465,51 +465,72 @@
     return Math.pow(1.10, Math.min(n, 8)) * Math.pow(1.08, Math.max(0, Math.min(n, 40) - 8)) * Math.pow(1.10, Math.max(0, n - 40));
   }
 
-  const SHIP_GUN_LAYOUT = [
-    { scale: 0.70, guns: [{ x: 0, y: -72 }] },
-    { scale: 0.76, guns: [{ x: -78, y: -18 }, { x: 78, y: -18 }] },
-    { scale: 0.82, guns: [{ x: 0, y: -118 }, { x: -92, y: -28 }, { x: 92, y: -28 }] },
-    { scale: 0.88, guns: [{ x: -13, y: -112 }, { x: 13, y: -112 }, { x: -108, y: -30 }, { x: 108, y: -30 }] },
-    { scale: 0.92, guns: [{ x: 0, y: -136 }, { x: -58, y: -32 }, { x: 58, y: -32 }, { x: -118, y: -30 }, { x: 118, y: -30 }] },
-    { scale: 0.96, guns: [{ x: 0, y: -130 }, { x: -64, y: -36 }, { x: 64, y: -36 }, { x: -132, y: -36 }, { x: 132, y: -36 }] }
+  const TURRET_MAX_DEV = 70 * Math.PI / 180;
+  const TURRET_LAYOUT = [
+    { halfW: 210, xs: [0] },
+    { halfW: 290, xs: [-130, 130] },
+    { halfW: 350, xs: [-210, 0, 210] },
+    { halfW: 410, xs: [-280, -95, 95, 280] },
+    { halfW: 470, xs: [-360, -180, 0, 180, 360] },
+    { halfW: 510, xs: [-390, -195, 0, 195, 390] }
   ];
-  function shipGunCount(tier) { return SHIP_GUN_LAYOUT[Math.max(0, Math.min(5, tier | 0))].guns.length; }
-  function shipGunShare(tier) {
-    // Split base damage across guns, plus a modest per-tier total bump.
+  function turretTierOf(run) { return Math.max(0, Math.min(5, (run && run.prest && run.prest.ship) | 0)); }
+  function turretCount(tier) { return TURRET_LAYOUT[Math.max(0, Math.min(5, tier | 0))].xs.length; }
+  function turretShare(tier) {
     const t = Math.max(0, Math.min(5, tier | 0));
-    const n = shipGunCount(t);
-    const total = 1 + 0.12 * t;
-    return total / n;
+    return (1 + 0.12 * t) / turretCount(t);
   }
-  function shipMuzzles(run) {
-    const t = Math.max(0, Math.min(5, (run.prest && run.prest.ship) | 0));
-    const layout = SHIP_GUN_LAYOUT[t];
-    const ang = run.hullAng != null ? run.hullAng : -Math.PI / 2;
-    const rot = ang + Math.PI / 2;
-    const ca = Math.cos(rot), sa = Math.sin(rot), sc = layout.scale;
+  function turretPivotY() { return RAIL_Y - 72; }
+  function baseHalfW(tier) { return TURRET_LAYOUT[Math.max(0, Math.min(5, tier | 0))].halfW; }
+  function wallFace() { return RAIL_Y - 6; }
+  function turretHardpoints(run) {
+    const t = turretTierOf(run);
+    const xs = TURRET_LAYOUT[t].xs;
+    const y = turretPivotY();
     const out = [];
-    for (let i = 0; i < layout.guns.length; i++) {
-      const g = layout.guns[i];
-      out.push({
-        x: SHIP_X + (g.x * ca - g.y * sa) * sc,
-        y: SHIP_Y + (g.x * sa + g.y * ca) * sc
-      });
-    }
+    for (let i = 0; i < xs.length; i++) out.push({ x: SHIP_X + xs[i], y: y, i: i });
     return out;
+  }
+  function turretMuzzle(hp, ang, len) {
+    const L = len == null ? 38 : len;
+    return { x: hp.x + Math.cos(ang) * L, y: hp.y + Math.sin(ang) * L };
+  }
+  function clampTurretAng(ang) {
+    const mid = -Math.PI / 2;
+    let d = ang - mid;
+    while (d > Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    if (d > TURRET_MAX_DEV) d = TURRET_MAX_DEV;
+    if (d < -TURRET_MAX_DEV) d = -TURRET_MAX_DEV;
+    return mid + d;
+  }
+  function angInTurretArc(ang) {
+    const mid = -Math.PI / 2;
+    let d = ang - mid;
+    while (d > Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    return Math.abs(d) <= TURRET_MAX_DEV + 0.02;
+  }
+  function shipGunCount(tier) { return turretCount(tier); }
+  function shipGunShare(tier) { return turretShare(tier); }
+  function shipMuzzles(run) {
+    const hps = turretHardpoints(run);
+    const angs = (run && run.turretAng) || [];
+    return hps.map((p, i) => turretMuzzle(p, angs[i] != null ? angs[i] : -Math.PI / 2, 38));
   }
   function fieldTop() { return 56; }
   function fieldBottom() { return RAIL_Y - 8; }
   function knockResist(wave) {
     const n = wave | 0;
     if (n < 16) return 0;
-    return Math.min(0.72, (n - 15) * 0.034);
+    return Math.min(0.88, (n - 15) * 0.042);
   }
   function clampEnemyPos(e) {
     if (!e) return;
     const top = fieldTop() + (e.r || 16);
-    const bot = fieldBottom() - (e.r || 16);
     e.x = Math.max(40, Math.min(W - 40, e.x));
-    e.y = Math.max(top, Math.min(bot, e.y));
+    // Do not clamp downward: enemies must be free to reach the wall and explode.
+    if (e._onField) e.y = Math.max(top, e.y);
   }
   function waveEnemyCount(n) {
     let count = Math.min(BAL.countMax, Math.floor(BAL.countBase + n * BAL.countPerWave));
@@ -596,26 +617,26 @@
   const INFO = {
     dmg: "Your main blaster. Each level raises bullet damage. This is a core item: at level 10 you can Prestige it for a new shape, a new color, and a big power bonus.",
     rate: "Shortens the time between blaster volleys. Higher fire rate means more shots per second. Caps high and does not prestige.",
-    spread: "Adds extra bullets that fan around your aim — from EVERY gun. Level 1 gives a 3-shot fan per muzzle; higher levels add more shots in a wider cone.",
+    spread: "Adds extra bullets that fan around your aim — from EVERY turret. Level 1 gives a 3-shot fan per turret; higher levels add more shots in a wider cone.",
     crit: "Chance for a shot to crit and use your Crit Damage multiplier. Shown as a white, heavier bolt when it procs.",
     critDmg: "How hard a critical hit hurts. Starts at 2× and climbs with each level.",
     pierce: "Bullets keep going after a hit. Each level lets a shot pass through one more enemy.",
-    multi: "Adds extra projectiles on top of the spread fan on EVERY gun, for a thicker volley from each hardpoint.",
+    multi: "Adds extra projectiles on top of the spread fan on EVERY turret, for a thicker volley from each hardpoint.",
     bspd: "Makes your shots fly faster so lead aiming lands more cleanly and they cross the screen sooner.",
     burn: "Hits set enemies on fire, dealing damage over time after the shot.",
     chain: "On hit, lightning jumps to a nearby enemy for a fraction of the damage. Higher levels jump farther and more times.",
-    laser: "Fires a piercing beam at the closest threats. Core item: Prestige at level 10 for a thicker, cooler beam (split and spiral at the top tiers) and more power.",
-    missile: "Launches homing missiles at the closest threats. Core item: Prestige at level 10 for bigger frames, brighter exhaust, heavier blasts, and a new look.",
-    ship: "The hull itself. Raises max health. Prestige at level 10 to a new ship class: Mk I scout (1 nose gun), Mk II fighter (2 wing guns), Mk III heavy fighter (3), Mk IV gunship (4), Mk V interceptor (5), Mk VI flagship (5 guns plus a sweeping S-curve void beam). Damage is split across guns with a modest per-tier gain. Spread and Multishot apply per gun.",
-    hp: "Buys more max health and instantly repairs a chunk of hull. A mid-run survival purchase; the Ship is the prestige path for the hull look.",
-    shield: "A rechargeable energy ARC projected in front of the hull, not a bubble. It blocks frontal shots that pass through the arc. When shield HP hits 0 the arc cracks and fades; when it regenerates, it visibly powers back up. Prestige adds strength.",
+    laser: "Fires a piercing beam from a turret or the core at the closest threats. Core item: Prestige at level 10 for a thicker, cooler beam (split and spiral at the top tiers) and more power.",
+    missile: "Launches homing missiles from the turrets or the core at the closest threats. Core item: Prestige at level 10 for bigger frames, brighter exhaust, heavier blasts, and a new look.",
+    ship: "The outpost itself. Raises base max health. Prestige at level 10 to a new fortress class: Mk I bunker (1 center turret), Mk II (2 turrets), Mk III (3), Mk IV (4), Mk V (5), Mk VI citadel (5 turrets plus a sweeping S-curve void beam from the core). Each turret rotates independently up to 70° left or right to lead its own target. Damage is split across turrets with a modest per-tier gain. Spread and Multishot apply per turret. The base never moves or flips.",
+    hp: "Buys more max health and instantly repairs a chunk of the base. A mid-run survival purchase; Base is the prestige path for the outpost look and turret count.",
+    shield: "A rechargeable energy ARC or dome wall projected over the front of the base, not a bubble. It blocks frontal shots that pass through the arc. When shield HP hits 0 the arc cracks and fades; when it regenerates, it visibly powers back up. Prestige adds strength.",
     shRegen: "The shield refills faster after you stop taking hits.",
     armor: "Cuts incoming damage by a percent (capped). Core item: Prestige at level 10 for a larger cut and heavier visible hull plating.",
     regen: "Slowly repairs hull over time, even between hits.",
-    thorns: "When something rams the rail or the ship, a portion of that damage is reflected back.",
-    knock: "Shoves enemies back up the field. Low levels only push foes very close to the ship a short distance. Each level extends the trigger range and the push. Max level can drive enemies to the top edge of the visible field, never off-screen. At high waves, knockback resistance keeps swarms visible. Bosses barely flinch.",
+    thorns: "When something rams the wall, a portion of that damage is reflected back.",
+    knock: "Shoves enemies back up the field. Low levels only push foes very close to the base a short distance. Each level extends the trigger range and the push. Max level can drive enemies to the top edge of the visible field, never off-screen or into a rail pile. At high waves, knockback resistance keeps swarms visible and pressing mid-field. Bosses barely flinch and never reach the wall. Enemies that do reach the wall deal contact damage, explode, and vanish.",
     freeze: "Hits slow enemies for a short time. Stacks a little with more levels, and is capped so they never freeze solid.",
-    drone: "A wingman that hovers near the ship and fires on the closest threat. Core item: Prestige at level 10 for a new, spikier drone shape, orbit trails, and more punch.",
+    drone: "A wingman that hovers near the base and fires on the closest threat. Core item: Prestige at level 10 for a new, spikier drone shape, orbit trails, and more punch.",
     dcount: "Adds extra drones, up to a small squad.",
     dmgDrone: "Raises the damage of every drone shot.",
     laserW: "Widens the laser beam so it is easier to clip enemies.",
@@ -627,11 +648,11 @@
     nuke: "Shop weapon. A nuke-style missile that fires about every 5 seconds. A lone target dies; groups take a large neon mushroom blast and shockwave. Unlock and upgrade it with gems in the Gem Shop, then equip it.",
     pylon: "Shop add-on. A tesla tower mounted on the base wall zaps the nearest threat. Unlock and upgrade it with gems in the Gem Shop, then equip it.",
     mines: "Shop add-on. If equipped, each wave plants several mines at random spots on the field. They stay until an enemy hits them, then blast. Upgrades add mine count and damage. Unlock and upgrade with gems in the Gem Shop.",
-    pdef: "Point Defense. Sentry guns on the outpost wall behind your ship intercept incoming bullets and missiles. The first sentry comes online at level 1. Additional sentries unlock at levels 4, 8 and 12, up to four. They track and fire at projectiles in their reach with a modest intercept rate, thinning volleys without erasing them. Laser sweeps cannot be intercepted. From level 6 some shots are deflected back at enemies.",
+    pdef: "Point Defense. Sentry guns mounted on the outpost wall intercept incoming bullets and missiles. The first sentry comes online at level 1. Additional sentries unlock at levels 4, 8 and 12, up to four. They track and fire at projectiles in their reach with a modest intercept rate, thinning volleys without erasing them. Laser sweeps cannot be intercepted. From level 6 some shots are deflected back at enemies.",
     coinVal: "Increases coins dropped by every kill. Stacks with the permanent Coin Value node.",
     interest: "At the start of each new wave, grants bonus coins based on this level (plus any permanent Interest).",
     skip: "When a non-boss wave is built, automatically cashes out and removes a few of the weakest upcoming spawns.",
-    orbit: "Unlocks at wave 25. Spinning orbs circle the ship and damage anything they touch. Milestone weapon.",
+    orbit: "Unlocks at wave 25. Spinning orbs circle the core and damage anything they touch. Milestone weapon.",
     emp: "Unlocks at wave 50. A periodic pulse damages and briefly stuns enemies near the rail. Milestone weapon."
   };
   const PERMA_INFO = {
@@ -642,13 +663,13 @@
     pierce: "Your bullets start with extra pierce charges.",
     multi: "Your volley starts with extra shots.",
     slot: "Starts the run with a weapon already online (Spread, then Laser, Missiles, and Drones as you buy more slots).",
-    hp: "Raises the hull's base max health on every run.",
+    hp: "Raises the outpost's base max health on every run.",
     shield: "Adds permanent shield strength, even before you buy mid-run Shield.",
     armor: "A permanent cut to incoming damage.",
-    regen: "The hull slowly repairs itself from the first wave.",
+    regen: "The base slowly repairs itself from the first wave.",
     shRegen: "Your shield refills faster on every run.",
     thorns: "A permanent share of ram damage is reflected.",
-    wind: "Once per run, cheating death restores a sliver of hull instead of ending the run.",
+    wind: "Once per run, cheating death restores a sliver of the base instead of ending the run.",
     startCoins: "You begin each run with extra coins, on top of the half you carried over from the last death.",
     coinValue: "A permanent bonus to coins from kills.",
     salvage: "A larger share of leftover mid-run coins is banked on death (starts at 50%, up to 70%). Banked coins buy permanent upgrades and start your next run.",
@@ -668,11 +689,11 @@
       const iv = Math.max(BAL.minInterval, BAL.baseInterval * Math.pow(BAL.rateDecay, lv));
       return (1 / iv).toFixed(2) + " shots/sec";
     }
-    if (id === "spread") return lv <= 0 ? "Single bolt per gun" : ((lv === 1 ? 3 : (lv < 4 ? 5 : 7)) + "-shot fan per gun");
+    if (id === "spread") return lv <= 0 ? "Single bolt per turret" : ((lv === 1 ? 3 : (lv < 4 ? 5 : 7)) + "-shot fan per turret");
     if (id === "crit") return "Crit chance " + Math.round(Math.min(0.7, lv * 0.035) * 100) + "%";
     if (id === "critDmg") return "Crits deal " + (2 + lv * 0.22).toFixed(2) + "×";
     if (id === "pierce") return lv ? ("Pierce " + lv + " target" + (lv > 1 ? "s" : "")) : "No pierce";
-    if (id === "multi") return lv ? ("+" + lv + " extra shot" + (lv > 1 ? "s" : "") + " per gun") : "No extra shots";
+    if (id === "multi") return lv ? ("+" + lv + " extra shot" + (lv > 1 ? "s" : "") + " per turret") : "No extra shots";
     if (id === "bspd") return "Shot speed " + Math.round(BAL.bulletSpd * (1 + 0.10 * lv));
     if (id === "burn") return lv ? ("Burn " + Math.round(lv * 22) + "% of damage over time") : "No burn";
     if (id === "chain") return lv ? (Math.min(4, 1 + (lv / 3 | 0)) + " jump" + (lv > 2 ? "s" : "") + ", " + Math.round(40 + 4 * lv) + "% carry") : "No chain";
@@ -680,15 +701,15 @@
     if (id === "missile") return lv ? ("Missiles online  ·  " + prestMul(t).toFixed(2) + "×" + (t ? "  ·  " + tierOf(t).name : "")) : "Locked";
     if (id === "ship") {
       const hp = Math.round((BAL.baseHp + BAL.shipHpPerLv * (lv + prestBank(t))) * prestMul(t));
-      const guns = shipGunCount(t);
+      const guns = turretCount(t);
       const extra = t >= 5 ? "  ·  void beam" : "";
-      return "Hull " + hp + " HP  ·  " + guns + " gun" + (guns > 1 ? "s" : "") + extra + (t ? "  ·  " + tierOf(t).name : "  ·  Mk I");
+      return "Base " + hp + " HP  ·  " + guns + " turret" + (guns > 1 ? "s" : "") + extra + (t ? "  ·  " + tierOf(t).name : "  ·  Mk I");
     }
     if (id === "hp") return "+" + (BAL.hpPerBuy * lv) + " max HP, repairs on buy";
     if (id === "shield") return lv ? ("Shield " + Math.round((BAL.maxShieldBase + BAL.shieldPerLv * (lv - 1 + prestBank(t))) * prestMul(t)) + (t ? "  ·  " + tierOf(t).name : "")) : "No shield";
     if (id === "shRegen") return lv ? ("+" + (lv * 6) + " shield/sec") : "Base regen only";
     if (id === "armor") return "Damage cut " + Math.round(Math.min(0.62, lv * 0.035 + t * 0.06) * 100) + "%";
-    if (id === "regen") return lv ? ( (lv * 2.2).toFixed(1) + " HP/sec") : "No hull regen";
+    if (id === "regen") return lv ? ( (lv * 2.2).toFixed(1) + " HP/sec") : "No base regen";
     if (id === "thorns") return lv ? (Math.round(lv * 14) + "% reflect") : "No thorns";
     if (id === "knock") return lv ? ("Range and push Lv " + lv + "/12  ·  never off-screen") : "No knockback";
     if (id === "freeze") return lv ? ("Slow " + Math.round(Math.min(0.55, lv * 0.06) * 100) + "%") : "No freeze";
@@ -734,7 +755,7 @@
       phase: "break", phaseT: 0, pending: [], spawnCd: 0,
       enemies: [], bullets: [], pickups: [], floaters: [], particles: [], lasers: [],
       fireCd: 0, missileCd: 0, laserCd: 0, droneFire: [0, 0, 0, 0, 0, 0],
-      empCd: 0, pdefCd: 0, pdefBeams: [], orbitT: 0, hullAng: -Math.PI / 2, aimAng: -Math.PI / 2, prestFx: null, bossBeams: [],
+      empCd: 0, pdefCd: 0, pdefBeams: [], orbitT: 0, hullAng: -Math.PI / 2, aimAng: -Math.PI / 2, turretAng: [-Math.PI/2,-Math.PI/2,-Math.PI/2,-Math.PI/2,-Math.PI/2], turretTgt: [null,null,null,null,null], wallFx: [], wallHits: 0, prestFx: null, bossBeams: [],
       shake: 0, flash: 0, banner: null,
       rng: makeRng(opts.seed || (Date.now() & 0x7fffffff)),
       bestWave: opts.bestWave || 0,
@@ -795,8 +816,8 @@
     for (let i = 0; i < n; i++) {
       let x = pad + run.rng() * (W - pad * 2);
       let y = top + run.rng() * Math.max(80, bot - top);
-      // keep off the ship pocket
-      if (Math.hypot(x - SHIP_X, y - SHIP_Y) < 140) y = top + run.rng() * 240;
+      // keep off the base face
+      if (y > RAIL_Y - 160) y = top + run.rng() * 240;
       run.mines.push({ x: x, y: y, r: 18, t: 9999, dmg: dmg, planted: true });
     }
   }
@@ -952,18 +973,45 @@
   }
 
   function muzzle(run) {
-    const a = run.hullAng != null ? run.hullAng : -Math.PI / 2;
-    return { x: SHIP_X + Math.cos(a) * 78, y: SHIP_Y + Math.sin(a) * 78 };
+    // Core muzzle, used as a fallback origin (railgun, tesla, etc.).
+    return { x: SHIP_X, y: turretPivotY() - 8 };
   }
 
   function aimAngle(run, fromX, fromY, spd) {
-    const best = closestEnemy(run, SHIP_X, SHIP_Y);
+    const best = closestEnemy(run, fromX, fromY);
     if (!best) return -Math.PI / 2;
     return leadPoint(fromX, fromY, best, spd).ang;
   }
 
+  function assignTurretTargets(run, st) {
+    const hps = turretHardpoints(run);
+    const used = [];
+    const out = [];
+    const spd = (st && st.bulletSpd) || BAL.bulletSpd;
+    function pick(hp, allowUsed) {
+      let best = null, bestS = 1e15;
+      for (let i = 0; i < run.enemies.length; i++) {
+        const e = run.enemies[i];
+        if (!e || e.hp <= 0 || e.y < -40) continue;
+        if (!allowUsed && used.indexOf(e) >= 0) continue;
+        const lp = leadPoint(hp.x, hp.y, e, spd);
+        if (!angInTurretArc(lp.ang)) continue;
+        const s = threatScore(e, hp.x, hp.y);
+        if (s < bestS) { bestS = s; best = e; }
+      }
+      return best;
+    }
+    for (let i = 0; i < hps.length; i++) {
+      let e = pick(hps[i], false);
+      if (!e) e = pick(hps[i], true);
+      if (e) used.push(e);
+      out.push({ hp: hps[i], target: e });
+    }
+    return out;
+  }
+
   function fireBlaster(run, st) {
-    const muzzles = shipMuzzles(run);
+    const assigned = assignTurretTargets(run, st);
     const gunDmg = st.gunDmg || st.dmg;
     const spreadWays = run.up.spread <= 0 ? 1 : (run.up.spread === 1 ? 3 : (run.up.spread < 4 ? 5 : 7));
     const extra = st.multi || 0;
@@ -971,10 +1019,21 @@
     const spreadW = ways === 1 ? 0 : (ways <= 3 ? 0.18 : (ways <= 5 ? 0.14 : 0.11));
     const start = -((ways - 1) / 2);
     const mid = (ways - 1) / 2;
+    const dense = ways >= 5;
     let aim = -Math.PI / 2;
-    for (let g = 0; g < muzzles.length; g++) {
-      const m = muzzles[g];
-      const ang = aimAngle(run, m.x, m.y, st.bulletSpd);
+    if (!run.turretAng) run.turretAng = [-Math.PI/2,-Math.PI/2,-Math.PI/2,-Math.PI/2,-Math.PI/2];
+    if (!run.turretTgt) run.turretTgt = [null,null,null,null,null];
+    for (let g = 0; g < assigned.length; g++) {
+      const a0 = assigned[g];
+      const hp = a0.hp;
+      const vis = (run.turretAng[g] != null) ? run.turretAng[g] : -Math.PI / 2;
+      run.turretTgt[g] = a0.target || null;
+      let ang = vis;
+      if (a0.target) {
+        const lead = leadPoint(hp.x, hp.y, a0.target, st.bulletSpd).ang;
+        if (angInTurretArc(lead)) ang = clampTurretAng(lead);
+      }
+      const m = turretMuzzle(hp, vis, 38);
       if (g === 0) aim = ang;
       for (let i = 0; i < ways; i++) {
         const a = ang + (start + i) * spreadW;
@@ -988,6 +1047,7 @@
         b.life = 1.85; b.crit = crit; b.kind = "blast"; b.target = null; b.turn = 0;
         b.tier = st.tierBlaster || 0;
         b.pierce = st.pierce; b.bounces = st.ricochet; b.hitSet = 0;
+        b.thin = dense && i !== mid;
         run.bullets.push(b);
       }
     }
@@ -996,13 +1056,16 @@
 
   function fireMissile(run, st) {
     const n = Math.max(1, st.mcount | 0);
-    const m = muzzle(run);
-    const targets = closestEnemies(run, SHIP_X, SHIP_Y, n);
+    const hps = turretHardpoints(run);
+    const targets = closestEnemies(run, SHIP_X, turretPivotY(), n);
     for (let i = 0; i < n; i++) {
       const target = targets[i] || targets[0];
+      const hp = hps[i % hps.length];
+      const ang0 = (run.turretAng && run.turretAng[hp.i] != null) ? run.turretAng[hp.i] : -Math.PI / 2;
+      const m = turretMuzzle(hp, ang0, 28);
       const ang = target ? leadPoint(m.x, m.y, target, 420).ang : -Math.PI / 2;
       const b = take("bullets");
-      const off = (i - (n - 1) / 2) * 18;
+      const off = (i - (n - 1) / 2) * 10;
       b.x = m.x + Math.cos(ang + Math.PI / 2) * off;
       b.y = m.y + Math.sin(ang + Math.PI / 2) * off;
       b.vx = Math.cos(ang) * 340; b.vy = Math.sin(ang) * 340;
@@ -1018,12 +1081,14 @@
 
   function fireLaser(run, st) {
     const beams = run.up.laser >= 2 ? 2 : 1;
-    const targets = closestEnemies(run, SHIP_X, SHIP_Y, beams);
-    const m = muzzle(run);
+    const hps = turretHardpoints(run);
+    const targets = closestEnemies(run, SHIP_X, turretPivotY(), beams);
     for (let i = 0; i < beams; i++) {
       const e = targets[i] || targets[0];
-      const x0 = m.x + (beams === 2 ? (i === 0 ? -24 : 24) : 0);
-      const y0 = m.y;
+      const hp = hps.length >= 3 && beams === 2 ? hps[i === 0 ? 0 : hps.length - 1] : hps[Math.min(i, hps.length - 1)];
+      const ang0 = (run.turretAng && run.turretAng[hp.i] != null) ? run.turretAng[hp.i] : -Math.PI / 2;
+      const m = turretMuzzle(hp, ang0, 38);
+      const x0 = m.x, y0 = m.y;
       let tx = e ? e.x : SHIP_X, ty = e ? e.y : 80;
       if (e) { const lp = leadPoint(x0, y0, e, 2200); tx = lp.x; ty = lp.y; }
       const d = Math.hypot(tx - x0, ty - y0) || 1;
@@ -1106,8 +1171,9 @@
     run.floaters.push(f);
   }
 
-  function hurt(run, dmg, src) {
-    if (run.dead || run.invuln > 0) return;
+  function hurt(run, dmg, src, wall) {
+    if (run.dead) return;
+    if (!wall && run.invuln > 0) return;
     const st = playerStats(run);
     dmg = dmg * (1 - st.armor);
     if (run.shield > 0) {
@@ -1115,8 +1181,10 @@
       run.shield -= used; dmg -= used; run.shieldWait = BAL.shieldRegenDelay;
       if (run.shield <= 0) { run.shield = 0; run.shieldBreakT = 0.85; }
     }
-    if (dmg <= 0) { run.shake = Math.max(run.shake, 6); return; }
-    run.hp -= dmg; run.invuln = 0.55; run.shake = 14; run.flash = 0.18;
+    if (dmg <= 0) { run.shake = Math.max(run.shake, wall ? 10 : 6); return; }
+    run.hp -= dmg;
+    run.invuln = wall ? Math.max(run.invuln, 0.12) : 0.55;
+    run.shake = wall ? 16 : 14; run.flash = wall ? 0.22 : 0.18;
     if (src && st.thorns > 0 && src.hp > 0) {
       hitEnemy(run, src, dmg * st.thorns, false, true);
     }
@@ -1166,11 +1234,14 @@
     const reach = 140 + t * Math.max(80, SHIP_Y - fieldTop() - 140);
     const dist = Math.hypot(e.x - SHIP_X, e.y - SHIP_Y);
     if (dist > reach) return;
+    const resist = knockResist(run.wave);
+    // At high waves some hits fail to shove, so a dense swarm can leak to the wall.
+    if (resist > 0 && run.rng() < resist * 0.55) return;
     const top = fieldTop() + (e.r || 16);
     // Max level can drive enemies to the top edge. Wave resistance raises the ceiling so
     // late swarms hold around mid-field instead of being pinned off the top.
     const unresisted = SHIP_Y - 90 - t * (SHIP_Y - 90 - top);
-    const hold = knockResist(run.wave) * (SHIP_Y - top) * 0.95;
+    const hold = resist * (SHIP_Y - top) * 0.95;
     const ceil = Math.max(top, unresisted + hold);
     const step = 18 + t * 70;
     e.y = Math.max(ceil, e.y - step);
@@ -1395,11 +1466,18 @@
   }
 
 
-  function shieldArcGeom() {
-    return { cx: SHIP_X, cy: SHIP_Y + 28, r: 152, thick: 24, half: 0.98 };
+  function shieldArcGeom(run) {
+    const t = turretTierOf(run || { prest: {} });
+    const halfW = baseHalfW(t);
+    // Shallow dome over the bunker: peak sits a short way above the turrets, covering the wall.
+    const peak = 200 + t * 10;
+    const r = Math.hypot(halfW + 28, peak) + 6;
+    const cy = RAIL_Y + (r - peak);
+    const half = Math.atan2(halfW + 28, r - peak) + 0.12;
+    return { cx: SHIP_X, cy: cy, r: r, thick: 26, half: Math.min(1.2, half) };
   }
-  function pointHitsShieldArc(x, y, rad) {
-    const A = shieldArcGeom();
+  function pointHitsShieldArc(x, y, rad, run) {
+    const A = shieldArcGeom(run);
     const dx = x - A.cx, dy = y - A.cy;
     const d = Math.hypot(dx, dy);
     if (d < A.r - A.thick - rad || d > A.r + A.thick + rad) return false;
@@ -1408,11 +1486,11 @@
     while (a < -Math.PI) a += Math.PI * 2;
     return Math.abs(a) < A.half;
   }
-  function segmentHitsShieldArc(x0, y0, x1, y1, rad) {
+  function segmentHitsShieldArc(x0, y0, x1, y1, rad, run) {
     const steps = 5;
     for (let i = 0; i <= steps; i++) {
       const t = i / steps;
-      if (pointHitsShieldArc(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, rad)) return true;
+      if (pointHitsShieldArc(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, rad, run)) return true;
     }
     return false;
   }
@@ -1449,7 +1527,7 @@
     const b = run.voidBeam;
     b.t += dt;
     const pts = [];
-    const originX = SHIP_X, originY = SHIP_Y - 78;
+    const originX = SHIP_X, originY = turretPivotY() - 24;
     const top = fieldTop() + 8;
     const amp = 210 + 50 * Math.sin(b.t * 0.65);
     const phase = b.t * 2.15;
@@ -1478,9 +1556,9 @@
     if (lvR > 0) {
       run.railCd = (run.railCd || 0) - dt;
       if (run.railCd <= 0 && run.enemies.length) {
-        const tgt = closestEnemy(run, SHIP_X, SHIP_Y - 80);
+        const tgt = closestEnemy(run, SHIP_X, turretPivotY() - 20);
         if (tgt) {
-          const m = { x: SHIP_X, y: SHIP_Y - 78 };
+          const m = { x: SHIP_X, y: turretPivotY() - 20 };
           const ang = Math.atan2(tgt.y - m.y, tgt.x - m.x);
           const x1 = m.x + Math.cos(ang) * 1800, y1 = m.y + Math.sin(ang) * 1800;
           const L = take("lasers");
@@ -1508,8 +1586,8 @@
       }
       if (run.teslaCd <= 0 && run.enemies.length) {
         const hops = 2 + (lvT / 3 | 0);
-        const pts = [{ x: SHIP_X, y: SHIP_Y - 70 }];
-        let from = { x: SHIP_X, y: SHIP_Y - 70 }, used = {};
+        const pts = [{ x: SHIP_X, y: turretPivotY() - 16 }];
+        let from = { x: SHIP_X, y: turretPivotY() - 16 }, used = {};
         let dmg = st.dmg * (1.4 + 0.2 * lvT);
         for (let h = 0; h < hops; h++) {
           let nxt = null, bestD = 240 + lvT * 8;
@@ -1533,11 +1611,11 @@
     if (lvF > 0) {
       run.flakCd = (run.flakCd || 0) - dt;
       if (run.flakCd <= 0 && run.enemies.length) {
-        const tgt = closestEnemy(run, SHIP_X, SHIP_Y - 80);
+        const tgt = closestEnemy(run, SHIP_X, turretPivotY() - 20);
         if (tgt) {
-          const ang = Math.atan2(tgt.y - (SHIP_Y - 70), tgt.x - SHIP_X);
+          const ang = Math.atan2(tgt.y - (turretPivotY() - 16), tgt.x - SHIP_X);
           const b = take("bullets");
-          b.x = SHIP_X; b.y = SHIP_Y - 70;
+          b.x = SHIP_X; b.y = turretPivotY() - 16;
           b.vx = Math.cos(ang) * 520; b.vy = Math.sin(ang) * 520;
           b.r = 9; b.dmg = st.dmg * (1.6 + 0.25 * lvF); b.friendly = true;
           b.color = C.orange; b.life = 1.1; b.kind = "flak"; b.crit = false;
@@ -1557,7 +1635,7 @@
     if (lvNk > 0) {
       run.nukeCd = (run.nukeCd == null ? 0.6 : run.nukeCd) - dt;
       if (run.nukeCd <= 0 && run.enemies.length) {
-        const tgt = closestEnemy(run, SHIP_X, SHIP_Y - 80);
+        const tgt = closestEnemy(run, SHIP_X, turretPivotY() - 20);
         if (tgt) {
           const m = muzzle(run);
           const ang = Math.atan2(tgt.y - m.y, tgt.x - m.x);
@@ -1665,16 +1743,23 @@
       if (run.pending.length === 0 && run.enemies.length === 0 && run.waveTime > 0.6) beginWave(run, run.wave + 1);
     }
 
-    const want = aimAngle(run, SHIP_X, SHIP_Y - 78, st.bulletSpd);
-    run.aimAng = want;
-    const midA = -Math.PI / 2, maxDev = 0.5;
-    let targetHull = want;
-    if (targetHull < midA - maxDev) targetHull = midA - maxDev;
-    if (targetHull > midA + maxDev) targetHull = midA + maxDev;
-    let da = targetHull - (run.hullAng || midA);
-    while (da > Math.PI) da -= Math.PI * 2;
-    while (da < -Math.PI) da += Math.PI * 2;
-    run.hullAng = (run.hullAng || midA) + da * Math.min(1, 10 * dt);
+    // Base is stationary. Turrets rotate independently within ±70° of straight up.
+    run.hullAng = -Math.PI / 2;
+    if (!run.turretAng) run.turretAng = [-Math.PI/2,-Math.PI/2,-Math.PI/2,-Math.PI/2,-Math.PI/2];
+    const assigned = assignTurretTargets(run, st);
+    for (let i = 0; i < assigned.length; i++) {
+      const a0 = assigned[i];
+      let want = -Math.PI / 2;
+      if (a0.target) want = leadPoint(a0.hp.x, a0.hp.y, a0.target, st.bulletSpd).ang;
+      want = clampTurretAng(want);
+      let have = run.turretAng[i] != null ? run.turretAng[i] : -Math.PI / 2;
+      let da = want - have;
+      while (da > Math.PI) da -= Math.PI * 2;
+      while (da < -Math.PI) da += Math.PI * 2;
+      have += da * Math.min(1, 12 * dt);
+      run.turretAng[i] = clampTurretAng(have);
+    }
+    run.aimAng = run.turretAng[assigned.length >> 1] || -Math.PI / 2;
 
     run.fireCd -= dt;
     if (run.fireCd <= 0) { fireBlaster(run, st); run.fireCd = st.interval; }
@@ -1699,6 +1784,12 @@
     updateShopWeapons(run, dt, st);
     updateVoidBeam(run, dt, st);
     if (run.shieldBreakT > 0) run.shieldBreakT = Math.max(0, run.shieldBreakT - dt);
+    if (run.wallFx && run.wallFx.length) {
+      for (let i = run.wallFx.length - 1; i >= 0; i--) {
+        run.wallFx[i].t += dt;
+        if (run.wallFx[i].t >= (run.wallFx[i].life || 0.4)) run.wallFx.splice(i, 1);
+      }
+    }
 
     if (st.emp > 0) {
 
@@ -1849,8 +1940,9 @@
         }
         if (hit && !run.bullets[i]) continue;
       } else {
-        const hitArc = (st.maxShield > 0 && run.shield > 0) && segmentHitsShieldArc(x0, y0, b.x, b.y, b.r);
-        const hitHull = distToSegment(SHIP_X, SHIP_Y, x0, y0, b.x, b.y) < 36 + b.r;
+        const hitArc = (st.maxShield > 0 && run.shield > 0) && segmentHitsShieldArc(x0, y0, b.x, b.y, b.r, run);
+        const half = baseHalfW(st.tierShip || 0) + 20;
+        const hitHull = (b.y > RAIL_Y - 90 && Math.abs(b.x - SHIP_X) < half) || (b.y > wallFace() - 8);
         if (hitArc || hitHull) {
           hurt(run, b.dmg);
           give("bullets", popAt(run.bullets, i));
@@ -2079,19 +2171,24 @@
     e.x = Math.max(40, Math.min(W - 40, e.x));
     if (e._onField || e.y + (e.r || 16) >= fieldTop()) {
       e._onField = true;
-      if (e.type === "boss") e.y = Math.max(fieldTop() + 20, e.y);
-      else clampEnemyPos(e);
-    }
-    const hitShip = Math.hypot(e.x - SHIP_X, e.y - SHIP_Y) < e.r + 42;
-    const hitRail = e.y + e.r >= RAIL_Y;
-    if (hitShip || hitRail) {
-      hurt(run, e.dmg, e);
-      if (e.type === "boss") e.y = Math.min(e.y, RAIL_Y - e.r - 8);
-      else {
-        burst(run, e.x, e.y, e.color, 8);
-        const idx = run.enemies.indexOf(e);
-        if (idx >= 0) run.enemies.splice(idx, 1);
+      if (e.type === "boss") {
+        const keep = Math.min(bossTargetY(e.bossKind || "herald") + 40, RAIL_Y - 380);
+        e.y = Math.max(fieldTop() + 20, Math.min(keep, e.y));
+      } else {
+        clampEnemyPos(e);
       }
+    }
+    if (e.type === "boss") return; // bosses never reach the wall
+    const face = wallFace();
+    if (e.y + (e.r || 16) >= face) {
+      const sizeMul = 0.9 + Math.max(0, ((e.r || 16) - 14) / 36);
+      hurt(run, e.dmg * sizeMul, e, true);
+      run.wallHits = (run.wallHits || 0) + 1;
+      burst(run, e.x, Math.min(e.y, face - 4), e.color || C.orange, 10);
+      if (!run.wallFx) run.wallFx = [];
+      run.wallFx.push({ x: e.x, y: face - 6, t: 0, life: 0.38, color: e.color || C.orange, r: 18 + (e.r || 16) });
+      const idx = run.enemies.indexOf(e);
+      if (idx >= 0) run.enemies.splice(idx, 1);
     }
   }
 
@@ -2288,9 +2385,9 @@
   function simulateSwarmCheck(opts) {
     opts = opts || {};
     const mid = Object.assign(defaultMid(), {
-      dmg: 10, rate: 14, spread: 6, multi: 4, pierce: 4, bspd: 6, crit: 6, critDmg: 4, burn: 3,
-      ship: 10, hp: 12, shield: 8, shRegen: 6, armor: 6, regen: 4, knock: 12, pdef: 8,
-      laser: 6, missile: 5, drone: 4, dcount: 2, coinVal: 4
+      dmg: 8, rate: 8, spread: 3, multi: 2, pierce: 3, bspd: 5, crit: 4, critDmg: 3, burn: 2,
+      ship: 10, hp: 12, shield: 8, shRegen: 6, armor: 6, regen: 4, knock: 12, pdef: 6,
+      laser: 4, missile: 3, drone: 2, dcount: 1, coinVal: 4
     });
     const prest = Object.assign(defaultPrest(), { dmg: 3, ship: 4, laser: 2, missile: 2, armor: 2, shield: 2, drone: 1 });
     const perma = Object.assign(defaultPerma(), { dmg: 10, rate: 8, hp: 10, armor: 6, shield: 6, crit: 5, startCoins: 8, coinValue: 5, pdef: 4 });
@@ -2321,7 +2418,13 @@
         const vis = e.y + e.r > fieldTop() && e.y - e.r < RAIL_Y;
         if (vis) on.push(e.y);
       }
-      const total = run.enemies.filter(e => e && e.type !== "boss").length;
+      let total = run.enemies.filter(e => e && e.type !== "boss").length;
+      if (total < 16) {
+        const kinds = ["spark","drifter","razor","needle","shooter","shellback"];
+        const e = spawnEnemy(run, kinds[(t * 7 | 0) % kinds.length], { x: 60 + ((t * 970) | 0) % 960, y: 70 + ((t * 400) | 0) % 160 });
+        if (e) e._onField = true;
+        total = run.enemies.filter(en => en && en.type !== "boss").length;
+      }
       samples.push({ n: total, on: on.length, ys: on.slice() });
     }
     const ys = [];
@@ -2346,13 +2449,16 @@
       midY: Math.round((fieldTop() + RAIL_Y) / 2),
       enemiesEnd: run.enemies.length,
       knock: playerStats(run).knockLv,
-      dead: !!run.dead
+      dead: !!run.dead,
+      wallHits: run.wallHits || 0,
+      hpEnd: Math.round(run.hp || 0),
+      shieldEnd: Math.round(run.shield || 0)
     };
   }
 
   const LO = {
     BAL, UPGRADES, PERMA, ENEMY, TABS,
-    createRun, updateRun, tryBuy, tryBuyPerma, autoBuyMid, autoBuyPerma, fireMissile, fireBlaster, shopLv, shopUpgradeCost, shipMuzzles, simulateSwarmCheck, placeWaveMines, waveEnemyCount, fieldTop,
+    createRun, updateRun, tryBuy, tryBuyPerma, autoBuyMid, autoBuyPerma, fireMissile, fireBlaster, shopLv, shopUpgradeCost, shipMuzzles, turretHardpoints, turretCount, simulateSwarmCheck, placeWaveMines, waveEnemyCount, fieldTop, wallFace,
     playerStats, gemsFor, simulateUntilDeath, simulateRuns, beginWave, spawnEnemy,
     defaultPerma, defaultMid, defaultPrest, defaultSave, defaultShop, loadSave, writeSave, migrateSave, midCost, costOf, isUnlocked, SHOP, carryRate, pdefTurretCount, pdefNextAt,
     bossInfo, settlePickups, tryPrestige, prestigeCost, prestMul, tierOf, PRESTIGE_IDS, TIER, MAX_PREST, INFO, PERMA_INFO, effectLine,
@@ -2426,7 +2532,7 @@
     const logicalH = Math.max(1, Math.round(vh / scale));
     H = logicalH;
     RAIL_Y = H - CONSOLE_H;
-    SHIP_Y = RAIL_Y - 88;
+    SHIP_Y = RAIL_Y - 72;
     stage.style.width = W + "px";
     stage.style.height = H + "px";
     stage.style.transform = "scale(" + scale + ")";
@@ -3803,12 +3909,276 @@
     neonStroke(g, col, 1.4, () => { g.beginPath(); g.rect(x, y, w, h); }, { bloom: 8 });
   }
 
+
+  function drawOutpostBase(g, tier, skin) {
+    tier = Math.max(0, Math.min(5, tier | 0));
+    skin = skin || "default";
+    const pal = skinPal(tier, skin);
+    const halfW = (typeof baseHalfW === "function" ? baseHalfW(tier) : 200 + tier * 50);
+    const wallH = 62 + tier * 8;
+    const coreR = 16 + tier * 3.5;
+
+    function slab(x0, y0, x1, y1, col) {
+      g.fillStyle = col;
+      g.beginPath(); g.rect(x0, y0, x1 - x0, y1 - y0); g.fill();
+    }
+    function strokePoly(fn, col, w, blur) {
+      g.save();
+      g.strokeStyle = col; g.shadowColor = col; g.shadowBlur = blur || 10; g.lineWidth = w || 2;
+      g.beginPath(); fn(g); g.stroke();
+      g.restore();
+    }
+    function fillPoly(fn, col, blur) {
+      g.save();
+      g.fillStyle = col; if (blur) { g.shadowColor = col; g.shadowBlur = blur; }
+      g.beginPath(); fn(g); g.fill();
+      g.restore();
+    }
+
+    // foundation lip (slightly below the rail)
+    fillPoly((gg) => {
+      gg.moveTo(-halfW - 16, 2);
+      gg.lineTo(halfW + 16, 2);
+      gg.lineTo(halfW + 8, 14);
+      gg.lineTo(-halfW - 8, 14);
+      gg.closePath();
+    }, pal.metalDark || "#080c14");
+    strokePoly((gg) => {
+      gg.moveTo(-halfW - 16, 2); gg.lineTo(halfW + 16, 2);
+    }, pal.glow, 2, 8);
+
+    // main bunker body
+    const body = (gg) => {
+      gg.moveTo(-halfW, 0);
+      gg.lineTo(-halfW + 10, -wallH);
+      gg.lineTo(halfW - 10, -wallH);
+      gg.lineTo(halfW, 0);
+      gg.closePath();
+    };
+    const bodyGrad = g.createLinearGradient(0, -wallH, 0, 4);
+    bodyGrad.addColorStop(0, pal.metalHi || "#4a5b70");
+    bodyGrad.addColorStop(0.35, pal.metal || "#171f2c");
+    bodyGrad.addColorStop(1, pal.metalDark || "#080c14");
+    g.save();
+    g.beginPath(); body(g);
+    g.fillStyle = bodyGrad; g.fill();
+    g.restore();
+    strokePoly(body, pal.glow, 2.2, 12);
+
+    // battlements
+    const merlonW = 22 + tier * 2;
+    const merlonH = 10 + Math.min(8, tier * 2);
+    const topY = -wallH;
+    let x = -halfW + 18;
+    g.save();
+    while (x < halfW - 18) {
+      const cren = (gg) => {
+        if (skin === "stealth") {
+          gg.moveTo(x, topY);
+          gg.lineTo(x + merlonW * 0.5, topY - merlonH - 4);
+          gg.lineTo(x + merlonW, topY);
+          gg.closePath();
+        } else {
+          gg.rect(x, topY - merlonH, merlonW * 0.7, merlonH + 2);
+        }
+      };
+      fillPoly(cren, pal.metal || "#171f2c");
+      strokePoly(cren, pal.glow, 1.3, 6);
+      x += merlonW + 8;
+    }
+    g.restore();
+
+    // panel seams
+    g.save();
+    g.strokeStyle = pal.glow; g.globalAlpha = 0.35; g.lineWidth = 1; g.shadowColor = pal.glow; g.shadowBlur = 4;
+    const seams = 4 + tier;
+    for (let i = 1; i < seams; i++) {
+      const sx = -halfW + 20 + i * ((2 * halfW - 40) / seams);
+      g.beginPath(); g.moveTo(sx, -8); g.lineTo(sx * 0.96, -wallH + 8); g.stroke();
+    }
+    g.beginPath(); g.moveTo(-halfW + 16, -wallH * 0.45); g.lineTo(halfW - 16, -wallH * 0.45); g.stroke();
+    g.restore();
+
+    // side bastions for higher tiers
+    if (tier >= 2) {
+      const bw = 36 + tier * 4, bh = wallH * 0.7;
+      [-1, 1].forEach((side) => {
+        const bx = side * (halfW - 8);
+        const bast = (gg) => {
+          gg.moveTo(bx, 0);
+          gg.lineTo(bx + side * bw, -8);
+          gg.lineTo(bx + side * (bw - 6), -bh);
+          gg.lineTo(bx - side * 8, -bh + 6);
+          gg.closePath();
+        };
+        fillPoly(bast, pal.metalDark || "#080c14", 4);
+        strokePoly(bast, pal.accent, 1.6, 8);
+      });
+    }
+    if (tier >= 4) {
+      // extra towers
+      [-1, 1].forEach((side) => {
+        const tx = side * (halfW * 0.55);
+        fillPoly((gg) => { gg.rect(tx - 14, -wallH - 22, 28, 26); }, pal.metal || "#171f2c");
+        strokePoly((gg) => { gg.rect(tx - 14, -wallH - 22, 28, 26); }, pal.glow, 1.5, 8);
+      });
+    }
+    if (tier >= 5) {
+      // citadel spires
+      [-1, 1].forEach((side) => {
+        const sx = side * (halfW * 0.78);
+        fillPoly((gg) => {
+          gg.moveTo(sx - 8, -wallH);
+          gg.lineTo(sx, -wallH - 42);
+          gg.lineTo(sx + 8, -wallH);
+          gg.closePath();
+        }, pal.accent, 10);
+        strokePoly((gg) => {
+          gg.moveTo(sx - 8, -wallH);
+          gg.lineTo(sx, -wallH - 42);
+          gg.lineTo(sx + 8, -wallH);
+          gg.closePath();
+        }, pal.glow, 1.6, 10);
+      });
+    }
+
+    // central core / reactor
+    const coreY = -wallH * 0.42;
+    const grd = g.createRadialGradient(0, coreY, 3, 0, coreY, coreR + 16);
+    grd.addColorStop(0, "#fff");
+    grd.addColorStop(0.25, pal.core);
+    grd.addColorStop(0.7, pal.glow);
+    grd.addColorStop(1, "rgba(0,0,0,0)");
+    g.save();
+    g.fillStyle = grd; g.shadowColor = pal.glow; g.shadowBlur = 18;
+    g.beginPath(); g.arc(0, coreY, coreR + 8, 0, Math.PI * 2); g.fill();
+    g.fillStyle = pal.ink || "#03060b";
+    g.beginPath(); g.arc(0, coreY, coreR * 0.72, 0, Math.PI * 2); g.fill();
+    g.fillStyle = pal.core; g.shadowBlur = 14;
+    if (skin === "alien") {
+      g.beginPath(); g.ellipse(0, coreY, coreR * 0.42, coreR * 0.62, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = pal.accent;
+      g.beginPath(); g.ellipse(0, coreY - 2, 4, 6, 0, 0, Math.PI * 2); g.fill();
+    } else {
+      g.beginPath(); g.arc(0, coreY, coreR * 0.45, 0, Math.PI * 2); g.fill();
+    }
+    g.strokeStyle = pal.glow; g.lineWidth = 2; g.beginPath(); g.arc(0, coreY, coreR * 0.72, 0, Math.PI * 2); g.stroke();
+    g.restore();
+
+    // turret sockets (mount rings only; barrels drawn live)
+    const xs = (typeof TURRET_LAYOUT !== "undefined" ? TURRET_LAYOUT[tier].xs : [0]);
+    const sockY = -72 + (RAIL_Y ? 0 : 0); // pivot is at y = (RAIL_Y-72) - RAIL_Y = -72 in this space
+    xs.forEach((sx) => {
+      g.save();
+      g.fillStyle = pal.metalDark || "#080c14";
+      g.beginPath(); g.arc(sx, -72, 16, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = pal.glow; g.shadowColor = pal.glow; g.shadowBlur = 8; g.lineWidth = 2;
+      g.beginPath(); g.arc(sx, -72, 16, 0, Math.PI * 2); g.stroke();
+      g.strokeStyle = pal.accent; g.lineWidth = 1.4; g.shadowBlur = 4;
+      g.beginPath(); g.arc(sx, -72, 10, 0, Math.PI * 2); g.stroke();
+      g.restore();
+    });
+
+    // skin extras
+    if (skin === "racer") {
+      g.save();
+      g.fillStyle = pal.accent; g.shadowColor = pal.accent; g.shadowBlur = 8;
+      g.fillRect(-6, -wallH + 4, 12, wallH - 8);
+      g.fillStyle = "#111"; g.fillRect(-2, -wallH + 4, 4, wallH - 8);
+      // spoiler fins
+      [-1, 1].forEach((side) => {
+        g.fillStyle = pal.accent;
+        g.beginPath();
+        g.moveTo(side * (halfW - 24), -wallH + 6);
+        g.lineTo(side * (halfW + 18), -wallH - 10);
+        g.lineTo(side * (halfW + 10), -wallH + 18);
+        g.closePath(); g.fill();
+      });
+      g.restore();
+    } else if (skin === "chrome") {
+      g.save();
+      const sheen = g.createLinearGradient(-halfW, -wallH, halfW, 0);
+      sheen.addColorStop(0, "rgba(255,255,255,0)");
+      sheen.addColorStop(0.45, "rgba(255,255,255,0.22)");
+      sheen.addColorStop(1, "rgba(160,210,255,0.08)");
+      g.fillStyle = sheen;
+      g.beginPath(); body(g); g.fill();
+      g.restore();
+    } else if (skin === "alien") {
+      g.save();
+      g.strokeStyle = pal.glow; g.globalAlpha = 0.7; g.lineWidth = 1.5; g.shadowColor = pal.glow; g.shadowBlur = 6;
+      g.beginPath(); g.moveTo(-halfW * 0.4, -8); g.bezierCurveTo(-halfW * 0.6, -wallH * 0.4, -20, -wallH * 0.7, 0, coreY); g.stroke();
+      g.beginPath(); g.moveTo(halfW * 0.4, -8); g.bezierCurveTo(halfW * 0.6, -wallH * 0.4, 20, -wallH * 0.7, 0, coreY); g.stroke();
+      g.restore();
+    } else if (skin === "stealth") {
+      g.save();
+      g.globalAlpha = 0.35;
+      g.fillStyle = pal.ink || "#020305";
+      g.beginPath(); body(g); g.fill();
+      g.restore();
+    }
+
+    // rail glow line already exists in the playfield; add a neon lip
+    g.save();
+    g.strokeStyle = pal.glow; g.shadowColor = pal.glow; g.shadowBlur = 14; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(-halfW - 8, 0); g.lineTo(halfW + 8, 0); g.stroke();
+    g.restore();
+  }
+
+  function drawOutpostTurret(g, tier, skin) {
+    tier = Math.max(0, Math.min(5, tier | 0));
+    skin = skin || "default";
+    const pal = skinPal(tier, skin);
+    const barrelL = 36 + tier * 3;
+    const barrelW = 7 + Math.min(4, tier);
+    // mount
+    g.save();
+    g.fillStyle = pal.metalDark || "#080c14";
+    g.beginPath(); g.arc(0, 0, 14, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = pal.glow; g.shadowColor = pal.glow; g.shadowBlur = 8; g.lineWidth = 2;
+    g.beginPath(); g.arc(0, 0, 14, 0, Math.PI * 2); g.stroke();
+    // barrel pointing up (negative y)
+    const barrel = (gg) => {
+      if (skin === "alien") {
+        gg.moveTo(-barrelW * 0.5, 4);
+        gg.quadraticCurveTo(-barrelW - 2, -barrelL * 0.5, -barrelW * 0.45, -barrelL);
+        gg.lineTo(barrelW * 0.45, -barrelL);
+        gg.quadraticCurveTo(barrelW + 2, -barrelL * 0.5, barrelW * 0.5, 4);
+        gg.closePath();
+      } else {
+        gg.moveTo(-barrelW, 4);
+        gg.lineTo(-barrelW * 0.7, -barrelL);
+        gg.lineTo(barrelW * 0.7, -barrelL);
+        gg.lineTo(barrelW, 4);
+        gg.closePath();
+      }
+    };
+    const bg = g.createLinearGradient(-barrelW, 0, barrelW, 0);
+    bg.addColorStop(0, pal.metalDark || "#080c14");
+    bg.addColorStop(0.45, pal.metalHi || "#4a5b70");
+    bg.addColorStop(1, pal.metalDark || "#080c14");
+    g.fillStyle = bg;
+    g.beginPath(); barrel(g); g.fill();
+    g.strokeStyle = pal.glow; g.lineWidth = 1.6; g.shadowBlur = 8;
+    g.beginPath(); barrel(g); g.stroke();
+    // muzzle
+    g.fillStyle = pal.core; g.shadowColor = pal.glow; g.shadowBlur = 12;
+    g.beginPath(); g.ellipse(0, -barrelL, barrelW * 0.7, 3.2, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = "#fff";
+    g.beginPath(); g.ellipse(0, -barrelL - 1, 2.2, 1.6, 0, 0, Math.PI * 2); g.fill();
+    // hub
+    g.fillStyle = pal.core; g.shadowBlur = 8;
+    g.beginPath(); g.arc(0, 0, 5 + tier * 0.4, 0, Math.PI * 2); g.fill();
+    g.restore();
+  }
+
+
   function buildSprites() {
-    sprite("player", 360, 320, g => drawPlayerTo(g, C.cyan, C.magenta, 0));
-    const SHIP_SKINS = ["default", "stealth", "racer", "chrome", "alien"];
+    const BASE_SKINS = ["default", "stealth", "racer", "chrome", "alien"];
     TIER.forEach((ti, i) => {
-      SHIP_SKINS.forEach((sk) => {
-        sprite("player-t" + i + "-" + sk, 500, 460, g => drawPrestigeShip(g, i, sk));
+      BASE_SKINS.forEach((sk) => {
+        sprite("base-t" + i + "-" + sk, 1080, 280, g => drawOutpostBase(g, i, sk));
+        sprite("turret-t" + i + "-" + sk, 96, 140, g => drawOutpostTurret(g, i, sk));
       });
     });
     sprite("pdef-base", 90, 70, g => {
@@ -4299,11 +4669,11 @@
 
 
 
-  function drawShieldArcAt(g, x, y, power, col, core, state) {
-    const A = (typeof shieldArcGeom === "function") ? shieldArcGeom() : { cx: 0, cy: 28, r: 152, thick: 24, half: 0.98 };
-    const cx = x, cy = y + 28;
-    const r = 152;
-    const a0 = -Math.PI / 2 - 0.98, a1 = -Math.PI / 2 + 0.98;
+  function drawShieldArcAt(g, x, y, power, col, core, state, run) {
+    const A = (typeof shieldArcGeom === "function") ? shieldArcGeom(run) : { cx: x, cy: (y || RAIL_Y) + 36, r: 220, thick: 26, half: 1.05 };
+    const cx = x != null ? x : A.cx, cy = A.cy;
+    const r = A.r;
+    const a0 = -Math.PI / 2 - A.half, a1 = -Math.PI / 2 + A.half;
     g.save();
     g.lineCap = "round";
     g.globalAlpha = Math.max(0.15, Math.min(1, power || 1));
@@ -4388,7 +4758,7 @@
     g.fillStyle = "#eaffff";
     g.fillText("PRESTIGE LOOKS", W / 2, 100);
     g.font = "600 18px Tomorrow, sans-serif";
-    g.fillText("Ship  ·  Bullets  ·  Laser  ·  Missiles  ·  Drones  ·  Shield", W / 2, 136);
+    g.fillText("Base  ·  Turrets  ·  Bullets  ·  Laser  ·  Missiles  ·  Drones  ·  Shield", W / 2, 136);
     for (let n = 0; n < 3; n++) {
       const i = ids[n], x = xs[n], y = SHIP_Y, ti = TIER[i];
       g.fillStyle = ti.color;
@@ -4397,7 +4767,7 @@
       g.save();
       drawShieldArcAt(g, x, y, 1, ti.color, ti.core, "full");
       g.restore();
-      blit(g, "player-t" + i + "-default", x, y, 1);
+      blit(g, "base-t" + i + "-default", x, RAIL_Y, 0.42);
       blit(g, "drone-t" + i, x - 160 - i * 8, y - 24, 0.85 + i * 0.05);
       blit(g, "drone-t" + i, x + 160 + i * 8, y - 24, 0.85 + i * 0.05);
       const boltScale = i >= 5 ? 1.35 : (i >= 3 ? 1.2 : 1.05);
@@ -4482,10 +4852,10 @@
 
     if (mode === "title") {
       const t = performance.now() / 1000;
-      blit(g, "player-t0-default", SHIP_X, 1120, 1.15);
-      blit(g, "engine", SHIP_X - 11, 1120 + 44, 1.1);
-      blit(g, "engine", SHIP_X + 11, 1120 + 44, 1.1);
-      if (titleShots.length === 0 || titleShots[titleShots.length - 1].y < 980) titleShots.push({ x: 540, y: 1040 });
+      const titleY = Math.min(H - 280, 1280);
+      blit(g, "base-t0-default", SHIP_X, titleY, 0.7);
+      blit(g, "turret-t0-default", SHIP_X, titleY - 72 * 0.7, 1);
+      if (titleShots.length === 0 || titleShots[titleShots.length - 1].y < titleY - 140) titleShots.push({ x: 540, y: titleY - 110 });
       g.save(); g.globalCompositeOperation = "lighter";
       for (let i = 0; i < titleShots.length; i++) {
         titleShots[i].y -= 6;
@@ -4495,7 +4865,7 @@
       if (titleShots.length && titleShots[0].y <= 580) titleShots.shift();
     } else if (mode === "over") {
       const overTier = (save && save.prest && save.prest.ship) || 0;
-      blit(g, "player-t" + overTier + "-default", 900, Math.min(H - 200, 1310), 0.7);
+      blit(g, "base-t" + overTier + "-default", 820, Math.min(H - 80, 1480), 0.45);
     } else if (run) {
       const t = run.time;
       const st = playerStats(run);
@@ -4542,6 +4912,12 @@
           g.globalAlpha = 1;
         }
       }
+      const blastCap = 36;
+      let blastN = 0;
+      for (let bi = 0; bi < run.bullets.length; bi++) if (run.bullets[bi].kind === "blast" || (run.bullets[bi].friendly && run.bullets[bi].kind !== "missile" && run.bullets[bi].kind !== "flak" && run.bullets[bi].kind !== "nuke")) blastN++;
+      const blastStep = blastN > blastCap ? Math.ceil(blastN / blastCap) : 1;
+      const denseA = blastN > blastCap ? Math.max(0.35, blastCap / blastN) : 1;
+      let blastDrawn = 0;
       for (let i = 0; i < run.bullets.length; i++) {
         const b = run.bullets[i];
         const a = Math.atan2(b.vy, b.vx);
@@ -4554,15 +4930,24 @@
           g.fillStyle = C.orange; g.shadowColor = C.orange; g.shadowBlur = 12;
           g.beginPath(); g.arc(0, 0, 7, 0, Math.PI * 2); g.fill();
           g.restore();
-        } else if (b.friendly) {
+        } else if (b.kind === "nuke") {
           g.save(); g.translate(b.x, b.y); g.rotate(a);
-          blit(g, "streak-t" + (b.tier || 0), 0, 0, (b.crit ? 1.2 : 1) * (1 + (b.tier || 0) * 0.06));
+          g.fillStyle = C.magenta; g.shadowColor = C.magenta; g.shadowBlur = 16;
+          g.beginPath(); g.arc(0, 0, 8, 0, Math.PI * 2); g.fill();
+          g.restore();
+        } else if (b.friendly) {
+          blastDrawn++;
+          if (blastStep > 1 && (blastDrawn % blastStep) && !b.crit) continue;
+          g.save(); g.translate(b.x, b.y); g.rotate(a);
+          const slim = (b.thin || blastN > 28) ? 0.72 : 1;
+          g.globalAlpha = denseA * (b.thin ? 0.55 : 0.9);
+          blit(g, "streak-t" + (b.tier || 0), 0, 0, slim * (b.crit ? 1.15 : 0.92) * (1 + (b.tier || 0) * 0.04));
           const trail = (run.shop && run.shop.trail) || "default";
-          if (trail === "spark") {
-            g.fillStyle = C.yellow; g.globalAlpha = 0.7;
+          if (trail === "spark" && !b.thin) {
+            g.fillStyle = C.yellow; g.globalAlpha = 0.55 * denseA;
             g.beginPath(); g.arc(-14, 0, 3, 0, Math.PI * 2); g.fill();
-          } else if (trail === "prism") {
-            g.fillStyle = C.magenta; g.globalAlpha = 0.8;
+          } else if (trail === "prism" && !b.thin) {
+            g.fillStyle = C.magenta; g.globalAlpha = 0.65 * denseA;
             g.beginPath(); g.moveTo(8, 0); g.lineTo(-10, -5); g.lineTo(-10, 5); g.closePath(); g.fill();
           }
           g.restore();
@@ -4611,22 +4996,56 @@
         if (state !== "hidden") {
           const ti = TIER[st.tierShield || 0];
           const power = state === "regen" ? Math.min(1, 0.15 + ratio * 3) : (state === "broken" ? (run.shieldBreakT || 0) / 0.85 : 0.45 + 0.55 * ratio);
-          drawShieldArcAt(g, SHIP_X, SHIP_Y, power, ti.color, ti.core, state === "regen" ? "full" : state);
+          drawShieldArcAt(g, SHIP_X, RAIL_Y, power, ti.color, ti.core, state === "regen" ? "full" : state, run);
         }
       }
       if (run.voidBeam && run.voidBeam.pts && run.voidBeam.pts.length > 1) {
         drawVoidBeam(g, run.voidBeam, t);
       }
-      const blink = run.invuln > 0 && Math.sin(t * 30) > 0;
-      if (!blink) {
+      // Stationary base + independently rotating turrets. Never hide the outpost on hit.
+      {
         const shipT = st.tierShip || 0;
         const skin = (run.shop && run.shop.skin) || "default";
-        const skey = "player-t" + shipT + "-" + (skin && skin !== "default" ? skin : "default");
+        const sk = (skin && skin !== "default") ? skin : "default";
+        const hitFlash = run.invuln > 0 && Math.sin(t * 30) > 0;
         g.save();
-        g.translate(SHIP_X, SHIP_Y);
-        g.rotate((run.hullAng || -Math.PI / 2) + Math.PI / 2);
-        blit(g, skey, 0, 0, 1);
+        if (hitFlash) g.globalAlpha = 0.85;
+        blit(g, "base-t" + shipT + "-" + sk, SHIP_X, RAIL_Y, 1);
         g.restore();
+        const hps = turretHardpoints(run);
+        for (let i = 0; i < hps.length; i++) {
+          const hp = hps[i];
+          const ang = (run.turretAng && run.turretAng[i] != null) ? run.turretAng[i] : -Math.PI / 2;
+          g.save();
+          g.translate(hp.x, hp.y);
+          g.rotate(ang + Math.PI / 2);
+          blit(g, "turret-t" + shipT + "-" + sk, 0, 0, 1);
+          g.restore();
+        }
+      }
+      if (run.wallFx && run.wallFx.length) {
+        for (let i = 0; i < run.wallFx.length; i++) {
+          const fx = run.wallFx[i];
+          const u = Math.min(1, fx.t / (fx.life || 0.38));
+          const col = fx.color || C.orange;
+          const rr = (fx.r || 24) * (0.45 + u * 1.6);
+          g.save();
+          g.globalCompositeOperation = "lighter";
+          const grd = g.createRadialGradient(fx.x, fx.y - 8, 2, fx.x, fx.y - 8, rr);
+          grd.addColorStop(0, "rgba(255,255,230,0.95)");
+          grd.addColorStop(0.35, col);
+          grd.addColorStop(1, "rgba(0,0,0,0)");
+          g.globalAlpha = 1 - u * 0.85;
+          g.fillStyle = grd;
+          g.beginPath(); g.arc(fx.x, fx.y - 8, rr, 0, Math.PI * 2); g.fill();
+          g.strokeStyle = col; g.shadowColor = col; g.shadowBlur = 18; g.lineWidth = 5;
+          g.beginPath(); g.arc(fx.x, fx.y - 4, rr * 0.85, 0, Math.PI * 2); g.stroke();
+          g.strokeStyle = "#fff"; g.lineWidth = 2; g.shadowBlur = 8;
+          g.beginPath(); g.arc(fx.x, fx.y - 4, rr * 1.05, 0, Math.PI * 2); g.stroke();
+          g.fillStyle = "#fff"; g.globalAlpha = (1 - u) * 0.85;
+          g.beginPath(); g.arc(fx.x, fx.y - 10, 8 * (1 - u), 0, Math.PI * 2); g.fill();
+          g.restore();
+        }
       }
       if (run.mines) {
         for (let i = 0; i < run.mines.length; i++) blit(g, "mine", run.mines[i].x, run.mines[i].y, 1);
@@ -4856,7 +5275,7 @@
       html += '<div class="shop-note">Unlock an add-on with gems, equip it (up to 2), and upgrade it here with gems only.</div>';
       SHOP.addons.forEach(item => { html += shopWeaponCard(item, "addons"); });
     } else if (shopTab === "cosmo") {
-      html += '<div class="shop-note">Looks change the ship design and paint, on top of your current Mk hull and gun layout. Trails change bullets only.</div>';
+      html += '<div class="shop-note">Looks change the base and turret design and paint, on top of your current Mk fortress and turret layout. Trails change bullets only.</div>';
       SHOP.cosmo.forEach(item => {
         const owned = !!(sh.unlocked && sh.unlocked[item.id]);
         const on = (item.kind === "skin" && sh.skin === item.value) || (item.kind === "trail" && sh.trail === item.value);
@@ -5472,7 +5891,7 @@
     const body = el("info-body");
     if (!body) return;
     document.querySelectorAll(".info-tab").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
-    const how = "<div class=\"info-how\"><h3>HOW PRESTIGE WORKS</h3><p>Bullets, Laser, Missiles, Drones, Armor, Shield and the Ship cap at level 10. The button then becomes <b>PRESTIGE</b>. Paying the coin cost resets that item to level 1 at the next tier: it keeps a bank of the previous 10 levels, gains a <b>1.55x power multiplier per tier</b>, and changes its shape and color (Mk I cyan, Mk II gold, Mk III plasma, Mk IV white-hot, Mk V lime, Mk VI void). Tiers stay with you when you die, just like other console upgrades. Prestige is coins only, so free players can always progress. Gems are rare and buy shop weapons, add-ons, looks, and all upgrades for those shop items (no coin upgrades).</p><p>First prestige costs <b>" + prestigeCost("dmg", 0).coins + "¢</b>. Each further tier costs more. Secondaries such as Fire Rate, Crit and Pierce keep high caps and do not prestige.</p></div>";
+    const how = "<div class=\"info-how\"><h3>HOW PRESTIGE WORKS</h3><p>Bullets, Laser, Missiles, Drones, Armor, Shield and the Base cap at level 10. The button then becomes <b>PRESTIGE</b>. Paying the coin cost resets that item to level 1 at the next tier: it keeps a bank of the previous 10 levels, gains a <b>1.55x power multiplier per tier</b>, and changes its shape and color (Mk I cyan, Mk II gold, Mk III plasma, Mk IV white-hot, Mk V lime, Mk VI void). Tiers stay with you when you die, just like other console upgrades. Prestige is coins only, so free players can always progress. Gems are rare and buy shop weapons, add-ons, looks, and all upgrades for those shop items (no coin upgrades).</p><p>First prestige costs <b>" + prestigeCost("dmg", 0).coins + "¢</b>. Each further tier costs more. Secondaries such as Fire Rate, Crit and Pierce keep high caps and do not prestige.</p></div>";
     let html = "";
     if (tab === "prestige") html = how;
     else if (tab === "perma") {
@@ -5733,13 +6152,24 @@
       return;
     }
     if (name === "mkiii") {
-      v9Play({ wave: 12, prest: { ship: 2, dmg: 1 }, up: { dmg: 6, rate: 5, hp: 4, ship: 8, shield: 4, spread: 3, pdef: 2 }, shield: "full",
-        enemies: [["spark",260,380],["razor",800,420],["drifter",500,560],["shellback",700,640]] });
+      v9Play({ wave: 12, prest: { ship: 2, dmg: 1 }, up: { dmg: 6, rate: 3, hp: 4, ship: 8, shield: 4, spread: 1, pdef: 2 }, shield: "full",
+        enemies: [["spark",200,500],["razor",880,520],["drifter",540,420],["shellback",700,360]] });
       return;
     }
     if (name === "mkvi") {
-      v9Play({ wave: 24, prest: { ship: 5, dmg: 2, shield: 2 }, up: { dmg: 8, rate: 5, hp: 6, ship: 10, shield: 6, spread: 3, multi: 1, pdef: 4 }, shield: "full",
+      v9Play({ wave: 24, prest: { ship: 5, dmg: 2, shield: 2 }, up: { dmg: 8, rate: 4, hp: 6, ship: 10, shield: 6, spread: 2, multi: 1, pdef: 4 }, shield: "full",
         enemies: [["spark",200,300],["spark",500,260],["spark",800,320],["coil",300,500],["coil",760,540],["brood",540,700]] });
+      return;
+    }
+    if (name === "wall") {
+      v9Play({ wave: 10, prest: { ship: 2 }, up: { dmg: 3, rate: 2, hp: 6, ship: 6, shield: 3, spread: 0 }, shield: "full",
+        enemies: [["spark",300,200],["drifter",540,240],["razor",780,180]] });
+      // plant a few enemies about to ram the wall so the shot can catch the burst
+      const face = wallFace();
+      [["shellback", 400], ["spark", 540], ["drifter", 700], ["razor", 280]].forEach((row, i) => {
+        const e = spawnEnemy(run, row[0], { x: row[1], y: face - 36 - i * 10 });
+        if (e) { e._onField = true; e.vy = 80; e.spd = 140; }
+      });
       return;
     }
     if (name === "skin") {
@@ -5797,7 +6227,7 @@
       return;
     }
     if (name === "swarm") {
-      v9Play({ wave: 33, prest: { ship: 4, dmg: 3, shield: 2, armor: 2 }, up: { dmg: 10, rate: 12, hp: 8, ship: 10, shield: 6, spread: 5, multi: 3, knock: 12, pdef: 6, pierce: 3 }, shield: "full",
+      v9Play({ wave: 33, prest: { ship: 4, dmg: 3, shield: 2, armor: 2 }, up: { dmg: 10, rate: 8, hp: 8, ship: 10, shield: 6, spread: 3, multi: 2, knock: 12, pdef: 6, pierce: 3 }, shield: "full",
         enemies: [] });
       // pack a visible mid-field swarm
       run.enemies = [];
