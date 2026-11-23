@@ -167,11 +167,12 @@ canvas { position: absolute; inset: 0; z-index: 1; display: block; }
   text-shadow: 0 0 8px #ff2bd6; box-shadow: 0 0 10px rgba(255,43,214,0.7); vertical-align: 8px;
 }
 .boss-tag.show { display: inline-block; }
-.boss-hud { margin-top: 14px; display: none; }
+.boss-hud { margin-top: 8px; display: none; }
 .boss-hud.show { display: block; }
 .boss-name {
-  font-family: Orbitron, sans-serif; font-weight: 800; font-size: 26px; letter-spacing: 0.2em;
-  color: #ffe6fb; text-shadow: 0 0 8px #ff2bd6, 0 0 18px #ff2bd6; margin-bottom: 8px; text-align: center;
+  font-family: Orbitron, sans-serif; font-weight: 800; font-size: 18px; letter-spacing: 0.14em;
+  color: #ffe6fb; text-shadow: 0 0 8px #ff2bd6; margin: 0; text-align: left; white-space: nowrap;
+  flex: 0 0 auto; min-width: 0;
 }
 .boss-bar-row { display: flex; align-items: center; gap: 12px; }
 .boss-bar {
@@ -485,8 +486,8 @@ canvas { position: absolute; inset: 0; z-index: 1; display: block; }
           <span class="hp-num" id="sh-num" style="color:#e0c0ff;">0/0</span>
         </div>
         <div class="boss-hud" id="boss-hud">
-          <div class="boss-name" id="boss-name">THE HARBINGER</div>
           <div class="boss-bar-row">
+            <div class="boss-name" id="boss-name">THE HARBINGER</div>
             <div class="boss-bar"><div class="boss-fill" id="boss-fill"></div></div>
             <div class="boss-hp" id="boss-hp">100%</div>
           </div>
