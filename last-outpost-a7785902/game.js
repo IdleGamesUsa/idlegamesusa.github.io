@@ -27,8 +27,8 @@
     baseDmg: 9, dmgPerLv: 4.5, baseInterval: 0.38, rateDecay: 0.90, minInterval: 0.10,
     baseHp: 100, hpPerBuy: 14, hpHealFrac: 0.40, permaDmg: 4, permaHp: 22,
     permaArmor: 0.035, permaCrit: 0.035, permaStartCoins: 22, permaCoinValue: 0.12,
-    permaGemBonus: 0.12, permaShield: 16, interestPerWave: 4, gemPerWave: 5,
-    gemKillDiv: 8, gemPerBoss: 16, countBase: 5, countPerWave: 1.10, countMax: 22,
+    permaGemBonus: 0, permaShield: 16, interestPerWave: 4, gemPerWave: 0,
+    gemKillDiv: 99999, gemPerBoss: 10, gemBestWave: 1, gemDaily: 5, coinPayout: 1.25, countBase: 5, countPerWave: 1.10, countMax: 22,
     bulletSpd: 980, waveBreak: 1.55, bossIntro: 2.2, maxShieldBase: 50, shieldPerLv: 24,
     shieldRegenDelay: 3.0, shieldRegenPerSec: 10, coinDrop: 0.55, shipHpPerLv: 18
   };
@@ -51,7 +51,7 @@
     const heavy = (id === "ship" || id === "laser" || id === "missile") ? 1.25 : 1;
     return {
       coins: Math.floor(650 * Math.pow(2.5, t) * heavy),
-      gems: Math.floor(12 * Math.pow(1.75, t))
+      gems: 0
     };
   }
 
@@ -89,7 +89,12 @@
     { id: "interest", name: "INTEREST",   tab: "util", base: 95,  grow: 1.45, max: 12, unlock: 5 },
     { id: "skip",     name: "WAVE SKIP",  tab: "util", base: 180, grow: 1.55, max: 8,  unlock: 14 },
     { id: "orbit",    name: "ORBITAL",    tab: "util", base: 420, grow: 1.55, max: 12, unlock: 25, milestone: 25 },
-    { id: "emp",      name: "EMP PULSE",  tab: "util", base: 740, grow: 1.55, max: 10, unlock: 50, milestone: 50 }
+    { id: "emp",      name: "EMP PULSE",  tab: "util", base: 740, grow: 1.55, max: 10, unlock: 50, milestone: 50 },
+    { id: "rail",     name: "RAILGUN",    tab: "atk",  base: 200, grow: 1.50, max: 10, unlock: 0, shop: "rail", slot: "weapon" },
+    { id: "tesla",    name: "TESLA ARC",  tab: "atk",  base: 210, grow: 1.50, max: 10, unlock: 0, shop: "tesla", slot: "weapon" },
+    { id: "flak",     name: "FLAK",       tab: "atk",  base: 190, grow: 1.50, max: 10, unlock: 0, shop: "flak", slot: "weapon" },
+    { id: "wing",     name: "WINGMAN",    tab: "util", base: 180, grow: 1.48, max: 10, unlock: 0, shop: "wing", slot: "addon" },
+    { id: "mines",    name: "MINES",      tab: "util", base: 170, grow: 1.48, max: 10, unlock: 0, shop: "mines", slot: "addon" }
   ];
   const UP_BY_ID = {};
   for (let i = 0; i < UPGRADES.length; i++) UP_BY_ID[UPGRADES[i].id] = UPGRADES[i];
@@ -102,32 +107,90 @@
 
   const PERMA = {
     atk: [
-      { id: "dmg", name: "Starting Damage", max: 20, base: 35, grow: 1.42 },
-      { id: "rate", name: "Starting Fire Rate", max: 20, base: 35, grow: 1.42 },
-      { id: "crit", name: "Crit Chance", max: 15, base: 50, grow: 1.48 },
-      { id: "critDmg", name: "Crit Damage", max: 15, base: 55, grow: 1.48 },
-      { id: "pierce", name: "Starting Pierce", max: 8, base: 80, grow: 1.52 },
-      { id: "multi", name: "Starting Multishot", max: 6, base: 90, grow: 1.55 },
-      { id: "slot", name: "Weapon Slot", max: 4, base: 120, grow: 1.65 }
+      { id: "dmg", name: "Starting Damage", max: 20, base: 80, grow: 1.40 },
+      { id: "rate", name: "Starting Fire Rate", max: 20, base: 80, grow: 1.40 },
+      { id: "crit", name: "Crit Chance", max: 15, base: 130, grow: 1.45 },
+      { id: "critDmg", name: "Crit Damage", max: 15, base: 150, grow: 1.45 },
+      { id: "pierce", name: "Starting Pierce", max: 8, base: 200, grow: 1.50 },
+      { id: "multi", name: "Starting Multishot", max: 6, base: 240, grow: 1.52 },
+      { id: "slot", name: "Weapon Slot", max: 4, base: 320, grow: 1.60 }
     ],
     def: [
-      { id: "hp", name: "Max Health", max: 20, base: 40, grow: 1.42 },
-      { id: "shield", name: "Shield Strength", max: 15, base: 60, grow: 1.48 },
-      { id: "armor", name: "Armor", max: 12, base: 45, grow: 1.48 },
-      { id: "regen", name: "Hull Regen", max: 12, base: 55, grow: 1.48 },
-      { id: "shRegen", name: "Shield Regen", max: 12, base: 60, grow: 1.48 },
-      { id: "pdef", name: "Point Defense", max: 10, base: 50, grow: 1.42 },
-      { id: "thorns", name: "Thorns", max: 10, base: 70, grow: 1.5 },
-      { id: "wind", name: "Second Wind", max: 1, base: 200, grow: 1 }
+      { id: "hp", name: "Max Health", max: 20, base: 90, grow: 1.40 },
+      { id: "shield", name: "Shield Strength", max: 15, base: 150, grow: 1.45 },
+      { id: "armor", name: "Armor", max: 12, base: 110, grow: 1.45 },
+      { id: "regen", name: "Hull Regen", max: 12, base: 140, grow: 1.45 },
+      { id: "shRegen", name: "Shield Regen", max: 12, base: 150, grow: 1.45 },
+      { id: "pdef", name: "Point Defense", max: 10, base: 120, grow: 1.40 },
+      { id: "thorns", name: "Thorns", max: 10, base: 180, grow: 1.48 },
+      { id: "wind", name: "Second Wind", max: 1, base: 500, grow: 1 }
     ],
     eco: [
-      { id: "startCoins", name: "Starting Coins", max: 20, base: 28, grow: 1.42 },
-      { id: "coinValue", name: "Coin Value", max: 15, base: 40, grow: 1.45 },
-      { id: "gemBonus", name: "Gem Bonus", max: 12, base: 80, grow: 1.52 },
-      { id: "interest", name: "Interest", max: 12, base: 90, grow: 1.48 },
-      { id: "skip", name: "Wave Skip", max: 8, base: 110, grow: 1.52 }
+      { id: "startCoins", name: "Starting Coins", max: 20, base: 70, grow: 1.40 },
+      { id: "coinValue", name: "Coin Value", max: 15, base: 90, grow: 1.42 },
+      { id: "salvage", name: "Salvage", max: 12, base: 110, grow: 1.45 },
+      { id: "interest", name: "Interest", max: 12, base: 200, grow: 1.45 },
+      { id: "skip", name: "Wave Skip", max: 8, base: 260, grow: 1.50 }
     ]
   };
+
+  const SHOP = {
+    weapons: [
+      { id: "rail", name: "RAILGUN", cost: 80, blurb: "A piercing beam that punches through a line of foes." },
+      { id: "tesla", name: "TESLA ARC", cost: 100, blurb: "Chain lightning that leaps from target to target." },
+      { id: "flak", name: "FLAK CANNON", cost: 90, blurb: "Bursting shells that explode among tight formations." }
+    ],
+    addons: [
+      { id: "wing", name: "WINGMAN", cost: 120, blurb: "A smaller ship flies beside you and fires on its own." },
+      { id: "mines", name: "MINE LAYER", cost: 90, blurb: "Drops proximity mines along the approach." }
+    ],
+    cosmo: [
+      { id: "skin_crimson", name: "CRIMSON HULL", cost: 45, kind: "skin", value: "crimson", blurb: "A deep red ship skin." },
+      { id: "skin_gold", name: "GILDED HULL", cost: 50, kind: "skin", value: "gold", blurb: "A gold-trimmed ship skin." },
+      { id: "skin_ice", name: "ICE HULL", cost: 45, kind: "skin", value: "ice", blurb: "A pale ice-blue ship skin." },
+      { id: "trail_spark", name: "SPARK TRAILS", cost: 40, kind: "trail", value: "spark", blurb: "Bullets leave a sparking trail." },
+      { id: "trail_prism", name: "PRISM ROUNDS", cost: 40, kind: "trail", value: "prism", blurb: "Shots shimmer with prism color." }
+    ],
+    extras: [
+      { id: "autoPrest", name: "AUTO-PRESTIGE", cost: 200, blurb: "Automatically prestige a core when you can afford it." },
+      { id: "speed3", name: "3× SPEED", cost: 150, blurb: "Unlocks a 3× combat speed toggle." }
+    ],
+    packs: [
+      { id: "pack100", name: "SCOUT PACK", gems: 100, price: "$0.99" },
+      { id: "pack550", name: "OUTPOST PACK", gems: 550, price: "$4.99" },
+      { id: "pack1200", name: "FORTRESS PACK", gems: 1200, price: "$9.99" },
+      { id: "pack2500", name: "ARMADA PACK", gems: 2500, price: "$19.99" }
+    ]
+  };
+  const PDEF_MILESTONES = [1, 4, 8, 12];
+  function pdefTurretCount(lv) {
+    if (lv < 1) return 0;
+    if (lv >= 12) return 4;
+    if (lv >= 8) return 3;
+    if (lv >= 4) return 2;
+    return 1;
+  }
+  function pdefNextAt(lv) {
+    if (lv < 4) return 4;
+    if (lv < 8) return 8;
+    if (lv < 12) return 12;
+    return 0;
+  }
+  function defaultShop() {
+    return {
+      unlocked: {},
+      weapons: [],
+      addons: [],
+      skin: "default",
+      trail: "default",
+      autoPrestige: false,
+      speed3: false
+    };
+  }
+  function carryRate(perma) {
+    const lv = (perma && perma.salvage) || 0;
+    return Math.min(0.70, 0.50 + lv * 0.015);
+  }
 
   const ENEMY = {
     spark:     { hp: 9,  spd: 80,  r: 16, dmg: 7,  coins: 3,  color: C.magenta },
@@ -142,7 +205,7 @@
   };
 
   const BOSS = {
-    10: { name: "THE HERALD",     kind: "herald",     hp: 15000, r: 155, coins: 70 },
+    10: { name: "THE HERALD",     kind: "herald",     hp: 14000, r: 155, coins: 70 },
     20: { name: "TWIN SPIRE",     kind: "twin",       hp: 18500, r: 170, coins: 110 },
     30: { name: "THE LATTICE",    kind: "lattice",    hp: 23000, r: 180, coins: 150 },
     40: { name: "THE HARBINGER",  kind: "harbinger",  hp: 44000, r: 200, coins: 200 },
@@ -174,7 +237,7 @@
     return {
       dmg: 0, rate: 0, crit: 0, critDmg: 0, pierce: 0, multi: 0, slot: 0,
       hp: 0, shield: 0, armor: 0, regen: 0, shRegen: 0, pdef: 0, thorns: 0, wind: 0,
-      startCoins: 0, coinValue: 0, gemBonus: 0, interest: 0, skip: 0
+      startCoins: 0, coinValue: 0, salvage: 0, gemBonus: 0, interest: 0, skip: 0
     };
   }
   function defaultMid() {
@@ -182,14 +245,14 @@
       dmg: 0, rate: 0, spread: 0, crit: 0, critDmg: 0, pierce: 0, multi: 0, bspd: 0, burn: 0, chain: 0, laser: 0, missile: 0,
       ship: 0, hp: 0, shield: 0, shRegen: 0, armor: 0, regen: 0, thorns: 0, knock: 0, freeze: 0, pdef: 0,
       drone: 0, dcount: 0, dmgDrone: 0, laserW: 0, mcount: 0, ricochet: 0,
-      coinVal: 0, interest: 0, skip: 0, orbit: 0, emp: 0
+      coinVal: 0, interest: 0, skip: 0, orbit: 0, emp: 0, rail: 0, tesla: 0, flak: 0, wing: 0, mines: 0
     };
   }
   function defaultPrest() {
     return { dmg: 0, laser: 0, missile: 0, drone: 0, armor: 0, shield: 0, ship: 0 };
   }
   function defaultSave() {
-    return { bestWave: 0, gems: 0, perma: defaultPerma(), mid: defaultMid(), prest: defaultPrest(), carryCoins: 0, mute: false, ver: 7 };
+    return { bestWave: 0, gems: 0, perma: defaultPerma(), mid: defaultMid(), prest: defaultPrest(), carryCoins: 0, bankCoins: 0, shop: defaultShop(), lastDaily: "", mute: false, ver: 8 };
   }
 
   function convertOverflowToPrestige(mid, prest) {
@@ -235,7 +298,24 @@
     }
     delete d.mid.magnet;
     delete d.perma.magnet;
-    d.ver = 7;
+    if (d.perma.gemBonus && !d.perma.salvage) d.perma.salvage = d.perma.gemBonus;
+    d.shop = defaultShop();
+    if (s.shop && typeof s.shop === "object") {
+      d.shop = Object.assign(defaultShop(), s.shop);
+      d.shop.unlocked = Object.assign({}, (s.shop.unlocked || {}));
+      d.shop.weapons = Array.isArray(s.shop.weapons) ? s.shop.weapons.slice() : [];
+      d.shop.addons = Array.isArray(s.shop.addons) ? s.shop.addons.slice() : [];
+    }
+    d.lastDaily = s.lastDaily || "";
+    d.bankCoins = Math.max(0, (s.bankCoins | 0));
+    if (prevVer < 8) {
+      d.bankCoins += Math.max(0, d.carryCoins | 0);
+      const keep = Math.min(d.gems | 0, 100);
+      const conv = Math.max(0, (d.gems | 0) - keep);
+      d.bankCoins += conv * 4;
+      d.gems = keep;
+    }
+    d.ver = 8;
     return d;
   }
 
@@ -255,9 +335,15 @@
   function costOf(def, level) { return Math.floor(def.base * Math.pow(def.grow, level)); }
   function midCost(id, level) { return costOf(UP_BY_ID[id], level); }
 
-  function isUnlocked(id, wave, up, bestWave) {
+  function isUnlocked(id, wave, up, bestWave, shop) {
     const def = UP_BY_ID[id];
     if (!def) return false;
+    if (def.shop) {
+      shop = shop || {};
+      if (!(shop.unlocked && shop.unlocked[def.shop])) return false;
+      const list = def.slot === "addon" ? (shop.addons || []) : (shop.weapons || []);
+      return list.indexOf(def.shop) >= 0;
+    }
     if ((up[id] || 0) > 0) return true;
     const best = bestWave || 0;
     if (def.milestone && wave < def.milestone && best < def.milestone) return false;
@@ -335,10 +421,11 @@
     st.magnet = 80;
     const pdefLv = (u.pdef || 0) + (p.pdef || 0) * 0.8;
     st.pdefLv = pdefLv;
-    st.pdefRange = pdefLv > 0 ? 230 + pdefLv * 24 : 0;
-    st.pdefInterval = pdefLv > 0 ? Math.max(0.28, 1.25 * Math.pow(0.92, Math.max(0, pdefLv - 1))) : 1;
-    st.pdefTurrets = pdefLv >= 10 ? 2 : 1;
+    st.pdefRange = pdefLv > 0 ? 260 + pdefLv * 20 : 0;
+    st.pdefInterval = pdefLv > 0 ? Math.max(0.40, 1.15 * Math.pow(0.95, Math.max(0, pdefLv - 1))) : 1;
+    st.pdefTurrets = pdefTurretCount(pdefLv);
     st.pdefDeflect = pdefLv >= 6 ? Math.min(0.35, 0.06 + (pdefLv - 6) * 0.035) : 0;
+    st.shop = (run.shop || (run._shop) || null);
     st.laserW = 12 + (u.laserW || 0) * 5 + (pr.laser || 0) * 3;
     st.mcount = 1 + (u.mcount || 0);
     st.drones = Math.min(6, (u.drone > 0 ? 1 : 0) + (u.dcount || 0));
@@ -405,7 +492,12 @@
     laserW: "Widens the laser beam so it is easier to clip enemies.",
     mcount: "Adds extra missiles to each volley.",
     ricochet: "After a hit, a bullet can bounce toward another nearby target. Each level is another bounce.",
-    pdef: "Point Defense. A turret hardpoint on the hull that shoots down incoming enemy bullets and missiles. It is active from level 1 with a modest intercept rate. Higher levels reach farther, fire faster, and add a second turret at level 10. From level 6 some shots are deflected back at enemies. Boss volleys can be thinned, not erased.",
+    rail: "Shop weapon. A focused piercing beam that cuts through a line of enemies. Unlock in the Gem Shop, equip it, then level it with coins.",
+    tesla: "Shop weapon. Chain lightning leaps between nearby enemies. Unlock in the Gem Shop, equip it, then level it with coins.",
+    flak: "Shop weapon. Shells burst in a radius, shredding tight packs. Unlock in the Gem Shop, equip it, then level it with coins.",
+    wing: "Shop add-on. A wingman ship flies beside you and fires at the closest threat. Unlock in the Gem Shop, then level it with coins.",
+    mines: "Shop add-on. Drops proximity mines that detonate on enemy contact. Unlock in the Gem Shop, then level it with coins.",
+    pdef: "Point Defense. Sentry guns on the outpost wall behind your ship intercept incoming bullets and missiles. The first sentry comes online at level 1. Additional sentries unlock at levels 4, 8 and 12, up to four. They track and fire at projectiles in their reach with a modest intercept rate, thinning volleys without erasing them. Laser sweeps cannot be intercepted. From level 6 some shots are deflected back at enemies.",
     coinVal: "Increases coins dropped by every kill. Stacks with the permanent Coin Value node.",
     interest: "At the start of each new wave, grants bonus coins based on this level (plus any permanent Interest).",
     skip: "When a non-boss wave is built, automatically cashes out and removes a few of the weakest upcoming spawns.",
@@ -429,9 +521,9 @@
     wind: "Once per run, cheating death restores a sliver of hull instead of ending the run.",
     startCoins: "You begin each run with extra coins, on top of the half you carried over from the last death.",
     coinValue: "A permanent bonus to coins from kills.",
-    gemBonus: "A permanent bonus to gems earned at the end of a run. Gems are never cut when you die.",
+    salvage: "A larger share of leftover mid-run coins is banked on death (starts at 50%, up to 70%). Banked coins buy permanent upgrades and start your next run.",
     interest: "Permanent bonus coins at the start of each wave.",
-    pdef: "Permanent Point Defense ranks. Your intercept turrets start online every run and scale with mid-run Point Def.",
+    pdef: "Permanent Point Defense ranks. Wall sentries start online every run and scale with mid-run Point Def.",
     skip: "Permanent wave-skip charges, stacking with the mid-run upgrade."
   };
 
@@ -475,12 +567,19 @@
     if (id === "mcount") return (1 + lv) + " missile" + (lv ? "s" : "") + " per volley";
     if (id === "ricochet") return lv ? (lv + " bounce" + (lv > 1 ? "s" : "")) : "No bounce";
     if (id === "pdef") {
-      if (!lv) return "No interceptors";
-      const range = Math.round(230 + lv * 24);
-      const iv = Math.max(0.28, 1.25 * Math.pow(0.92, Math.max(0, lv - 1)));
+      if (!lv) return "No sentries";
+      const n = pdefTurretCount(lv);
+      const next = pdefNextAt(lv);
+      const range = Math.round(260 + lv * 20);
       const defl = lv >= 6 ? Math.round(Math.min(0.35, 0.06 + (lv - 6) * 0.035) * 100) : 0;
-      return "Range " + range + "  ·  " + (1 / iv).toFixed(1) + " intercepts/sec" + (defl ? ("  ·  " + defl + "% deflect") : "") + (lv >= 10 ? "  ·  dual turrets" : "");
+      return n + " sentr" + (n === 1 ? "y" : "ies") + "  ·  range " + range + (defl ? ("  ·  " + defl + "% deflect") : "") + (next ? ("  ·  next turret at Lv " + next) : "  ·  all 4 online");
     }
+    if (id === "rail") return lv ? ("Rail every " + (Math.max(0.35, 0.85 * Math.pow(0.92, lv - 1))).toFixed(2) + "s") : "Locked in the Gem Shop";
+    if (id === "tesla") return lv ? ("Arc hops " + (2 + (lv / 3 | 0)) + "  ·  " + (Math.max(0.40, 1.0 * Math.pow(0.93, lv - 1))).toFixed(2) + "s") : "Locked in the Gem Shop";
+    if (id === "flak") return lv ? ("Flak burst " + (70 + lv * 6) + "r") : "Locked in the Gem Shop";
+    if (id === "wing") return lv ? ("Wingman online  ·  dmg " + Math.round((0.45 + lv * 0.12) * 100) + "%") : "Locked in the Gem Shop";
+    if (id === "mines") return lv ? ("Mine every " + (Math.max(1.2, 2.4 - lv * 0.1)).toFixed(1) + "s") : "Locked in the Gem Shop";
+
     if (id === "coinVal") return "Kill coins +" + Math.round(lv * 10) + "%";
     if (id === "interest") return lv ? (BAL.interestPerWave * lv) + " coins each wave" : "No interest";
     if (id === "skip") return lv ? ("Cash out " + lv + " spawn" + (lv > 1 ? "s" : "") + " per trash wave") : "No skip";
@@ -506,7 +605,9 @@
       shake: 0, flash: 0, banner: null,
       rng: makeRng(opts.seed || (Date.now() & 0x7fffffff)),
       bestWave: opts.bestWave || 0,
-      persist: opts.persist !== false
+      persist: opts.persist !== false,
+      shop: opts.shop ? Object.assign(defaultShop(), opts.shop) : defaultShop(),
+      railCd: 0, teslaCd: 0, flakCd: 0, wingCd: 0, mineCd: 0, mines: [], teslaArcs: [], pdefAim: [-Math.PI/2,-Math.PI/2,-Math.PI/2,-Math.PI/2], pdefCds: [0,0,0,0]
     };
     if (run.perma.slot >= 1) run.up.spread = Math.max(run.up.spread, 1);
     if (run.perma.slot >= 2) run.up.laser = Math.max(run.up.laser, 1);
@@ -516,12 +617,19 @@
     run.hp = st.maxHp;
     run.shield = st.maxShield;
     run.coins = (opts.carryCoins || 0) + run.perma.startCoins * BAL.permaStartCoins;
+    run.coinsEarned = 0;
     return run;
+  }
+  function grantCoins(run, n) {
+    n = Math.floor(n || 0);
+    if (n <= 0) return;
+    run.coins += n;
+    run.coinsEarned = (run.coinsEarned || 0) + n;
   }
 
   function settlePickups(run) {
     if (!run || !run.pickups) return;
-    for (let i = 0; i < run.pickups.length; i++) run.coins += run.pickups[i].v || 0;
+    for (let i = 0; i < run.pickups.length; i++) grantCoins(run, run.pickups[i].v || 0);
     while (run.pickups.length) give("pickups", run.pickups.pop());
   }
 
@@ -530,7 +638,7 @@
     const st = playerStats(run);
     if (n > 1) {
       const interestLv = (run.perma.interest || 0) + (run.up.interest || 0);
-      if (interestLv > 0) run.coins += BAL.interestPerWave * interestLv;
+      if (interestLv > 0) grantCoins(run, BAL.interestPerWave * interestLv);
     }
     if (n % 10 === 0) {
       run.phase = "intro"; run.phaseT = BAL.bossIntro;
@@ -576,9 +684,9 @@
         const p = run.pending.shift();
         if (!p) break;
         const def = ENEMY[p.type];
-        if (def) granted += Math.max(1, Math.round(def.coins * playerStats(run).coinMul));
+        if (def) granted += Math.max(1, Math.round(def.coins * playerStats(run).coinMul * (BAL.coinPayout || 1)));
       }
-      run.coins += granted;
+      grantCoins(run, granted);
     }
   }
 
@@ -874,7 +982,7 @@
     if (e.type === "boss") run.bossesBeaten++;
     burst(run, e.x, e.y, e.color || C.orange, e.type === "boss" ? 16 : 8);
     if (giveCoins !== false) {
-      spawnCoin(run, e.x, e.y, Math.max(1, Math.round(e.coins * st.coinMul)));
+      spawnCoin(run, e.x, e.y, Math.max(1, Math.round(e.coins * st.coinMul * (BAL.coinPayout || 1))));
     }
     if (e.split && e.type === "splitter") {
       spawnEnemy(run, "spark", { x: e.x - 18, y: e.y });
@@ -885,7 +993,7 @@
   function spawnCoin(run, x, y, v) {
     if (run.pickups.length >= MAX_PICKUPS) {
       const old = popAt(run.pickups, 0);
-      run.coins += old.v || 0;
+      grantCoins(run, old.v || 0);
       give("pickups", old);
     }
     const p = take("pickups");
@@ -922,34 +1030,68 @@
     if (e.hp <= 0) killEnemy(run, e, true);
   }
 
-  function gemsFor(run) {
-    const st = playerStats(run);
-    const raw = BAL.gemPerWave * run.wave + Math.floor(run.kills / BAL.gemKillDiv) + BAL.gemPerBoss * run.bossesBeaten;
-    return Math.max(1, Math.round(raw * st.gemMul));
+  function gemsFor(run, prevBest) {
+    const bosses = run.bossesBeaten || 0;
+    let g = (BAL.gemPerBoss || 10) * bosses;
+    const best = prevBest == null ? (run.bestWave || 0) : prevBest;
+    if ((run.wave || 0) > best) g += (BAL.gemBestWave || 1) * (run.wave - best);
+    return Math.max(0, g | 0);
   }
 
 
+  // Unlock order: inner-right, inner-left, outer-right, outer-left (up to 4 wall sentries).
+  const PDEF_SLOTS = [
+    { x: 760, oy: 18 },
+    { x: 320, oy: 18 },
+    { x: 950, oy: 28 },
+    { x: 130, oy: 28 }
+  ];
   function pdefTurretPos(i, n) {
-    if (n <= 1) return { x: SHIP_X + 70, y: SHIP_Y - 36 };
-    return i === 0 ? { x: SHIP_X - 78, y: SHIP_Y - 32 } : { x: SHIP_X + 78, y: SHIP_Y - 32 };
+    const slot = PDEF_SLOTS[Math.max(0, Math.min(PDEF_SLOTS.length - 1, i | 0))];
+    return { x: slot.x, y: RAIL_Y - slot.oy };
   }
 
   function updatePointDef(run, dt, st) {
     if (!run.pdefBeams) run.pdefBeams = [];
+    if (!run.pdefAim) run.pdefAim = [-Math.PI / 2, -Math.PI / 2, -Math.PI / 2, -Math.PI / 2];
+    if (!run.pdefCds) run.pdefCds = [0, 0, 0, 0];
     for (let i = run.pdefBeams.length - 1; i >= 0; i--) {
       run.pdefBeams[i].t -= dt;
       if (run.pdefBeams[i].t <= 0) run.pdefBeams.splice(i, 1);
     }
-    if (!st.pdefLv || st.pdefLv <= 0) return;
-    run.pdefCd = (run.pdefCd || 0) - dt;
-    if (run.pdefCd > 0) return;
-    const range = st.pdefRange;
-    const turrets = st.pdefTurrets || 1;
-    let shots = 0;
+    const turrets = st.pdefTurrets || 0;
+    const range = st.pdefRange || 0;
+    // idle track: each barrel looks at the nearest incoming shot
+    for (let t = 0; t < 4; t++) {
+      const tp = pdefTurretPos(t, 4);
+      let best = null, bestD = 1e9;
+      for (let i = 0; i < run.bullets.length; i++) {
+        const b = run.bullets[i];
+        if (!b || b.friendly) continue;
+        const d = Math.hypot(b.x - tp.x, b.y - tp.y);
+        if (d < bestD) { bestD = d; best = b; }
+      }
+      const want = best ? Math.atan2(best.y - tp.y, best.x - tp.x) : -Math.PI / 2;
+      let have = run.pdefAim[t] || -Math.PI / 2;
+      let diff = want - have;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      run.pdefAim[t] = have + Math.max(-10 * dt, Math.min(10 * dt, diff));
+    }
+    if (!st.pdefLv || st.pdefLv <= 0 || turrets <= 0) return;
+    // Combined intercept rate stays modest; extra sentries mainly add coverage.
+    const rateMul = 0.70 + 0.30 * turrets;
+    const interval = Math.max(0.50, (st.pdefInterval || 1.15) * rateMul);
     for (let t = 0; t < turrets; t++) {
+      run.pdefCds[t] = (run.pdefCds[t] || 0) - dt;
+    }
+    const claimed = {};
+    for (let t = 0; t < turrets; t++) {
+      if (run.pdefCds[t] > 0) continue;
       const tp = pdefTurretPos(t, turrets);
       let best = -1, bestScore = 1e9;
       for (let i = 0; i < run.bullets.length; i++) {
+        if (claimed[i]) continue;
         const b = run.bullets[i];
         if (!b || b.friendly) continue;
         const d = Math.hypot(b.x - tp.x, b.y - tp.y);
@@ -957,10 +1099,12 @@
         const score = d + (b.y < tp.y - 400 ? 80 : 0) - (b.vy > 0 ? 50 : 0);
         if (score < bestScore) { bestScore = score; best = i; }
       }
-      if (best < 0) break;
+      if (best < 0) continue;
       const b = run.bullets[best];
-      if (run.pdefBeams.length < 10) {
-        run.pdefBeams.push({ x0: tp.x, y0: tp.y, x1: b.x, y1: b.y, t: 0.28, life: 0.28, deflect: false });
+      claimed[best] = true;
+      run.pdefAim[t] = Math.atan2(b.y - tp.y, b.x - tp.x);
+      if (run.pdefBeams.length < 12) {
+        run.pdefBeams.push({ x0: tp.x, y0: tp.y, x1: b.x, y1: b.y, t: 0.40, life: 0.40, deflect: false });
       }
       if (st.pdefDeflect > 0 && run.rng() < st.pdefDeflect) {
         b.friendly = true;
@@ -976,10 +1120,20 @@
       } else {
         burst(run, b.x, b.y, C.lime, 12);
         give("bullets", popAt(run.bullets, best));
+        // claimed indices after splice: mark so we don't use this slot; remaining loop uses original indices carefully
+        // popAt shifts later bullets; rebuild claimed by skipping this object (already removed)
+        const shifted = {};
+        Object.keys(claimed).forEach(k => {
+          const ki = k | 0;
+          if (ki === best) return;
+          shifted[ki > best ? ki - 1 : ki] = true;
+        });
+        // copy back
+        for (const k of Object.keys(claimed)) delete claimed[k];
+        Object.keys(shifted).forEach(k => { claimed[k] = true; });
       }
-      shots++;
+      run.pdefCds[t] = interval;
     }
-    if (shots > 0) run.pdefCd = st.pdefInterval;
   }
 
   function updatePickups(run, dt) {
@@ -998,7 +1152,7 @@
       const spd = 1200 + p.t * 700;
       const step = spd * dt;
       if (d <= Math.max(30, step + 4) || p.t >= 1.2) {
-        run.coins += p.v || 0;
+        grantCoins(run, p.v || 0);
         floater(run, tx, ty + 18, "+" + (p.v || 0), C.yellow, "coin");
         give("pickups", popAt(run.pickups, i));
         continue;
@@ -1051,6 +1205,144 @@
     b.vx = Math.cos(ang) * spd; b.vy = Math.sin(ang) * spd;
     b.life = Math.max(b.life, 0.5);
     return true;
+  }
+
+
+  function shopLv(run, id) {
+    const sh = run.shop || {};
+    const unlocked = sh.unlocked && sh.unlocked[id];
+    if (!unlocked) return 0;
+    const list = (id === "wing" || id === "mines") ? (sh.addons || []) : (sh.weapons || []);
+    if (list.indexOf(id) < 0) return 0;
+    return Math.max(1, run.up[id] || 1);
+  }
+
+  function updateShopWeapons(run, dt, st) {
+    const lvR = shopLv(run, "rail");
+    if (lvR > 0) {
+      run.railCd = (run.railCd || 0) - dt;
+      if (run.railCd <= 0 && run.enemies.length) {
+        const tgt = closestEnemy(run, SHIP_X, SHIP_Y - 80);
+        if (tgt) {
+          const m = { x: SHIP_X, y: SHIP_Y - 78 };
+          const ang = Math.atan2(tgt.y - m.y, tgt.x - m.x);
+          const x1 = m.x + Math.cos(ang) * 1800, y1 = m.y + Math.sin(ang) * 1800;
+          const L = take("lasers");
+          L.x0 = m.x; L.y0 = m.y; L.x1 = x1; L.y1 = y1;
+          L.t = 0.20; L.dmg = st.dmg * (2.2 + 0.35 * lvR); L.tick = 0; L.w = 7 + lvR;
+          L.tier = 0; L.color = C.cyan; L.kind = "rail"; L.hitSet = 0;
+          run.lasers.push(L);
+          // pierce all along the line once
+          for (let k = run.enemies.length - 1; k >= 0; k--) {
+            const e = run.enemies[k];
+            if (!e || e.hp <= 0) continue;
+            if (distToSegment(e.x, e.y, L.x0, L.y0, L.x1, L.y1) < e.r + L.w) hitEnemy(run, e, L.dmg, false);
+          }
+        }
+        run.railCd = Math.max(0.35, 0.85 * Math.pow(0.92, lvR - 1));
+      }
+    }
+    const lvT = shopLv(run, "tesla");
+    if (lvT > 0) {
+      run.teslaCd = (run.teslaCd || 0) - dt;
+      if (!run.teslaArcs) run.teslaArcs = [];
+      for (let i = run.teslaArcs.length - 1; i >= 0; i--) {
+        run.teslaArcs[i].t -= dt;
+        if (run.teslaArcs[i].t <= 0) run.teslaArcs.splice(i, 1);
+      }
+      if (run.teslaCd <= 0 && run.enemies.length) {
+        const hops = 2 + (lvT / 3 | 0);
+        const pts = [{ x: SHIP_X, y: SHIP_Y - 70 }];
+        let from = { x: SHIP_X, y: SHIP_Y - 70 }, used = {};
+        let dmg = st.dmg * (1.4 + 0.2 * lvT);
+        for (let h = 0; h < hops; h++) {
+          let nxt = null, bestD = 240 + lvT * 8;
+          for (let k = 0; k < run.enemies.length; k++) {
+            const e = run.enemies[k];
+            if (!e || e.hp <= 0 || used[k]) continue;
+            const d = Math.hypot(e.x - from.x, e.y - from.y);
+            if (d < bestD) { bestD = d; nxt = e; used[k] = true; }
+          }
+          if (!nxt) break;
+          pts.push({ x: nxt.x, y: nxt.y });
+          hitEnemy(run, nxt, dmg, false);
+          dmg *= 0.78;
+          from = nxt;
+        }
+        if (pts.length > 1) run.teslaArcs.push({ pts: pts, t: 0.16, life: 0.16 });
+        run.teslaCd = Math.max(0.40, 1.0 * Math.pow(0.93, lvT - 1));
+      }
+    }
+    const lvF = shopLv(run, "flak");
+    if (lvF > 0) {
+      run.flakCd = (run.flakCd || 0) - dt;
+      if (run.flakCd <= 0 && run.enemies.length) {
+        const tgt = closestEnemy(run, SHIP_X, SHIP_Y - 80);
+        if (tgt) {
+          const ang = Math.atan2(tgt.y - (SHIP_Y - 70), tgt.x - SHIP_X);
+          const b = take("bullets");
+          b.x = SHIP_X; b.y = SHIP_Y - 70;
+          b.vx = Math.cos(ang) * 520; b.vy = Math.sin(ang) * 520;
+          b.r = 9; b.dmg = st.dmg * (1.6 + 0.25 * lvF); b.friendly = true;
+          b.color = C.orange; b.life = 1.1; b.kind = "flak"; b.crit = false;
+          b.tier = 0; b.pierce = 0; b.bounces = 0; b.target = tgt; b.turn = 0;
+          b.flakR = 70 + lvF * 6;
+          run.bullets.push(b);
+        }
+        run.flakCd = Math.max(0.40, 0.80 * Math.pow(0.93, lvF - 1));
+      }
+    }
+    const lvW = shopLv(run, "wing");
+    if (lvW > 0) {
+      run.wingCd = (run.wingCd || 0) - dt;
+      if (run.wingCd <= 0 && run.enemies.length) {
+        const wx = SHIP_X + 150, wy = SHIP_Y - 30;
+        const tgt = closestEnemy(run, wx, wy);
+        if (tgt) {
+          const ang = Math.atan2(tgt.y - wy, tgt.x - wx);
+          const b = take("bullets");
+          b.x = wx; b.y = wy;
+          b.vx = Math.cos(ang) * (st.bulletSpd || 980);
+          b.vy = Math.sin(ang) * (st.bulletSpd || 980);
+          b.r = 4; b.dmg = st.dmg * (0.45 + 0.12 * lvW); b.friendly = true;
+          b.color = C.cyan; b.life = 1.6; b.kind = "blast"; b.crit = false;
+          b.tier = 0; b.pierce = 0; b.bounces = 0; b.target = null; b.turn = 0;
+          run.bullets.push(b);
+        }
+        run.wingCd = Math.max(0.16, 0.36 * Math.pow(0.92, lvW - 1));
+      }
+    }
+    const lvM = shopLv(run, "mines");
+    if (lvM > 0) {
+      if (!run.mines) run.mines = [];
+      run.mineCd = (run.mineCd || 0) - dt;
+      if (run.mineCd <= 0) {
+        if (run.mines.length < 5) {
+          run.mines.push({ x: SHIP_X + (run.rng() - 0.5) * 80, y: SHIP_Y - 90, r: 16, t: 6, dmg: st.dmg * (1.8 + 0.2 * lvM) });
+        }
+        run.mineCd = Math.max(1.2, 2.4 - lvM * 0.1);
+      }
+      for (let i = run.mines.length - 1; i >= 0; i--) {
+        const m = run.mines[i];
+        m.y -= 40 * dt;
+        m.t -= dt;
+        let hit = false;
+        for (let k = run.enemies.length - 1; k >= 0; k--) {
+          const e = run.enemies[k];
+          if (!e || e.hp <= 0) continue;
+          if (Math.hypot(e.x - m.x, e.y - m.y) < e.r + m.r) {
+            burst(run, m.x, m.y, C.orange, 10);
+            for (let j = run.enemies.length - 1; j >= 0; j--) {
+              const e2 = run.enemies[j];
+              if (e2 && e2.hp > 0 && Math.hypot(e2.x - m.x, e2.y - m.y) < e2.r + 70) hitEnemy(run, e2, m.dmg, false);
+            }
+            hit = true;
+            break;
+          }
+        }
+        if (hit || m.t <= 0 || m.y < -40) run.mines.splice(i, 1);
+      }
+    }
   }
 
   function updateRun(run, dt) {
@@ -1126,7 +1418,10 @@
       }
     }
 
+    updateShopWeapons(run, dt, st);
+
     if (st.emp > 0) {
+
       run.empCd = (run.empCd || 0) - dt;
       if (run.empCd <= 0 && run.enemies.length) {
         run.empCd = Math.max(1.4, 3.2 - st.emp * 0.12);
@@ -1223,6 +1518,23 @@
           if ((b.steerAcc || 0) > Math.PI * 2 * 1.05) run.missileStats.orbits++;
         }
         give("bullets", popAt(run.bullets, i)); continue;
+      }
+      if (b.kind === "flak") {
+        let explode = b.life < 0.15;
+        for (let k = 0; k < run.enemies.length; k++) {
+          const e = run.enemies[k];
+          if (e && e.hp > 0 && Math.hypot(e.x - b.x, e.y - b.y) < e.r + 18) { explode = true; break; }
+        }
+        if (explode) {
+          burst(run, b.x, b.y, C.orange, 14);
+          const rad = b.flakR || 80;
+          for (let k = run.enemies.length - 1; k >= 0; k--) {
+            const e = run.enemies[k];
+            if (e && e.hp > 0 && Math.hypot(e.x - b.x, e.y - b.y) < e.r + rad) hitEnemy(run, e, b.dmg, false);
+          }
+          give("bullets", popAt(run.bullets, i));
+          continue;
+        }
       }
       if (b.friendly) {
         let hit = false;
@@ -1575,13 +1887,16 @@
     if (hpFrac < 0.35) order.push("hp", "ship", "regen", "shield");
     if ((run.up.rate || 0) < (run.up.dmg || 0)) order.push("rate", "dmg"); else order.push("dmg", "rate");
     order.push("ship");
-    order.push("spread", "bspd", "coinVal");
+    order.push("spread", "bspd", "laser", "missile", "coinVal");
     if (hpFrac < 0.6) order.push("hp", "armor", "shield", "pdef");
     order.push("pierce", "multi", "crit", "critDmg", "burn");
-    order.push("drone", "laser", "missile", "interest");
+    order.push("drone", "interest");
     order.push("shRegen", "regen", "knock", "pdef", "freeze", "thorns");
     order.push("dcount", "dmgDrone", "laserW", "mcount", "chain", "ricochet");
     order.push("skip", "orbit", "emp", "hp");
+    const unlockBest = Math.max(run.wave || 0, run.bestWave || 0);
+    if ((run.up.laser || 0) < 1 && isUnlocked("laser", run.wave, run.up, unlockBest, run.shop) && tryBuy(run, "laser")) return true;
+    if ((run.up.missile || 0) < 1 && isUnlocked("missile", run.wave, run.up, unlockBest, run.shop) && tryBuy(run, "missile")) return true;
     for (let i = 0; i < order.length; i++) { if (tryBuy(run, order[i])) return true; }
     if (run.coins > 400) {
       for (let i = 0; i < PRESTIGE_IDS.length; i++) {
@@ -1611,7 +1926,7 @@
   }
 
   function autoBuyPerma(perma, gems) {
-    const order = ["dmg", "hp", "startCoins", "rate", "coinValue", "armor", "shield", "crit", "critDmg", "regen", "interest", "pdef", "pierce", "shRegen", "multi", "slot", "gemBonus", "thorns", "skip", "wind"];
+    const order = ["dmg", "hp", "startCoins", "rate", "coinValue", "armor", "shield", "crit", "critDmg", "regen", "interest", "pdef", "pierce", "shRegen", "multi", "slot", "salvage", "thorns", "skip", "wind"];
     let changed = true;
     while (changed) {
       changed = false;
@@ -1636,7 +1951,7 @@
       if (run.dead) { run.dyingT = 0; break; }
     }
     return {
-      waveReached: run.wave, kills: run.kills, gemsEarned: gemsFor(run),
+      waveReached: run.wave, kills: run.kills, gemsEarned: gemsFor(run, (opts && opts.prevBest) || run.bestWave || 0),
       coins: run.coins, time: t, bossesBeaten: run.bossesBeaten, dead: run.dead,
       up: Object.assign({}, run.up)
     };
@@ -1644,22 +1959,22 @@
 
   function simulateRuns(n, opts) {
     opts = opts || {};
-    let perma = defaultPerma(), gems = 0, best = 0, mid = defaultMid(), prest = defaultPrest(), carryCoins = 0;
+    let perma = defaultPerma(), gems = 0, best = 0, mid = defaultMid(), prest = defaultPrest(), bankCoins = 0;
     const rows = [];
     for (let i = 0; i < n; i++) {
-      gems = autoBuyPerma(perma, gems);
+      bankCoins = autoBuyPerma(perma, bankCoins);
       const wallet = { gems: gems };
-      const run = createRun(perma, { seed: (opts.seed || 77001) + i * 997, bestWave: best, persist: false, mid: mid, prest: prest, carryCoins: carryCoins, gemWallet: wallet });
-      const end = simulateUntilDeath(run, { autoBuy: true });
+      const run = createRun(perma, { seed: (opts.seed || 77001) + i * 997, bestWave: best, persist: false, mid: mid, prest: prest, carryCoins: 0, gemWallet: wallet, shop: defaultShop() });
+      const end = simulateUntilDeath(run, { autoBuy: true, prevBest: best });
       settlePickups(run);
       mid = Object.assign(defaultMid(), end.up);
       prest = Object.assign(defaultPrest(), run.prest || prest);
-      carryCoins = Math.floor(run.coins / 2);
-      gems = wallet.gems + end.gemsEarned;
+      bankCoins = (bankCoins | 0) + Math.floor((run.coinsEarned || 0) * carryRate(perma));
+      gems = (wallet.gems | 0) + end.gemsEarned;
       best = Math.max(best, end.waveReached);
       rows.push({
         run: i + 1, wave: end.waveReached, kills: end.kills, gemsEarned: end.gemsEarned,
-        gemsBank: gems, carryCoins: carryCoins, bosses: end.bossesBeaten,
+        gemsBank: gems, bankCoins: bankCoins, carryCoins: bankCoins, bosses: end.bossesBeaten,
         time: Math.round(end.time * 10) / 10,
         perma: Object.assign({}, perma), mid: Object.assign({}, mid), prest: Object.assign({}, prest)
       });
@@ -1671,7 +1986,7 @@
     BAL, UPGRADES, PERMA, ENEMY, TABS,
     createRun, updateRun, tryBuy, tryBuyPerma, autoBuyMid, autoBuyPerma, fireMissile, fireBlaster,
     playerStats, gemsFor, simulateUntilDeath, simulateRuns, beginWave, spawnEnemy,
-    defaultPerma, defaultMid, defaultPrest, defaultSave, loadSave, writeSave, migrateSave, midCost, costOf, isUnlocked,
+    defaultPerma, defaultMid, defaultPrest, defaultSave, defaultShop, loadSave, writeSave, migrateSave, midCost, costOf, isUnlocked, SHOP, carryRate, pdefTurretCount, pdefNextAt,
     bossInfo, settlePickups, tryPrestige, prestigeCost, prestMul, tierOf, PRESTIGE_IDS, TIER, MAX_PREST, INFO, PERMA_INFO, effectLine,
     W, get H() { return H; }, get RAIL_Y() { return RAIL_Y; }, SHIP_X,
     get SHIP_Y() { return SHIP_Y; }, C
@@ -2239,16 +2554,37 @@
   function buildSprites() {
     sprite("player", 360, 320, g => drawPlayerTo(g, C.cyan, C.magenta, 0));
     TIER.forEach((ti, i) => sprite("player-t" + i, 360, 320, g => drawPlayerTo(g, ti.color, ti.accent, i)));
-    sprite("pdef-turret", 72, 80, g => {
-      const base = () => { g.beginPath(); g.ellipse(0, 10, 22, 14, 0, 0, Math.PI * 2); };
-      const barrel = () => { g.beginPath(); g.moveTo(-7, 6); g.lineTo(-5, -28); g.lineTo(5, -28); g.lineTo(7, 6); g.closePath(); };
-      fillSolid(g, base, C.lime, { y0: -4, y1: 24, bloom: 12 });
-      outlineClean(g, base, C.lime, 2);
-      fillSolid(g, barrel, C.lime, { y0: -28, y1: 8, hi: 0.5 });
+    sprite("pdef-base", 90, 70, g => {
+      const pad = () => { g.beginPath(); g.moveTo(-28, 18); g.lineTo(-22, 8); g.lineTo(22, 8); g.lineTo(28, 18); g.lineTo(20, 24); g.lineTo(-20, 24); g.closePath(); };
+      const house = () => { g.beginPath(); g.moveTo(-16, 10); g.lineTo(-14, -6); g.lineTo(14, -6); g.lineTo(16, 10); g.closePath(); };
+      fillSolid(g, pad, C.lime, { y0: 4, y1: 28, bloom: 12 });
+      outlineClean(g, pad, C.lime, 2.2);
+      fillSolid(g, house, C.lime, { y0: -8, y1: 12, hi: 0.45 });
+      outlineClean(g, house, C.lime, 1.8);
+    });
+    sprite("pdef-barrel", 48, 90, g => {
+      const barrel = () => { g.beginPath(); g.moveTo(-7, 16); g.lineTo(-5, -34); g.lineTo(5, -34); g.lineTo(7, 16); g.closePath(); };
+      fillSolid(g, barrel, C.lime, { y0: -34, y1: 16, hi: 0.55, bloom: 10 });
       outlineClean(g, barrel, C.lime, 1.8);
       g.save(); g.fillStyle = "#fff"; g.shadowColor = C.lime; g.shadowBlur = 10;
-      g.beginPath(); g.arc(0, 6, 5, 0, Math.PI * 2); g.fill();
-      g.beginPath(); g.arc(0, -28, 4, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(0, 12, 6, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(0, -34, 4, 0, Math.PI * 2); g.fill();
+      g.restore();
+    });
+    sprite("wingman", 80, 80, g => {
+      const body = () => { g.beginPath(); g.moveTo(0, -28); g.lineTo(10, 4); g.lineTo(16, 16); g.lineTo(0, 12); g.lineTo(-16, 16); g.lineTo(-10, 4); g.closePath(); };
+      fillSolid(g, body, C.cyan, { y0: -28, y1: 16, bloom: 10 });
+      outlineClean(g, body, C.cyan, 1.8);
+    });
+    sprite("mine", 40, 40, g => {
+      g.save(); g.fillStyle = C.orange; g.shadowColor = C.orange; g.shadowBlur = 12;
+      g.beginPath(); g.arc(0, 0, 10, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#fff"; g.beginPath(); g.arc(0, 0, 3, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = C.yellow; g.lineWidth = 2;
+      for (let i = 0; i < 4; i++) {
+        const a = i * Math.PI / 2 + 0.4;
+        g.beginPath(); g.moveTo(Math.cos(a) * 8, Math.sin(a) * 8); g.lineTo(Math.cos(a) * 14, Math.sin(a) * 14); g.stroke();
+      }
       g.restore();
     });
     sprite("engine", 40, 70, g => {
@@ -2775,8 +3111,26 @@
       g.save(); g.globalCompositeOperation = "lighter";
       for (let i = 0; i < run.lasers.length; i++) {
         const L = run.lasers[i];
-        const a = Math.max(0, L.t / 0.18);
+        const a = Math.max(0, L.t / (L.kind === "rail" ? 0.12 : 0.18));
         drawLaserLook(g, L.x0, L.y0, L.x1, L.y1, L.tier || 0, a);
+      }
+      if (run.teslaArcs) {
+        for (let i = 0; i < run.teslaArcs.length; i++) {
+          const arc = run.teslaArcs[i];
+          const a = Math.max(0, arc.t / (arc.life || 0.16));
+          g.strokeStyle = C.cyan; g.lineWidth = 4; g.globalAlpha = a;
+          g.beginPath();
+          g.moveTo(arc.pts[0].x, arc.pts[0].y);
+          for (let k = 1; k < arc.pts.length; k++) {
+            const p0 = arc.pts[k - 1], p1 = arc.pts[k];
+            const mx = (p0.x + p1.x) / 2 + (Math.random() - 0.5) * 16;
+            const my = (p0.y + p1.y) / 2 + (Math.random() - 0.5) * 16;
+            g.quadraticCurveTo(mx, my, p1.x, p1.y);
+          }
+          g.stroke();
+          g.strokeStyle = "#fff"; g.lineWidth = 1.5; g.stroke();
+          g.globalAlpha = 1;
+        }
       }
       for (let i = 0; i < run.bullets.length; i++) {
         const b = run.bullets[i];
@@ -2785,9 +3139,22 @@
           g.save(); g.translate(b.x, b.y); g.rotate(a);
           blit(g, "missile-t" + (b.tier || 0), 0, 0, 1.1 + (b.tier || 0) * 0.18);
           g.restore();
+        } else if (b.kind === "flak") {
+          g.save(); g.translate(b.x, b.y); g.rotate(a);
+          g.fillStyle = C.orange; g.shadowColor = C.orange; g.shadowBlur = 12;
+          g.beginPath(); g.arc(0, 0, 7, 0, Math.PI * 2); g.fill();
+          g.restore();
         } else if (b.friendly) {
           g.save(); g.translate(b.x, b.y); g.rotate(a);
           blit(g, "streak-t" + (b.tier || 0), 0, 0, (b.crit ? 1.2 : 1) * (1 + (b.tier || 0) * 0.06));
+          const trail = (run.shop && run.shop.trail) || "default";
+          if (trail === "spark") {
+            g.fillStyle = C.yellow; g.globalAlpha = 0.7;
+            g.beginPath(); g.arc(-14, 0, 3, 0, Math.PI * 2); g.fill();
+          } else if (trail === "prism") {
+            g.fillStyle = C.magenta; g.globalAlpha = 0.8;
+            g.beginPath(); g.moveTo(8, 0); g.lineTo(-10, -5); g.lineTo(-10, 5); g.closePath(); g.fill();
+          }
           g.restore();
         } else {
           const key = b.color === C.pink ? "boltP" : (b.color === C.orange ? "boltO" : "boltM");
@@ -2834,13 +3201,32 @@
         g.translate(SHIP_X, SHIP_Y);
         g.rotate((run.hullAng || -Math.PI / 2) + Math.PI / 2);
         blit(g, "player-t" + shipT, 0, 0, 0.95 + shipT * 0.04);
+        const skin = (run.shop && run.shop.skin) || "default";
+        if (skin && skin !== "default") {
+          const col = skin === "crimson" ? C.red : (skin === "gold" ? C.yellow : C.ice);
+          g.globalAlpha = 0.32; g.fillStyle = col; g.shadowColor = col; g.shadowBlur = 16;
+          g.beginPath(); g.ellipse(0, -4, 34, 48, 0, 0, Math.PI * 2); g.fill();
+          g.globalAlpha = 1;
+        }
         g.restore();
+      }
+      if (shopLv && shopLv(run, "wing") > 0) {
+        const bob = Math.sin(t * 3.2) * 8;
+        blit(g, "wingman", SHIP_X + 200, SHIP_Y - 110 + bob, 1.15);
+      }
+      if (run.mines) {
+        for (let i = 0; i < run.mines.length; i++) blit(g, "mine", run.mines[i].x, run.mines[i].y, 1);
       }
       if (st.pdefLv > 0) {
         const n = st.pdefTurrets || 1;
         for (let i = 0; i < n; i++) {
           const tp = pdefTurretPos(i, n);
-          blit(g, "pdef-turret", tp.x, tp.y, 1.15);
+          blit(g, "pdef-base", tp.x, tp.y, 1.15);
+          g.save();
+          g.translate(tp.x, tp.y);
+          g.rotate((run.pdefAim && run.pdefAim[i]) || -Math.PI / 2);
+          blit(g, "pdef-barrel", 0, 0, 1.15);
+          g.restore();
         }
       }
       if (run.pdefBeams && run.pdefBeams.length) {
@@ -2917,6 +3303,185 @@
 
   const el = (id) => document.getElementById(id);
 
+  function todayKey() {
+    const d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+  function overlayOpen() {
+    const o = el("over"), i = el("info"), sh = el("shop");
+    return (o && o.classList.contains("show")) || (i && i.classList.contains("show")) || (sh && sh.classList.contains("show"));
+  }
+  function syncOverlayMode() {
+    const on = overlayOpen();
+    document.documentElement.classList.toggle("overlay-open", on);
+    document.body.classList.toggle("overlay-open", on);
+    const ui = el("play-ui");
+    if (on && ui) ui.classList.add("hidden");
+    else if (ui && mode === "play" && run && !run._tierShow && !run.dead) ui.classList.remove("hidden");
+  }
+  function closeShop() {
+    const sh = el("shop");
+    if (sh) sh.classList.remove("show");
+    syncOverlayMode();
+  }
+  function openShop(tab) {
+    const sh = el("shop");
+    if (!sh) return;
+    sh.classList.add("show");
+    const ui = el("play-ui");
+    if (ui) ui.classList.add("hidden");
+    if (el("pause")) el("pause").classList.remove("show");
+    paused = (mode === "play") ? true : paused;
+    buildShop(tab || shopTab || "weapons");
+    syncOverlayMode();
+  }
+  let shopTab = "weapons";
+  function shopToast(msg) {
+    const t = el("shop-toast");
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 1600);
+  }
+  function refreshGemDisplays() {
+    const g = String(save.gems | 0);
+    if (el("hud-gems")) el("hud-gems").textContent = g;
+    if (el("shop-gems")) el("shop-gems").textContent = g;
+    if (el("over-bank") && el("over").classList.contains("show")) el("over-bank").textContent = g;
+    if (el("over-coins") && el("over").classList.contains("show")) el("over-coins").textContent = String(save.bankCoins | 0);
+    refreshDailyChip();
+  }
+  function refreshDailyChip() {
+    const b = el("btn-daily");
+    if (!b) return;
+    const ready = (save.lastDaily || "") !== todayKey();
+    b.classList.toggle("off", !ready);
+    b.textContent = ready ? "DAILY +5 ◆" : "DAILY CLAIMED";
+  }
+  function claimDaily() {
+    if ((save.lastDaily || "") === todayKey()) { shopToast("Already claimed today"); return; }
+    save.lastDaily = todayKey();
+    save.gems = (save.gems | 0) + (BAL.gemDaily || 5);
+    if (!demo) writeSave(save);
+    refreshGemDisplays();
+    shopToast("Daily gift: +5 gems");
+    audio.buy && audio.buy();
+  }
+  function buildShop(tab) {
+    shopTab = tab || "weapons";
+    document.querySelectorAll(".shop-tab").forEach(b => b.classList.toggle("on", b.dataset.shop === shopTab));
+    const body = el("shop-body");
+    if (!body) return;
+    if (!save.shop) save.shop = defaultShop();
+    const sh = save.shop;
+    refreshGemDisplays();
+    let html = "";
+    if (shopTab === "weapons") {
+      html += '<div class="shop-note">Unlock a weapon with gems, then equip it (up to 2). Level it with coins in the Attack tab of the console.</div>';
+      SHOP.weapons.forEach(item => { html += shopWeaponCard(item, "weapons"); });
+    } else if (shopTab === "addons") {
+      html += '<div class="shop-note">Unlock an add-on with gems, then equip it (up to 2). Level it with coins in the Utility tab.</div>';
+      SHOP.addons.forEach(item => { html += shopWeaponCard(item, "addons"); });
+    } else if (shopTab === "cosmo") {
+      html += '<div class="shop-note">Looks only. These change the ship or bullet style, not combat power.</div>';
+      SHOP.cosmo.forEach(item => {
+        const owned = !!(sh.unlocked && sh.unlocked[item.id]);
+        const on = (item.kind === "skin" && sh.skin === item.value) || (item.kind === "trail" && sh.trail === item.value);
+        html += '<div class="shop-card' + (owned ? " owned" : "") + '"><div><h3>' + item.name + '</h3><p>' + item.blurb + '</p></div><div>';
+        if (!owned) html += '<button class="shop-buy" data-buy="' + item.id + '">' + item.cost + ' ◆</button>';
+        else html += '<button class="shop-equip' + (on ? " shop-on" : "") + '" data-equip="' + item.id + '">' + (on ? "EQUIPPED" : "EQUIP") + '</button>';
+        html += '</div></div>';
+      });
+    } else if (shopTab === "extras") {
+      html += '<div class="shop-note">Premium conveniences. Free players can still finish prestige and speed at 2×.</div>';
+      SHOP.extras.forEach(item => {
+        const owned = !!(sh.unlocked && sh.unlocked[item.id]);
+        html += '<div class="shop-card' + (owned ? " owned" : "") + '"><div><h3>' + item.name + '</h3><p>' + item.blurb + '</p></div><div>';
+        if (!owned) html += '<button class="shop-buy" data-buy="' + item.id + '">' + item.cost + ' ◆</button>';
+        else html += '<button class="shop-on" disabled>OWNED</button>';
+        html += '</div></div>';
+      });
+    } else {
+      html += '<div class="shop-note">Gem packs are a mock storefront for this prototype. There is no real payment and no purchase will be charged.</div>';
+      SHOP.packs.forEach(item => {
+        html += '<div class="shop-card pack-card"><div><h3>' + item.name + '</h3><p>' + item.gems.toLocaleString("en-US") + ' gems</p><div class="pack-price">' + item.price + '</div><div class="pack-demo">DEMO: NO REAL PURCHASE</div></div><button class="shop-buy" data-pack="' + item.id + '">VIEW</button></div>';
+      });
+      html += '<div class="shop-test"><b>TEST LABEL</b> — This is a prototype. Packs do not grant gems and cannot be bought. Use the button below only to preview the shop with temporary test gems (they are marked in the toast).</div>';
+      html += '<button class="shop-buy" id="btn-test-gems" data-test="1">TEST +50 GEMS</button>';
+    }
+    body.innerHTML = html;
+  }
+  function shopWeaponCard(item, listKey) {
+    const sh = save.shop;
+    const owned = !!(sh.unlocked && sh.unlocked[item.id]);
+    const list = listKey === "addons" ? (sh.addons || []) : (sh.weapons || []);
+    const on = list.indexOf(item.id) >= 0;
+    let html = '<div class="shop-card' + (owned ? " owned" : "") + '"><div><h3>' + item.name + '</h3><p>' + item.blurb + '</p></div><div>';
+    if (!owned) html += '<button class="shop-buy" data-buy="' + item.id + '">' + item.cost + ' ◆</button>';
+    else html += '<button class="shop-equip' + (on ? " shop-on" : "") + '" data-equip="' + item.id + '">' + (on ? "EQUIPPED" : "EQUIP") + '</button>';
+    return html + '</div></div>';
+  }
+  function allShopItems() {
+    return SHOP.weapons.concat(SHOP.addons, SHOP.cosmo, SHOP.extras);
+  }
+  function onShopClick(ev) {
+    const btn = ev.target.closest("button");
+    if (!btn) return;
+    audio.unlock();
+    if (btn.dataset.pack) { shopToast("Demo: no real purchase"); return; }
+    if (btn.dataset.test) {
+      save.gems = (save.gems | 0) + 50;
+      if (!demo) writeSave(save);
+      refreshGemDisplays();
+      shopToast("TEST +50 GEMS (not a purchase)");
+      return;
+    }
+    if (btn.dataset.buy) {
+      const item = allShopItems().find(x => x.id === btn.dataset.buy);
+      if (!item) return;
+      if ((save.gems | 0) < item.cost) { audio.deny(); shopToast("Not enough gems"); return; }
+      save.gems -= item.cost;
+      if (!save.shop) save.shop = defaultShop();
+      save.shop.unlocked[item.id] = 1;
+      if (item.id === "autoPrest") save.shop.autoPrestige = true;
+      if (item.id === "speed3") save.shop.speed3 = true;
+      if (item.kind === "skin" && !save.shop.skin || save.shop.skin === "default") {
+        if (item.value) save.shop.skin = item.value;
+      }
+      if (!demo) writeSave(save);
+      if (run) run.shop = save.shop;
+      audio.buy();
+      buildShop(shopTab);
+      refreshGemDisplays();
+      consoleDirty = true;
+      return;
+    }
+    if (btn.dataset.equip) {
+      const id = btn.dataset.equip;
+      const item = allShopItems().find(x => x.id === id);
+      if (!item) return;
+      if (item.kind === "skin") save.shop.skin = item.value;
+      else if (item.kind === "trail") save.shop.trail = item.value;
+      else if ((SHOP.addons || []).some(x => x.id === id)) {
+        const list = save.shop.addons || [];
+        const ix = list.indexOf(id);
+        if (ix >= 0) list.splice(ix, 1);
+        else { if (list.length >= 2) list.shift(); list.push(id); }
+        save.shop.addons = list;
+      } else {
+        const list = save.shop.weapons || [];
+        const ix = list.indexOf(id);
+        if (ix >= 0) list.splice(ix, 1);
+        else { if (list.length >= 2) list.shift(); list.push(id); }
+        save.shop.weapons = list;
+      }
+      if (!demo) writeSave(save);
+      if (run) run.shop = save.shop;
+      buildShop(shopTab);
+      consoleDirty = true;
+    }
+  }
+
   function railTicks() {
     const rail = el("rail-ticks");
     if (!rail) return;
@@ -2961,6 +3526,10 @@
     });
   }
 
+  function tryAutoPrestige() {
+    if (!run || !save.shop || !save.shop.autoPrestige) return;
+    for (let i = 0; i < PRESTIGE_IDS.length; i++) tryPrestige(run, PRESTIGE_IDS[i]);
+  }
   function onBuyMid(id) {
     if (!run || mode !== "play" || paused) return;
     audio.unlock();
@@ -2991,6 +3560,9 @@
     if (run.up.drone) armed.push("DRONE");
     if (run.up.orbit) armed.push("ORBITAL");
     if (run.up.emp) armed.push("EMP");
+    if (shopLv(run, "rail")) armed.push("RAILGUN");
+    if (shopLv(run, "tesla")) armed.push("TESLA");
+    if (shopLv(run, "flak")) armed.push("FLAK");
     const sub = el("console-sub");
     if (sub) sub.textContent = armed.length ? "WEAPONS ONLINE" : "TRAINING FIRE  ·  SINGLE BLASTER";
     const buttons = document.querySelectorAll("#up-grid .up-btn");
@@ -2999,13 +3571,13 @@
       const id = btn.dataset.id;
       const def = UP_BY_ID[id];
       const lv = run.up[id] || 0;
-      const unlocked = isUnlocked(id, run.wave, run.up, Math.max(run.bestWave || 0, save.bestWave || 0));
+      const unlocked = isUnlocked(id, run.wave, run.up, Math.max(run.bestWave || 0, save.bestWave || 0), save.shop || run.shop);
       const tier = (run.prest && run.prest[id]) || 0;
       const atPrest = !!(def.prestige && lv >= 10 && tier < MAX_PREST);
       const maxed = def.prestige ? (tier >= MAX_PREST && lv >= 10) : lv >= def.max;
       const pcost = atPrest ? prestigeCost(id, tier) : null;
       const cost = maxed ? 0 : (atPrest ? pcost.coins : midCost(id, lv));
-      const can = unlocked && !maxed && (atPrest ? (run.coins >= pcost.coins && save.gems >= pcost.gems) : run.coins >= cost);
+      const can = unlocked && !maxed && (atPrest ? (run.coins >= pcost.coins) : run.coins >= cost);
       const nameEl = btn.querySelector(".name"), lvlEl = btn.querySelector(".lvl"), costEl = btn.querySelector(".cost");
       const star = tier > 0 ? " " + "★".repeat(Math.min(5, tier)) : "";
       if (nameEl.textContent !== def.name + star) nameEl.textContent = def.name + star;
@@ -3013,12 +3585,19 @@
       if (!unlocked) lvlTxt = def.milestone ? "W" + def.milestone : "LOCKED";
       else if (atPrest) lvlTxt = "Lv. 10  ·  " + tierOf(tier).name;
       else if (maxed) lvlTxt = "MAX" + (tier ? "  " + tierOf(tier).name : "");
-      else lvlTxt = "Lv. " + lv + (tier ? "  " + tierOf(tier).name : "");
+      else {
+        lvlTxt = "Lv. " + lv + (tier ? "  " + tierOf(tier).name : "");
+        if (id === "pdef") {
+          const n = pdefTurretCount(lv);
+          const nx = pdefNextAt(lv);
+          lvlTxt = "Lv. " + lv + "  ·  " + n + (n === 1 ? " sentry" : " sentries") + (nx ? "  ·  next at Lv " + nx : "");
+        }
+      }
       if (lvlEl.textContent !== lvlTxt) lvlEl.textContent = lvlTxt;
       let costTxt;
       if (!unlocked) costTxt = midCost(id, 0) + " ¢";
       else if (maxed) costTxt = "—";
-      else if (atPrest) costTxt = "PRESTIGE  " + pcost.coins + "¢ + " + pcost.gems + "◆";
+      else if (atPrest) costTxt = "PRESTIGE  " + pcost.coins + "¢";
       else costTxt = cost + " ¢";
       if (costEl.textContent !== costTxt) costEl.textContent = costTxt;
       let cls = "up-btn";
@@ -3044,6 +3623,7 @@
     lastHudKey = key; hudDirty = false;
     el("hud-wave").textContent = String(run.wave).padStart(2, "0");
     el("hud-coins").textContent = Math.floor(run.coins).toLocaleString("en-US");
+    if (el("hud-gems")) el("hud-gems").textContent = String(save.gems | 0);
     el("hud-best").textContent = String(Math.max(save.bestWave, run.wave, run.bestWave || 0));
     const hpPct = Math.max(0, run.hp / st.maxHp * 100);
     el("hp-fill").style.width = hpPct + "%";
@@ -3097,11 +3677,11 @@
         const maxed = lv >= def.max;
         const cost = maxed ? 0 : costOf(def, lv);
         const row = document.createElement("div");
-        const can = !maxed && save.gems >= cost;
+        const can = !maxed && (save.bankCoins | 0) >= cost;
         row.className = "upg" + (maxed ? " maxed" : (can ? " buyable" : " costly"));
         const pipMax = Math.min(def.max, 8);
         const pips = def.max <= 8 ? pipsHtml(lv, pipMax) : "";
-        row.innerHTML = '<div class="un">' + def.name + '</div><div class="ul">Lv ' + lv + (maxed ? " MAX" : "") + pips + '</div><div class="uc">' + (maxed ? "MAX" : cost + " ◆") + '</div>';
+        row.innerHTML = '<div class="un">' + def.name + '</div><div class="ul">Lv ' + lv + (maxed ? " MAX" : "") + pips + '</div><div class="uc">' + (maxed ? "MAX" : cost + " ¢") + '</div>';
         row.addEventListener("click", () => onBuyPerma(def.id));
         col.appendChild(row);
       });
@@ -3117,12 +3697,12 @@
 
   function onBuyPerma(id) {
     audio.unlock();
-    const before = save.gems;
-    save.gems = tryBuyPerma(save.perma, save.gems, id);
-    if (save.gems !== before) {
+    const before = save.bankCoins | 0;
+    save.bankCoins = tryBuyPerma(save.perma, before, id);
+    if (save.bankCoins !== before) {
       audio.buy();
       if (!demo) writeSave(save);
-      el("over-bank").textContent = String(save.gems);
+      if (el("over-coins")) el("over-coins").textContent = String(save.bankCoins | 0);
       buildTrees();
     } else audio.deny();
   }
@@ -3131,15 +3711,23 @@
     mode = "title"; paused = false;
     el("title").classList.remove("hidden");
     el("over").classList.remove("show");
+    if (el("shop")) el("shop").classList.remove("show");
+    if (el("info")) el("info").classList.remove("show");
     el("play-ui").classList.add("hidden");
     el("pause").classList.remove("show");
     el("title-best").textContent = String(save.bestWave);
+    refreshDailyChip();
+    refreshGemDisplays();
+    syncOverlayMode();
   }
 
   function startRun() {
     audio.unlock();
     if (run) settlePickups(run);
-    run = createRun(save.perma, { bestWave: save.bestWave, persist: !demo, seed: (Date.now() ^ 0x9e3779b9) >>> 0, mid: save.mid, prest: save.prest, carryCoins: save.carryCoins, gemWallet: save });
+    run = createRun(save.perma, { bestWave: save.bestWave, persist: !demo, seed: (Date.now() ^ 0x9e3779b9) >>> 0, mid: save.mid, prest: save.prest, carryCoins: 0, gemWallet: save, shop: save.shop });
+    if (el("shop")) el("shop").classList.remove("show");
+    if (el("info")) el("info").classList.remove("show");
+    syncOverlayMode();
     mode = "play"; paused = false; speed = 1;
     el("btn-speed").textContent = "1x"; el("btn-speed").classList.remove("on");
     el("title").classList.add("hidden");
@@ -3156,26 +3744,38 @@
   function finishRun() {
     if (!run) return;
     settlePickups(run);
-    const earned = gemsFor(run);
+    const prevBest = save.bestWave | 0;
+    const earned = gemsFor(run, prevBest);
     const reached = run.wave;
-    const carry = Math.floor(Math.max(0, run.coins) / 2);
+    const rate = carryRate(save.perma);
+    const carry = Math.floor(Math.max(0, run.coinsEarned || 0) * rate);
     if (!demo) {
       save.gems += earned;
       save.mid = Object.assign(defaultMid(), run.up);
       save.prest = Object.assign(defaultPrest(), run.prest || save.prest);
-      save.carryCoins = carry;
+      save.bankCoins = (save.bankCoins | 0) + carry;
+      save.carryCoins = save.bankCoins;
       if (reached > save.bestWave) save.bestWave = reached;
       writeSave(save);
+    } else {
+      save.bankCoins = (save.bankCoins | 0) + carry;
+      save.gems += earned;
     }
     mode = "over"; paused = false;
     el("play-ui").classList.add("hidden");
+    if (el("shop")) el("shop").classList.remove("show");
+    if (el("info")) el("info").classList.remove("show");
     el("over").classList.add("show");
     el("over-wave").textContent = String(reached);
     el("over-earned").textContent = "+" + earned;
     el("over-bank").textContent = String(save.gems);
+    if (el("over-coins")) el("over-coins").textContent = String(save.bankCoins | 0);
     el("over-best").textContent = String(Math.max(save.bestWave, reached));
-    el("over-carry").textContent = "+" + carry + " coins carried (50%)";
+    el("over-carry").textContent = "+" + carry + " coins salvaged to bank (" + Math.round(rate * 100) + "% of earnings)  ·  leftover bank stays for the next run";
     buildTrees();
+    syncOverlayMode();
+    const sc = el("over-scroll");
+    if (sc) sc.scrollTop = 0;
   }
 
   function setPaused(p) {
@@ -3184,9 +3784,10 @@
     el("pause").classList.toggle("show", p);
   }
   function toggleSpeed() {
-    speed = speed === 1 ? 2 : 1;
+    const max = (save.shop && save.shop.speed3) ? 3 : 2;
+    speed = speed >= max ? 1 : speed + 1;
     el("btn-speed").textContent = speed + "x";
-    el("btn-speed").classList.toggle("on", speed === 2);
+    el("btn-speed").classList.toggle("on", speed > 1);
   }
   function toggleMute() {
     audio.unlock();
@@ -3203,6 +3804,26 @@
   el("btn-resume").addEventListener("click", () => setPaused(false));
   el("btn-speed").addEventListener("click", toggleSpeed);
   el("btn-mute").addEventListener("click", toggleMute);
+  const bind = (id, fn) => { const n = el(id); if (n) n.addEventListener("click", fn); };
+  bind("btn-hud-gems", () => openShop("weapons"));
+  bind("btn-title-shop", () => openShop("weapons"));
+  bind("btn-over-shop", () => openShop("weapons"));
+  bind("btn-pause-shop", () => openShop("weapons"));
+  bind("shop-close", closeShop);
+  bind("btn-daily", claimDaily);
+  const shopEl = el("shop");
+  if (shopEl) {
+    shopEl.addEventListener("click", ev => { if (ev.target.id === "shop") closeShop(); });
+    const body = el("shop-body");
+    if (body) body.addEventListener("click", onShopClick);
+    document.querySelectorAll(".shop-tab").forEach(b => b.addEventListener("click", () => buildShop(b.dataset.shop)));
+  }
+  // Never preventDefault on touches inside overlays (so Android can scroll).
+  ["touchstart", "touchmove"].forEach(type => {
+    document.addEventListener(type, ev => {
+      if (ev.target && ev.target.closest && ev.target.closest("#over, #info, #shop")) return;
+    }, { passive: true });
+  });
   const infoBtn = el("btn-info");
   if (infoBtn) infoBtn.addEventListener("click", () => openInfo(consoleTab));
   const infoClose = el("info-close");
@@ -3226,7 +3847,9 @@
     if (ev.code === "KeyI") { ev.preventDefault(); const box = el("info"); if (box && box.classList.contains("show")) closeInfo(); else openInfo(consoleTab); }
     if (ev.code === "Escape") {
       const box = el("info");
-      if (box && box.classList.contains("show")) { ev.preventDefault(); closeInfo(); }
+      const sh = el("shop");
+      if (sh && sh.classList.contains("show")) { ev.preventDefault(); closeShop(); }
+      else if (box && box.classList.contains("show")) { ev.preventDefault(); closeInfo(); }
     }
   });
 
@@ -3254,6 +3877,7 @@
       while (acc >= STEP && steps < 4) {
         const wasAlive = !run.dead;
         updateRun(run, STEP);
+        tryAutoPrestige();
         if (wasAlive && run.dead) audio.death();
         acc -= STEP;
         steps++;
@@ -3297,28 +3921,28 @@
     const ui = el("play-ui");
     if (ui) ui.classList.add("hidden");
     buildInfo(tab || "atk", focusId);
+    syncOverlayMode();
   }
   function closeInfo() {
     const root = el("info");
     if (root) root.classList.remove("show");
-    const ui = el("play-ui");
-    if (ui && run && !run._tierShow) ui.classList.remove("hidden");
+    syncOverlayMode();
   }
 
   function buildInfo(tab, focusId) {
     const body = el("info-body");
     if (!body) return;
     document.querySelectorAll(".info-tab").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
-    const how = "<div class=\"info-how\"><h3>HOW PRESTIGE WORKS</h3><p>Bullets, Laser, Missiles, Drones, Armor, Shield and the Ship cap at level 10. The button then becomes <b>PRESTIGE</b>. Paying the coin + gem cost resets that item to level 1 at the next tier: it keeps a bank of the previous 10 levels, gains a <b>1.55x power multiplier per tier</b>, and changes its shape and color (Mk I cyan, Mk II gold, Mk III plasma, Mk IV white-hot, Mk V lime, Mk VI void). Tiers stay with you when you die, just like other console upgrades. Gems spent are gone; gems you earn on a run are never cut by death.</p><p>First prestige costs <b>" + prestigeCost("dmg", 0).coins + "c + " + prestigeCost("dmg", 0).gems + " gems</b>. Each further tier costs more. Secondaries such as Fire Rate, Crit, Pierce and Magnet keep high caps and do not prestige.</p></div>";
+    const how = "<div class=\"info-how\"><h3>HOW PRESTIGE WORKS</h3><p>Bullets, Laser, Missiles, Drones, Armor, Shield and the Ship cap at level 10. The button then becomes <b>PRESTIGE</b>. Paying the coin cost resets that item to level 1 at the next tier: it keeps a bank of the previous 10 levels, gains a <b>1.55x power multiplier per tier</b>, and changes its shape and color (Mk I cyan, Mk II gold, Mk III plasma, Mk IV white-hot, Mk V lime, Mk VI void). Tiers stay with you when you die, just like other console upgrades. Prestige is coins only, so free players can always progress. Gems are rare and buy shop weapons, add-ons and looks.</p><p>First prestige costs <b>" + prestigeCost("dmg", 0).coins + "¢</b>. Each further tier costs more. Secondaries such as Fire Rate, Crit and Pierce keep high caps and do not prestige.</p></div>";
     let html = "";
     if (tab === "prestige") html = how;
     else if (tab === "perma") {
-      html = '<div class="info-sec">Permanent gem trees. These persist and stack on top of mid-run upgrades and prestige.</div>';
+      html = '<div class="info-sec">Permanent upgrades, bought with the coin bank on the game-over screen. They persist and stack on top of mid-run upgrades and prestige.</div>';
       ["atk","def","eco"].forEach(k => {
         html += '<h3 class="info-h">' + (k === "atk" ? "ATTACK" : k === "def" ? "DEFENSE" : "ECONOMY") + "</h3>";
         PERMA[k].forEach(def => {
           const lv = (save.perma && save.perma[def.id]) || 0;
-          html += infoCard(def.name, PERMA_INFO[def.id] || "", "Lv " + lv, lv >= def.max ? "MAX" : ("Next costs " + costOf(def, lv) + " ◆"), "perma-" + k);
+          html += infoCard(def.name, PERMA_INFO[def.id] || "", "Lv " + lv, lv >= def.max ? "MAX" : ("Next costs " + costOf(def, lv) + "¢"), "perma-" + k);
         });
       });
     } else {
@@ -3329,7 +3953,7 @@
         const t = (run && run.prest && run.prest[def.id]) || (save.prest && save.prest[def.id]) || 0;
         const cur = effectLine(def.id, lv, t);
         const nxt = (def.prestige && lv >= 10 && t < MAX_PREST)
-          ? ("Prestige to " + tierOf(t + 1).name + " — " + prestigeCost(def.id, t).coins + "¢ + " + prestigeCost(def.id, t).gems + "◆. " + effectLine(def.id, 1, t + 1))
+          ? ("Prestige to " + tierOf(t + 1).name + " — " + prestigeCost(def.id, t).coins + "¢. " + effectLine(def.id, 1, t + 1))
           : (lv >= def.max ? "Maxed" : effectLine(def.id, lv + 1, t));
         html += infoCard(def.name + (t ? "  " + "★".repeat(t) : ""), INFO[def.id] || "", "Now: " + cur, "Next: " + nxt, def.prestige ? "core" : "", def.id);
       });
@@ -3351,8 +3975,9 @@
     save.bestWave = 47; save.gems = 860;
     if (name === "title") { showTitle(); return; }
     if (name === "over") {
-      save.perma = { dmg: 5, rate: 3, crit: 2, critDmg: 1, pierce: 1, multi: 0, slot: 1, hp: 6, shield: 2, armor: 3, regen: 1, shRegen: 1, thorns: 0, wind: 0, startCoins: 4, coinValue: 2, gemBonus: 1, interest: 1, pdef: 2, skip: 0 };
-      run = createRun(save.perma, { bestWave: 47, persist: false, seed: 23 });
+      save.perma = { dmg: 5, rate: 3, crit: 2, critDmg: 1, pierce: 1, multi: 0, slot: 1, hp: 6, shield: 2, armor: 3, regen: 1, shRegen: 1, thorns: 0, wind: 0, startCoins: 4, coinValue: 2, salvage: 1, interest: 1, pdef: 2, skip: 0 };
+      save.bankCoins = 1860; save.gems = 24;
+      run = createRun(save.perma, { bestWave: 47, persist: false, seed: 23, shop: save.shop });
       run.wave = 23; run.kills = 80; run.bossesBeaten = 2; run.dead = true;
       run.up = Object.assign(defaultMid(), { dmg: 8, rate: 6, hp: 5, shield: 2, spread: 3, laser: 2, missile: 1, drone: 1, crit: 2, pdef: 2, coinVal: 2 });
       run.coins = 48;
@@ -3361,11 +3986,37 @@
       el("play-ui").classList.add("hidden");
       el("over").classList.add("show");
       el("over-wave").textContent = "23";
-      el("over-earned").textContent = "+184";
-      el("over-bank").textContent = "860";
+      el("over-earned").textContent = "+20";
+      el("over-bank").textContent = "24";
+      if (el("over-coins")) el("over-coins").textContent = "1860";
       el("over-best").textContent = "47";
-      el("over-carry").textContent = "+24 coins carried (50%)";
+      el("over-carry").textContent = "+24 coins salvaged to bank (51.5% of earnings)  ·  leftover bank stays for the next run";
       buildTrees();
+      syncOverlayMode();
+      return;
+    }
+    if (name === "shop" || name === "packs") {
+      save.gems = 160;
+      showTitle();
+      openShop(name === "packs" ? "packs" : "weapons");
+      return;
+    }
+    if (name === "weapons") {
+      save.shop = defaultShop();
+      save.shop.unlocked.rail = 1; save.shop.unlocked.wing = 1;
+      save.shop.weapons = ["rail"]; save.shop.addons = ["wing"];
+      startRun();
+      run.shop = save.shop;
+      run.wave = 0; beginWave(run, 8);
+      run.phase = "combat"; run.phaseT = 0; run.banner = null; run.pending = [];
+      run.up = Object.assign(defaultMid(), { dmg: 3, rate: 2, hp: 3, ship: 2, rail: 3, wing: 3, pdef: 1 });
+      run.coins = 200; run._st = null;
+      const stw = playerStats(run); run.hp = stw.maxHp; run.shield = stw.maxShield;
+      run.enemies = [];
+      [["shooter",220,300],["shooter",540,240],["shooter",840,320],["drifter",400,500],["shellback",700,520],["spark",300,400]]
+        .forEach(p => { const e = spawnEnemy(run, p[0], { x: p[1], y: p[2] }); if (e) { e.hp = e.maxHp = Math.max(e.hp, 70); } });
+      hudDirty = true; consoleDirty = true; refreshHud(true); refreshConsole(true);
+      if (root.LastOutpost) root.LastOutpost._run = run;
       return;
     }
 
@@ -3445,14 +4096,16 @@
       startRun();
       run.wave = 0; beginWave(run, 8);
       run.phase = "combat"; run.phaseT = 0; run.banner = null; run.pending = [];
-      run.up = Object.assign(defaultMid(), { dmg: 1, rate: 1, hp: 3, ship: 1, shield: 2, armor: 1, pdef: 1, spread: 0 });
+      run.up = Object.assign(defaultMid(), { dmg: 0, rate: 0, hp: 10, ship: 8, shield: 6, armor: 6, pdef: 12, spread: 0, shRegen: 4 });
       run.coins = 80; run._st = null;
       const st = playerStats(run); run.hp = st.maxHp; run.shield = st.maxShield;
+      run.invuln = 30;
       run.enemies = [];
-      [["shooter",200,300],["shooter",420,220],["shooter",660,220],["shooter",860,300],["shooter",300,480],["shooter",780,500]]
+      const low = SHIP_Y;
+      [["shooter",130,low-420],["shooter",320,low-360],["shooter",540,low-480],["shooter",760,low-360],["shooter",950,low-420],["shooter",200,low-560],["shooter",400,low-620],["shooter",700,low-620],["shooter",880,low-560]]
         .forEach(p => {
           const e = spawnEnemy(run, p[0], { x: p[1], y: p[2] });
-          if (e) { e.hp = e.maxHp = Math.max(e.hp, 80); e.fireCd = 0.2 + run.rng() * 0.5; e.fireEvery = 1.6; }
+          if (e) { e.hp = e.maxHp = 4000; e.fireCd = 0.05 + run.rng() * 0.2; e.fireEvery = 0.85; }
         });
       setTab("def");
       hudDirty = true; consoleDirty = true; refreshHud(true); refreshConsole(true);

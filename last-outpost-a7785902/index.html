@@ -281,109 +281,277 @@ canvas { position: absolute; inset: 0; z-index: 1; display: block; }
   color: #eaffff; text-shadow: 0 0 8px #00f6ff; cursor: pointer;
 }
 
-/* ----- GAME OVER ----- */
-#over { position: absolute; inset: 0; z-index: 25; display: none; }
-#over.show { display: block; }
-.go-banner { position: absolute; left: 0; right: 0; top: 86px; text-align: center; pointer-events: none; }
-.go-kicker { font-family: Tomorrow, sans-serif; font-weight: 700; font-size: 26px; letter-spacing: 0.4em; padding-left: 0.4em; color: #ff4aa8; text-shadow: 0 0 8px #ff2bd6, 0 0 20px #ff2bd6; margin-bottom: 14px; }
-.go-you { font-family: Tomorrow, sans-serif; font-weight: 600; font-size: 28px; letter-spacing: 0.28em; padding-left: 0.28em; color: #c9d3e0; margin-bottom: 6px; }
-.go-wave { font-family: Orbitron, sans-serif; font-weight: 900; font-size: 96px; letter-spacing: 0.02em; line-height: 0.92; color: #eaffff; text-shadow: -2px 0 0 rgba(255,43,214,0.55), 2px 0 0 rgba(0,246,255,0.45), 0 0 10px #00f6ff, 0 0 28px #00f6ff, 0 0 60px rgba(0,246,255,0.7); }
-.go-wave small { display: block; font-size: 30px; letter-spacing: 0.36em; font-weight: 700; margin-bottom: 2px; padding-left: 0.2em; }
-.go-gems { margin-top: 16px; display: flex; justify-content: center; gap: 36px; }
-.go-gem-box { min-width: 280px; border: 2px solid #ff2bd6; background: #140010; box-shadow: 0 0 16px rgba(255,43,214,0.45); padding: 14px 22px 16px; text-align: center; }
-.go-gem-box.cyan { border-color: #00f6ff; background: #001015; box-shadow: 0 0 16px rgba(0,246,255,0.4); }
-.go-gem-box .lbl { font-family: Tomorrow, sans-serif; font-weight: 600; font-size: 18px; letter-spacing: 0.2em; color: #c9d3e0; margin-bottom: 4px; }
-.go-gem-box .val { font-family: Orbitron, sans-serif; font-weight: 800; font-size: 44px; letter-spacing: 0.04em; }
-.gem-ico { display: inline-block; width: 22px; height: 22px; background: #ff2bd6; transform: rotate(45deg); box-shadow: 0 0 10px #ff2bd6, 0 0 20px #ff2bd6; margin-right: 10px; vertical-align: 2px; }
+/* ----- FULL-SCREEN OVERLAYS (live in #frame, not the scaled #stage) ----- */
+html.overlay-open, body.overlay-open { touch-action: pan-y; }
+#over, #info, #shop {
+  position: absolute; inset: 0; z-index: 60;
+  display: none; pointer-events: auto;
+  background: #02060a;
+  color: #eaffff;
+  flex-direction: column;
+  overscroll-behavior: contain;
+}
+#over.show, #info.show, #shop.show { display: flex; }
+#over, #info, #shop, #over *, #info *, #shop * { box-sizing: border-box; }
 
-.go-kept { margin-top: 12px; text-align: center; }
+.go-scroll, .info-panel, .shop-body {
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+}
+
+.go-scroll {
+  flex: 1 1 auto; min-height: 0;
+  overflow-x: hidden; overflow-y: auto;
+  padding: 16px 16px 12px;
+  touch-action: pan-y;
+  pointer-events: auto;
+}
+.go-banner { position: relative; left: auto; right: auto; top: auto; text-align: center; pointer-events: none; }
+.go-kicker {
+  font-family: Tomorrow, sans-serif; font-weight: 700; font-size: 13px;
+  letter-spacing: 0.32em; padding-left: 0.32em; color: #ff4aa8;
+  text-shadow: 0 0 8px #ff2bd6, 0 0 16px #ff2bd6; margin-bottom: 6px;
+}
+.go-you {
+  font-family: Tomorrow, sans-serif; font-weight: 600; font-size: 13px;
+  letter-spacing: 0.22em; padding-left: 0.22em; color: #c9d3e0; margin-bottom: 2px;
+}
+.go-wave {
+  font-family: Orbitron, sans-serif; font-weight: 900; font-size: 56px;
+  letter-spacing: 0.02em; line-height: 0.92; color: #eaffff;
+  text-shadow: -2px 0 0 rgba(255,43,214,0.55), 2px 0 0 rgba(0,246,255,0.45), 0 0 10px #00f6ff, 0 0 28px #00f6ff;
+}
+.go-wave small { display: block; font-size: 14px; letter-spacing: 0.32em; font-weight: 700; margin-bottom: 2px; padding-left: 0.2em; }
+.go-gems { margin-top: 12px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; pointer-events: none; }
+.go-gem-box {
+  flex: 1 1 140px; max-width: 200px;
+  border: 2px solid #ff2bd6; background: #140010;
+  box-shadow: 0 0 12px rgba(255,43,214,0.45); padding: 10px 12px 12px; text-align: center;
+}
+.go-gem-box.cyan { border-color: #00f6ff; background: #001015; box-shadow: 0 0 12px rgba(0,246,255,0.4); }
+.go-gem-box.gold { border-color: #ffe500; background: #120e00; box-shadow: 0 0 12px rgba(255,229,0,0.4); }
+.go-gem-box .lbl { font-family: Tomorrow, sans-serif; font-weight: 600; font-size: 11px; letter-spacing: 0.16em; color: #c9d3e0; margin-bottom: 4px; }
+.go-gem-box .val { font-family: Orbitron, sans-serif; font-weight: 800; font-size: 26px; letter-spacing: 0.04em; }
+.gem-ico { display: inline-block; width: 14px; height: 14px; background: #ff2bd6; transform: rotate(45deg); box-shadow: 0 0 8px #ff2bd6; margin-right: 8px; vertical-align: 1px; }
+.go-kept { margin-top: 12px; text-align: center; pointer-events: none; }
 .go-kept-title {
-  font-family: Tomorrow, sans-serif; font-weight: 700; font-size: 22px;
-  letter-spacing: 0.24em; padding-left: 0.24em;
-  color: #f5ffd8; text-shadow: 0 0 8px #c8ff00, 0 0 18px #c8ff00;
+  font-family: Tomorrow, sans-serif; font-weight: 700; font-size: 13px;
+  letter-spacing: 0.2em; padding-left: 0.2em;
+  color: #f5ffd8; text-shadow: 0 0 8px #c8ff00;
 }
 .go-kept-coins {
-  margin-top: 8px;
-  font-family: Orbitron, sans-serif; font-weight: 700; font-size: 24px;
+  margin-top: 4px;
+  font-family: Orbitron, sans-serif; font-weight: 700; font-size: 14px;
   color: #fff4c2; text-shadow: 0 0 8px #ffe500;
 }
-.perm-wrap { position: absolute; left: 32px; right: 32px; top: 560px; bottom: 210px; pointer-events: none; overflow: hidden; }
+.perm-wrap { position: relative; left: auto; right: auto; top: auto; bottom: auto; pointer-events: auto; overflow: visible; margin-top: 16px; }
 .perm-head {
-  text-align: center; font-family: Tomorrow, sans-serif; font-weight: 700; font-size: 22px;
-  letter-spacing: 0.32em; padding-left: 0.32em; color: #9ef7ff; text-shadow: 0 0 8px #00f6ff;
-  margin-bottom: 18px; position: relative;
+  text-align: center; font-family: Tomorrow, sans-serif; font-weight: 700; font-size: 12px;
+  letter-spacing: 0.24em; padding-left: 0.24em; color: #9ef7ff; text-shadow: 0 0 8px #00f6ff;
+  margin-bottom: 10px; position: relative;
 }
-.perm-head::before, .perm-head::after { content: ""; position: absolute; top: 50%; width: 160px; height: 2px; background: #00f6ff; box-shadow: 0 0 8px #00f6ff; }
-.perm-head::before { left: 20px; } .perm-head::after { right: 20px; }
-.trees { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; pointer-events: auto; height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-.tree { border: 2px solid rgba(0,246,255,0.45); background: #030a10; padding: 14px 12px 16px; }
+.perm-head::before, .perm-head::after { content: ""; position: absolute; top: 50%; width: 18%; height: 2px; background: #00f6ff; box-shadow: 0 0 8px #00f6ff; }
+.perm-head::before { left: 0; } .perm-head::after { right: 0; }
+.trees { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; pointer-events: auto; height: auto; overflow: visible; }
+.tree { min-width: 0; }
+@media (max-width: 400px) {
+  .trees { gap: 4px; }
+  .tree { padding: 6px 3px 8px; }
+  .upg { padding: 5px 3px; }
+  .upg .un { font-size: 10px; }
+  .upg .uc { font-size: 10px; }
+}
+
+.tree { border: 2px solid rgba(0,246,255,0.45); background: #030a10; padding: 8px 6px 10px; }
 .tree.atk { border-color: rgba(255,122,0,0.7); }
 .tree.def { border-color: rgba(0,246,255,0.7); }
 .tree.eco { border-color: rgba(200,255,0,0.7); }
-.tree h3 { font-family: Orbitron, sans-serif; font-weight: 800; font-size: 22px; letter-spacing: 0.16em; text-align: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.12); }
+.tree h3 { font-family: Orbitron, sans-serif; font-weight: 800; font-size: 11px; letter-spacing: 0.12em; text-align: center; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.12); }
 .tree.atk h3 { color: #ffd4a8; text-shadow: 0 0 8px #ff7a00; }
 .tree.def h3 { color: #eaffff; text-shadow: 0 0 8px #00f6ff; }
 .tree.eco h3 { color: #f5ffd8; text-shadow: 0 0 8px #c8ff00; }
 .upg {
   display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto;
-  column-gap: 8px; padding: 7px 8px; margin-bottom: 5px;
+  column-gap: 4px; padding: 6px 5px; margin-bottom: 4px;
   border: 1px solid rgba(255,255,255,0.1); background: #071016; cursor: pointer;
+  pointer-events: auto; touch-action: manipulation;
 }
 .upg:last-child { margin-bottom: 0; }
-.upg .un { font-family: Tomorrow, sans-serif; font-weight: 600; font-size: 18px; color: #e8eef4; letter-spacing: 0.02em; line-height: 1.2; }
-.upg .ul { font-family: Tomorrow, sans-serif; font-weight: 500; font-size: 16px; color: #8ad8e4; grid-column: 1; }
-.upg .uc { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-family: Orbitron, sans-serif; font-weight: 700; font-size: 18px; color: #ffe6fb; text-shadow: 0 0 6px #ff2bd6; white-space: nowrap; text-align: right; }
+.upg .un { font-family: Tomorrow, sans-serif; font-weight: 600; font-size: 11px; color: #e8eef4; letter-spacing: 0.02em; line-height: 1.2; }
+.upg .ul { font-family: Tomorrow, sans-serif; font-weight: 500; font-size: 10px; color: #8ad8e4; grid-column: 1; }
+.upg .uc { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-family: Orbitron, sans-serif; font-weight: 700; font-size: 11px; color: #fff4c2; text-shadow: 0 0 6px #ffe500; white-space: nowrap; text-align: right; }
 .upg.buyable { border-color: rgba(0,246,255,0.55); background: #041820; box-shadow: 0 0 10px rgba(0,246,255,0.2); }
 .upg.buyable:active { filter: brightness(1.25); }
 .upg.costly { cursor: default; }
 .upg.costly .uc { color: #6a7380; text-shadow: none; }
 .upg.maxed { border-color: rgba(200,255,0,0.4); background: #0a1204; cursor: default; }
 .upg.maxed .uc { color: #c8ff00; text-shadow: 0 0 6px #c8ff00; }
-.pips { display: inline-flex; gap: 4px; margin-left: 8px; vertical-align: 1px; }
-.pip { width: 8px; height: 8px; border: 1.5px solid #8ad8e4; transform: rotate(45deg); opacity: 0.3; }
+.pips { display: inline-flex; gap: 3px; margin-left: 4px; vertical-align: 1px; }
+.pip { width: 6px; height: 6px; border: 1.5px solid #8ad8e4; transform: rotate(45deg); opacity: 0.3; }
 .pip.on { opacity: 1; background: #00f6ff; border-color: #00f6ff; box-shadow: 0 0 6px #00f6ff; }
 .tree.atk .pip { border-color: #ffb070; }
 .tree.atk .pip.on { background: #ff7a00; border-color: #ff7a00; box-shadow: 0 0 6px #ff7a00; }
 .tree.eco .pip { border-color: #c8e070; }
 .tree.eco .pip.on { background: #c8ff00; border-color: #c8ff00; box-shadow: 0 0 6px #c8ff00; }
+
+.go-dock {
+  flex: 0 0 auto;
+  background: #02060a;
+  border-top: 1px solid rgba(0,246,255,0.25);
+  padding: 10px 16px 12px;
+  box-shadow: 0 -12px 24px rgba(0,0,0,0.85);
+  pointer-events: auto;
+}
 .btn-again {
-  position: absolute; left: 200px; bottom: 70px; width: 680px; height: 100px;
-  font-size: 40px; letter-spacing: 0.14em; padding-left: 0.14em;
-  clip-path: polygon(24px 0, calc(100% - 24px) 0, 100% 24px, 100% calc(100% - 24px), calc(100% - 24px) 100%, 24px 100%, 0 calc(100% - 24px), 0 24px);
+  position: relative; left: auto; bottom: auto;
+  display: block; width: 100%; max-width: 420px; height: 56px; margin: 0 auto;
+  font-size: 20px; letter-spacing: 0.14em; padding-left: 0.14em;
+  clip-path: polygon(16px 0, calc(100% - 16px) 0, 100% 16px, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0 calc(100% - 16px), 0 16px);
+}
+.go-dock-row { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
+.btn-shop {
+  pointer-events: auto; touch-action: manipulation;
+  min-height: 40px; padding: 0 16px;
+  border: 2px solid #ff2bd6; background: linear-gradient(180deg, rgba(255,43,214,0.22), rgba(20,0,16,0.8));
+  color: #ffe6fb; font-family: Orbitron, sans-serif; font-weight: 800; font-size: 13px;
+  letter-spacing: 0.12em; text-shadow: 0 0 8px #ff2bd6; box-shadow: 0 0 10px rgba(255,43,214,0.4);
+  cursor: pointer;
 }
 .go-foot {
-  position: absolute; left: 0; right: 0; bottom: 12px; text-align: center;
-  font-family: Tomorrow, sans-serif; font-weight: 500; font-size: 22px; letter-spacing: 0.2em; color: #8a93a0; pointer-events: none;
+  position: relative; left: auto; right: auto; bottom: auto;
+  text-align: center; margin-top: 8px;
+  font-family: Tomorrow, sans-serif; font-weight: 500; font-size: 11px; letter-spacing: 0.16em; color: #8a93a0; pointer-events: none;
 }
 .go-foot b { font-family: Orbitron, sans-serif; font-weight: 800; color: #eaffff; text-shadow: 0 0 8px #00f6ff; margin-left: 6px; }
 
+/* ----- INFO / CODEX ----- */
+#info { background: #02060a; }
+.info-panel {
+  position: relative; left: auto; right: auto; top: auto; bottom: auto;
+  flex: 1; min-height: 0; margin: 10px;
+  border: 2px solid #00f6ff; background: #000810;
+  box-shadow: 0 0 24px rgba(0,246,255,0.4); display: flex; flex-direction: column;
+}
+.info-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px 8px; border-bottom: 1px solid rgba(0,246,255,0.25); flex: 0 0 auto;
+}
+.info-head h2 {
+  font-family: Orbitron, sans-serif; font-weight: 800; font-size: 18px; letter-spacing: 0.14em;
+  color: #eaffff; text-shadow: 0 0 10px #00f6ff;
+}
+#info-close, #shop-close {
+  width: 44px; height: 44px; border: 2px solid #00f6ff; background: rgba(0,20,30,0.8);
+  color: #eaffff; font-size: 24px; cursor: pointer; text-shadow: 0 0 8px #00f6ff;
+  touch-action: manipulation; pointer-events: auto;
+}
+.info-tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; padding: 8px 8px; flex: 0 0 auto; }
+.info-tab {
+  min-height: 40px; border: 2px solid #2a6a78; background: rgba(0,16,24,0.8);
+  font-family: Tomorrow, sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 0.06em;
+  color: #8ad8e4; cursor: pointer; touch-action: manipulation;
+}
+.info-tab.on { border-color: #00f6ff; color: #eaffff; background: linear-gradient(180deg, rgba(0,246,255,0.22), rgba(0,20,30,0.8)); box-shadow: 0 0 10px rgba(0,246,255,0.4); }
+#info-body {
+  flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
+  -webkit-overflow-scrolling: touch; touch-action: pan-y;
+  padding: 8px 14px 28px; overscroll-behavior: contain;
+}
+.info-sec { font-family: Tomorrow, sans-serif; font-weight: 500; font-size: 14px; color: #c9d3e0; margin: 8px 0 16px; line-height: 1.4; }
+.info-h { font-family: Orbitron, sans-serif; font-weight: 800; font-size: 14px; letter-spacing: 0.12em; color: #00f6ff; margin: 16px 0 10px; text-shadow: 0 0 8px #00f6ff; }
+.info-card {
+  display: grid; grid-template-columns: 32px 1fr; gap: 10px; padding: 10px 8px;
+  margin-bottom: 8px; border: 1px solid rgba(0,246,255,0.25); background: #071016;
+}
+.info-card.core { border-color: rgba(255,229,0,0.45); }
+.ic-ico { width: 24px; height: 24px; margin-top: 4px; background: #00f6ff; transform: rotate(45deg); box-shadow: 0 0 10px #00f6ff; }
+.info-card.core .ic-ico { background: #ffe500; box-shadow: 0 0 10px #ffe500; }
+.ic-name { font-family: Orbitron, sans-serif; font-weight: 800; font-size: 14px; letter-spacing: 0.08em; color: #eaffff; text-shadow: 0 0 8px #00f6ff; margin-bottom: 4px; }
+.info-card p { font-family: Tomorrow, sans-serif; font-weight: 500; font-size: 13px; color: #d5dee8; line-height: 1.35; margin-bottom: 6px; }
+.ic-now { font-family: Tomorrow, sans-serif; font-weight: 600; font-size: 12px; color: #c8ff00; }
+.ic-next { font-family: Tomorrow, sans-serif; font-weight: 500; font-size: 12px; color: #fff4c2; margin-top: 2px; }
+.info-how { padding: 8px 4px 24px; }
+.info-how h3 { font-family: Orbitron, sans-serif; font-weight: 800; font-size: 16px; letter-spacing: 0.1em; color: #ffe500; text-shadow: 0 0 10px #ffe500; margin-bottom: 10px; }
+.info-how p { font-family: Tomorrow, sans-serif; font-weight: 500; font-size: 14px; color: #e8eef4; line-height: 1.45; margin-bottom: 12px; }
+.info-how b { color: #ffe500; }
 
-.btn-info {
-  pointer-events: auto; width: 52px; height: 52px; margin-left: 12px;
-  border: 2px solid #00f6ff; background: rgba(0, 20, 30, 0.8);
-  color: #eaffff; font-family: Orbitron, sans-serif; font-weight: 800; font-size: 28px;
-  line-height: 1; text-shadow: 0 0 8px #00f6ff; box-shadow: 0 0 10px rgba(0,246,255,0.4);
-  cursor: pointer; flex: 0 0 52px;
+/* ----- GEM SHOP ----- */
+#shop { background: #02060a; }
+.shop-head {
+  flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px 8px; border-bottom: 1px solid rgba(255,43,214,0.3);
 }
-.console-head { align-items: center; }
-.up-btn.prestige {
-  border-color: #ffe500 !important;
-  background: linear-gradient(180deg, rgba(255,229,0,0.28), rgba(40,20,0,0.8)) !important;
-  box-shadow: 0 0 16px rgba(255,229,0,0.75), inset 0 0 14px rgba(255,229,0,0.2) !important;
-  animation: prestPulse 1.1s ease-in-out infinite;
+.shop-head h2 {
+  font-family: Orbitron, sans-serif; font-weight: 800; font-size: 18px; letter-spacing: 0.14em;
+  color: #ffe6fb; text-shadow: 0 0 10px #ff2bd6;
 }
-.up-btn.prestige .name, .up-btn.prestige .lvl { color: #fff8d0 !important; text-shadow: 0 0 8px #ffe500 !important; }
-.up-btn.prestige .cost { color: #ffe500 !important; text-shadow: 0 0 8px #ffe500 !important; font-size: 18px; }
-.up-btn.prestige.dim { opacity: 0.85; animation: none; }
-@keyframes prestPulse {
-  0%, 100% { box-shadow: 0 0 12px rgba(255,229,0,0.55); }
-  50% { box-shadow: 0 0 22px rgba(255,229,0,0.95); }
+.shop-gems {
+  font-family: Orbitron, sans-serif; font-weight: 800; font-size: 16px; color: #ffe6fb;
+  text-shadow: 0 0 8px #ff2bd6; margin-right: 8px;
 }
-.up-btn.t1 { border-color: #ffe500; }
-.up-btn.t2 { border-color: #ff2bd6; }
-.up-btn.t3 { border-color: #f4fbff; }
-.up-btn.t4 { border-color: #c8ff00; }
-.up-btn.t5 { border-color: #b14cff; }
+.shop-tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; padding: 8px; flex: 0 0 auto; }
+.shop-tab {
+  min-height: 40px; border: 2px solid #6a2a58; background: rgba(24,0,16,0.8);
+  font-family: Tomorrow, sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 0.06em;
+  color: #ffb0e0; cursor: pointer; touch-action: manipulation;
+}
+.shop-tab.on { border-color: #ff2bd6; color: #fff; background: linear-gradient(180deg, rgba(255,43,214,0.28), rgba(20,0,16,0.8)); box-shadow: 0 0 10px rgba(255,43,214,0.4); }
+.shop-body {
+  flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
+  padding: 8px 12px 24px; touch-action: pan-y; overscroll-behavior: contain;
+}
+.shop-note { font-family: Tomorrow, sans-serif; font-weight: 500; font-size: 13px; color: #c9d3e0; margin: 4px 0 12px; line-height: 1.4; }
+.shop-card {
+  display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;
+  padding: 12px; margin-bottom: 8px; border: 1px solid rgba(255,43,214,0.3); background: #10010c;
+}
+.shop-card h3 { font-family: Orbitron, sans-serif; font-weight: 800; font-size: 14px; letter-spacing: 0.08em; color: #ffe6fb; text-shadow: 0 0 8px #ff2bd6; margin-bottom: 4px; }
+.shop-card p { font-family: Tomorrow, sans-serif; font-weight: 500; font-size: 12px; color: #d5dee8; line-height: 1.35; }
+.shop-buy, .shop-equip, .shop-on {
+  touch-action: manipulation; pointer-events: auto; min-height: 36px; padding: 0 10px;
+  border: 2px solid #ff2bd6; background: rgba(255,43,214,0.15);
+  color: #ffe6fb; font-family: Orbitron, sans-serif; font-weight: 800; font-size: 11px; letter-spacing: 0.06em;
+  cursor: pointer; white-space: nowrap;
+}
+.shop-on { border-color: #c8ff00; color: #f5ffd8; }
+.shop-buy:disabled, .shop-card.owned .shop-buy { opacity: 0.55; cursor: default; }
+.pack-card { text-align: left; }
+.pack-price { font-family: Orbitron, sans-serif; font-weight: 800; font-size: 16px; color: #fff4c2; }
+.pack-demo {
+  margin-top: 6px; font-family: Tomorrow, sans-serif; font-weight: 700; font-size: 11px;
+  letter-spacing: 0.12em; color: #ffe500; text-shadow: 0 0 6px #ffe500;
+}
+.shop-test {
+  margin: 16px 0 8px; padding: 12px; border: 2px dashed #ffe500; background: #161000;
+  font-family: Tomorrow, sans-serif; color: #fff4c2; font-size: 13px;
+}
+.shop-toast {
+  position: absolute; left: 16px; right: 16px; bottom: 16px; z-index: 70;
+  display: none; text-align: center; padding: 12px;
+  border: 2px solid #ffe500; background: rgba(16,12,0,0.95);
+  font-family: Orbitron, sans-serif; font-weight: 800; font-size: 13px; letter-spacing: 0.08em; color: #ffe500;
+}
+.shop-toast.show { display: block; }
+
+.hud-gems {
+  pointer-events: auto; touch-action: manipulation;
+  display: flex; align-items: center; gap: 6px; margin-right: 8px;
+  font-family: Orbitron, sans-serif; font-weight: 700; font-size: 18px;
+  color: #ffe6fb; text-shadow: 0 0 8px #ff2bd6;
+  background: rgba(0,0,0,0.35); border: 2px solid #ff2bd6; padding: 4px 8px;
+  cursor: pointer;
+}
+.title-shop, .pause-shop { margin-top: 0; }
+#title .title-shop { position: absolute; left: 50%; transform: translateX(-50%); bottom: 200px; }
+#pause .pause-shop { pointer-events: auto; }
+.daily-chip {
+  position: absolute; right: 16px; top: 16px; pointer-events: auto; touch-action: manipulation;
+  border: 2px solid #ffe500; background: rgba(16,12,0,0.85); color: #fff4c2;
+  font-family: Tomorrow, sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 0.08em;
+  padding: 8px 10px; cursor: pointer;
+}
+.daily-chip.off { opacity: 0.55; border-color: #6a7380; color: #8a93a0; cursor: default; }
 
 #prest-toast {
   position: absolute; left: 0; right: 0; top: 12%; z-index: 40; text-align: center;
@@ -465,6 +633,7 @@ canvas { position: absolute; inset: 0; z-index: 1; display: block; }
           <div class="hud-wave"><em>WAVE</em><span class="num cyan" id="hud-wave">01</span><span class="boss-tag" id="boss-tag">BOSS</span></div>
           <div style="display:flex;align-items:center;">
             <div class="hud-coins"><span class="coin-ico">C</span><span id="hud-coins">0</span></div>
+            <button class="hud-gems hit" id="btn-hud-gems" aria-label="Gem shop"><span class="gem-ico"></span><span id="hud-gems">0</span></button>
             <div class="hud-tools">
               <button class="tool" id="btn-pause" aria-label="Pause">II</button>
               <button class="tool" id="btn-speed" aria-label="Speed">1x</button>
@@ -522,43 +691,64 @@ canvas { position: absolute; inset: 0; z-index: 1; display: block; }
         <div class="tagline">DEFEND THE LINE</div>
       </div>
       <div class="title-best">BEST WAVE <span class="cyan" id="title-best">0</span></div>
+      <button class="daily-chip" id="btn-daily">DAILY +5 ◆</button>
       <button class="btn-play hit" id="btn-play">PLAY</button>
+      <button class="btn-shop title-shop hit" id="btn-title-shop">GEM SHOP</button>
       <div class="title-foot">IDLE GAMES USA</div>
     </div>
 
-    <div id="over">
-      <div class="title-scrim"></div>
-      <div class="go-banner">
-        <div class="go-kicker magenta">SYSTEM DOWN</div>
-        <div class="go-you">YOU REACHED</div>
-        <div class="go-wave cyan"><small>WAVE</small><span id="over-wave">0</span></div>
-        <div class="go-gems">
-          <div class="go-gem-box">
-            <div class="lbl">GEMS EARNED</div>
-            <div class="val pink"><span class="gem-ico"></span><span id="over-earned">+0</span></div>
-          </div>
-          <div class="go-gem-box cyan">
-            <div class="lbl">GEM BANK</div>
-            <div class="val cyan"><span class="gem-ico" style="background:#00f6ff;box-shadow:0 0 10px #00f6ff,0 0 20px #00f6ff"></span><span id="over-bank">0</span></div>
-          </div>
-        </div>
-        <div class="go-kept">
-          <div class="go-kept-title">UPGRADES KEPT</div>
-          <div class="go-kept-coins" id="over-carry">+0 coins carried (50%)</div>
-        </div>
-      </div>
-      <div class="perm-wrap">
-        <div class="perm-head">PERMANENT UPGRADES</div>
-        <div class="trees" id="trees"></div>
-      </div>
-      <button class="btn-again hit" id="btn-again">PLAY AGAIN</button>
-      <div class="go-foot">BEST WAVE <b id="over-best">0</b>  ·  IDLE GAMES USA</div>
-    </div>
 
     <div id="prest-toast" aria-hidden="true">
       <div class="pt-k">PRESTIGE</div>
       <div class="pt-v">BULLETS  Mk II</div>
       <div class="pt-s">GOLD</div>
+    </div>
+
+
+    <div id="pause">
+      <h2 class="cyan">PAUSED</h2>
+      <button class="btn-resume" id="btn-resume">RESUME</button>
+      <button class="btn-shop pause-shop hit" id="btn-pause-shop">GEM SHOP</button>
+    </div>
+  </div>
+
+    <div id="over">
+      <div class="go-scroll" id="over-scroll">
+        <div class="go-banner">
+          <div class="go-kicker magenta">SYSTEM DOWN</div>
+          <div class="go-you">YOU REACHED</div>
+          <div class="go-wave cyan"><small>WAVE</small><span id="over-wave">0</span></div>
+          <div class="go-gems">
+            <div class="go-gem-box gold">
+              <div class="lbl">COIN BANK</div>
+              <div class="val" style="color:#fff4c2"><span class="coin-ico" style="display:inline-block;width:16px;height:16px;vertical-align:-1px;margin-right:6px;"></span><span id="over-coins">0</span></div>
+            </div>
+            <div class="go-gem-box">
+              <div class="lbl">GEMS EARNED</div>
+              <div class="val pink"><span class="gem-ico"></span><span id="over-earned">+0</span></div>
+            </div>
+            <div class="go-gem-box cyan">
+              <div class="lbl">GEM BANK</div>
+              <div class="val cyan"><span class="gem-ico" style="background:#00f6ff;box-shadow:0 0 10px #00f6ff,0 0 20px #00f6ff"></span><span id="over-bank">0</span></div>
+            </div>
+          </div>
+          <div class="go-kept">
+            <div class="go-kept-title">UPGRADES KEPT</div>
+            <div class="go-kept-coins" id="over-carry">+0 coins to bank (50%)</div>
+          </div>
+        </div>
+        <div class="perm-wrap">
+          <div class="perm-head">PERMANENT UPGRADES  ·  COINS</div>
+          <div class="trees" id="trees"></div>
+        </div>
+      </div>
+      <div class="go-dock">
+        <button class="btn-again hit" id="btn-again">PLAY AGAIN</button>
+        <div class="go-dock-row">
+          <button class="btn-shop hit" id="btn-over-shop">GEM SHOP</button>
+        </div>
+        <div class="go-foot">Leftover bank stays for the next run  ·  BEST <b id="over-best">0</b></div>
+      </div>
     </div>
 
     <div id="info">
@@ -578,11 +768,25 @@ canvas { position: absolute; inset: 0; z-index: 1; display: block; }
       </div>
     </div>
 
-    <div id="pause">
-      <h2 class="cyan">PAUSED</h2>
-      <button class="btn-resume" id="btn-resume">RESUME</button>
+    <div id="shop">
+      <div class="shop-head">
+        <h2>GEM SHOP</h2>
+        <div style="display:flex;align-items:center;">
+          <span class="shop-gems"><span class="gem-ico"></span><span id="shop-gems">0</span></span>
+          <button id="shop-close" aria-label="Close">✕</button>
+        </div>
+      </div>
+      <div class="shop-tabs">
+        <button class="shop-tab on" data-shop="weapons">WEAPONS</button>
+        <button class="shop-tab" data-shop="addons">ADD-ONS</button>
+        <button class="shop-tab" data-shop="cosmo">LOOKS</button>
+        <button class="shop-tab" data-shop="extras">EXTRAS</button>
+        <button class="shop-tab" data-shop="packs">PACKS</button>
+      </div>
+      <div class="shop-body" id="shop-body"></div>
+      <div class="shop-toast" id="shop-toast"></div>
     </div>
-  </div>
+
   </div>
 </div>
 <script src="game.js"></script>
