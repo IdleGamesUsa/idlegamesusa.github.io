@@ -189,7 +189,7 @@
     return { dmg: 0, laser: 0, missile: 0, drone: 0, armor: 0, shield: 0, ship: 0 };
   }
   function defaultSave() {
-    return { bestWave: 0, gems: 0, perma: defaultPerma(), mid: defaultMid(), prest: defaultPrest(), carryCoins: 0, mute: false, ver: 6 };
+    return { bestWave: 0, gems: 0, perma: defaultPerma(), mid: defaultMid(), prest: defaultPrest(), carryCoins: 0, mute: false, ver: 7 };
   }
 
   function convertOverflowToPrestige(mid, prest) {
@@ -235,7 +235,7 @@
     }
     delete d.mid.magnet;
     delete d.perma.magnet;
-    d.ver = 6;
+    d.ver = 7;
     return d;
   }
 
@@ -743,8 +743,10 @@
       b.vx = Math.cos(ang) * 340; b.vy = Math.sin(ang) * 340;
       const ti = tierOf(st.tierMissile || 0);
       b.r = 8; b.dmg = st.dmg * (2.4 + 0.5 * run.up.missile) * (st.missileDmgMul || 1); b.friendly = true;
-      b.color = ti.color; b.life = 2.6; b.kind = "missile"; b.crit = false; b.tier = st.tierMissile || 0;
-      b.target = target; b.turn = 7; b.pierce = 0; b.bounces = 0;
+      b.color = ti.color; b.life = 3.0; b.kind = "missile"; b.crit = false; b.tier = st.tierMissile || 0;
+      b.target = target; b.turn = 14; b.pierce = 0; b.bounces = 0;
+      b.lockSwaps = 0; b.fuse = 0; b.closestD = 1e9; b.steerAcc = 0; b.boom = false;
+      if (run.missileStats) run.missileStats.fired++;
       run.bullets.push(b);
     }
   }
@@ -1006,16 +1008,37 @@
     }
   }
 
-  function retargetMissile(run, b) {
-    const closest = closestEnemy(run, SHIP_X, SHIP_Y);
-    let tgt = b.target && run.enemies.indexOf(b.target) >= 0 && b.target.hp > 0 ? b.target : null;
-    if (!tgt) { tgt = closest; b.target = tgt; }
-    else if (closest && closest !== tgt) {
-      if (threatScore(closest, SHIP_X, SHIP_Y) + 8 < threatScore(tgt, SHIP_X, SHIP_Y)) {
-        tgt = closest; b.target = tgt;
+  function missileLock(run, b) {
+    const alive = b.target && run.enemies.indexOf(b.target) >= 0 && b.target.hp > 0;
+    if (alive) return b.target;
+    b.target = null;
+    if ((b.lockSwaps || 0) >= 1) return null;
+    const nxt = closestEnemy(run, b.x, b.y);
+    if (nxt && nxt.hp > 0) {
+      b.target = nxt;
+      b.lockSwaps = 1;
+      return nxt;
+    }
+    return null;
+  }
+
+  function detonateMissile(run, b, i) {
+    burst(run, b.x, b.y, b.color || C.orange, 10);
+    let hit = false;
+    for (let k = run.enemies.length - 1; k >= 0; k--) {
+      const e = run.enemies[k];
+      if (!e || e.hp <= 0) continue;
+      if (Math.hypot(e.x - b.x, e.y - b.y) < e.r + 52) {
+        hitEnemy(run, e, b.dmg, false);
+        hit = true;
       }
     }
-    return tgt;
+    if (run.missileStats) {
+      if (hit) run.missileStats.hits++;
+      else run.missileStats.expired++;
+      if ((b.steerAcc || 0) > Math.PI * 2 * 1.05) run.missileStats.orbits++;
+    }
+    give("bullets", popAt(run.bullets, i));
   }
 
   function bounceBullet(run, b, e) {
@@ -1158,22 +1181,47 @@
     for (let i = run.bullets.length - 1; i >= 0; i--) {
       const b = run.bullets[i];
       if (b.kind === "missile") {
-        const tgt = retargetMissile(run, b);
+        const tgt = missileLock(run, b);
         if (tgt) {
-          const lp = leadPoint(b.x, b.y, tgt, Math.hypot(b.vx, b.vy) + 80);
-          const wantA = lp.ang;
+          const d = Math.hypot(tgt.x - b.x, tgt.y - b.y);
+          if (d < (b.closestD || 1e9)) b.closestD = d;
+          const spd0 = Math.hypot(b.vx, b.vy);
+          const lp = leadPoint(b.x, b.y, tgt, Math.max(220, spd0));
           let have = Math.atan2(b.vy, b.vx);
-          let diff = wantA - have;
+          let diff = lp.ang - have;
           while (diff > Math.PI) diff -= Math.PI * 2;
           while (diff < -Math.PI) diff += Math.PI * 2;
-          have += Math.max(-b.turn * dt, Math.min(b.turn * dt, diff));
-          const spd = Math.hypot(b.vx, b.vy) + 80 * dt;
+          let turn = 14;
+          if (d < 160) turn = 22;
+          if (d < 80) turn = 28;
+          if (Math.abs(diff) > 1.2) turn += 6;
+          const receding = (b.vx * (tgt.x - b.x) + b.vy * (tgt.y - b.y)) < 0;
+          if (receding && (b.closestD || 1e9) < 120 && d < 260) {
+            turn = Math.max(turn, 26);
+            if (!b.fuse) b.fuse = 0.32;
+          }
+          const step = Math.max(-turn * dt, Math.min(turn * dt, diff));
+          have += step;
+          b.steerAcc = (b.steerAcc || 0) + Math.abs(step);
+          let spd = spd0 + 70 * dt;
+          if (d < 100) spd = Math.min(spd, Math.max(240, spd0));
+          spd = Math.min(520, Math.max(220, spd));
           b.vx = Math.cos(have) * spd; b.vy = Math.sin(have) * spd;
+          if (b.fuse > 0) { b.fuse -= dt; if (b.fuse <= 0) b.boom = true; }
+          if ((b.steerAcc || 0) > Math.PI * 2 * 1.05) b.boom = true;
         }
+      }
+      if (b.kind === "missile" && b.boom) {
+        detonateMissile(run, b, i);
+        continue;
       }
       const x0 = b.x, y0 = b.y;
       b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
       if (b.life <= 0 || b.x < -80 || b.x > W + 80 || b.y < -80 || b.y > RAIL_Y + 60) {
+        if (b.kind === "missile" && run.missileStats) {
+          run.missileStats.expired++;
+          if ((b.steerAcc || 0) > Math.PI * 2 * 1.05) run.missileStats.orbits++;
+        }
         give("bullets", popAt(run.bullets, i)); continue;
       }
       if (b.friendly) {
@@ -1184,6 +1232,10 @@
           if (distToSegment(e.x, e.y, x0, y0, b.x, b.y) < e.r + b.r + HIT_PAD) {
             hitEnemy(run, e, b.dmg, b.crit);
             hit = true;
+            if (b.kind === "missile" && run.missileStats) {
+              run.missileStats.hits++;
+              if ((b.steerAcc || 0) > Math.PI * 2 * 1.05) run.missileStats.orbits++;
+            }
             if (b.pierce && b.pierce > 0) { b.pierce--; continue; }
             if (bounceBullet(run, b, e)) break;
             give("bullets", popAt(run.bullets, i));
@@ -1617,7 +1669,7 @@
 
   const LO = {
     BAL, UPGRADES, PERMA, ENEMY, TABS,
-    createRun, updateRun, tryBuy, tryBuyPerma, autoBuyMid, autoBuyPerma,
+    createRun, updateRun, tryBuy, tryBuyPerma, autoBuyMid, autoBuyPerma, fireMissile, fireBlaster,
     playerStats, gemsFor, simulateUntilDeath, simulateRuns, beginWave, spawnEnemy,
     defaultPerma, defaultMid, defaultPrest, defaultSave, loadSave, writeSave, migrateSave, midCost, costOf, isUnlocked,
     bossInfo, settlePickups, tryPrestige, prestigeCost, prestMul, tierOf, PRESTIGE_IDS, TIER, MAX_PREST, INFO, PERMA_INFO, effectLine,
@@ -2004,19 +2056,30 @@
     // Twin Spire — one solid two-headed beast
     sprite("boss-twin-body", 860, 560, g => {
       const col = C.violet;
+      // Broad monstrous thorax: two shoulder mounds joined by a HIGH yoke / neck, not a heart cleft.
       const torso = () => {
         g.beginPath();
-        g.moveTo(-80, 40);
-        g.bezierCurveTo(-200, 20, -240, -80, -200, -150);
-        g.bezierCurveTo(-170, -200, -80, -160, -20, -40);
-        g.bezierCurveTo(0, -20, 0, -20, 20, -40);
-        g.bezierCurveTo(80, -160, 170, -200, 200, -150);
-        g.bezierCurveTo(240, -80, 200, 20, 80, 40);
-        g.bezierCurveTo(40, 160, -40, 160, -80, 40);
+        g.moveTo(-90, 55);
+        g.bezierCurveTo(-205, 28, -275, -8, -238, -118);
+        g.bezierCurveTo(-220, -162, -180, -158, -130, -140);
+        g.bezierCurveTo(-50, -132, 50, -132, 130, -140);
+        g.bezierCurveTo(180, -158, 220, -162, 238, -118);
+        g.bezierCurveTo(275, -8, 205, 28, 90, 55);
+        g.bezierCurveTo(60, 150, -60, 150, -90, 55);
         g.closePath();
       };
-      fillSolid(g, torso, col, { y0: -200, y1: 160, hi: 0.4, lo: 0.5, bloom: 18 });
+      fillSolid(g, torso, col, { y0: -180, y1: 160, hi: 0.4, lo: 0.5, bloom: 18 });
       outlineClean(g, torso, col, 3.2);
+      // slight spinal ridge so the join reads as a neck, not a dip
+      const ridge = () => {
+        g.beginPath();
+        g.moveTo(-40, -90);
+        g.quadraticCurveTo(0, -142, 40, -90);
+        g.quadraticCurveTo(20, 20, 0, 70);
+        g.quadraticCurveTo(-20, 20, -36, -80);
+        g.closePath();
+      };
+      fillSolid(g, ridge, col, { y0: -120, y1: 80, hi: 0.25, lo: 0.35, bloom: 8, alpha: 0.85 });
     });
     sprite("boss-twin-head", 260, 260, g => {
       const col = C.violet;
@@ -2341,6 +2404,51 @@
   }
 
 
+  function fillTentacle(g, x0, y0, ang, len, wobble, color, width) {
+    const ca = Math.cos(ang), sa = Math.sin(ang);
+    const x1 = x0 + ca * len * 0.28 + Math.cos(ang + 1.2) * wobble;
+    const y1 = y0 + sa * len * 0.28 + Math.sin(ang + 1.2) * wobble;
+    const x2 = x0 + ca * len * 0.64 + Math.cos(ang - 1.05) * wobble * 0.75;
+    const y2 = y0 + sa * len * 0.64 + Math.sin(ang - 1.05) * wobble * 0.75;
+    const x3 = x0 + ca * len;
+    const y3 = y0 + sa * len;
+    const n = 10;
+    function bez(t) {
+      const u = 1 - t;
+      const ax = u*u*u*x0 + 3*u*u*t*x1 + 3*u*t*t*x2 + t*t*t*x3;
+      const ay = u*u*u*y0 + 3*u*u*t*y1 + 3*u*t*t*y2 + t*t*t*y3;
+      const tx = 3*u*u*(x1-x0) + 6*u*t*(x2-x1) + 3*t*t*(x3-x2);
+      const ty = 3*u*u*(y1-y0) + 6*u*t*(y2-y1) + 3*t*t*(y3-y2);
+      const tl = Math.hypot(tx, ty) || 1;
+      const w = width * Math.max(0.32, 1 - t * 0.68);
+      return { x: ax, y: ay, nx: -ty / tl * w * 0.5, ny: tx / tl * w * 0.5 };
+    }
+    g.beginPath();
+    for (let i = 0; i <= n; i++) {
+      const p = bez(i / n);
+      if (i === 0) g.moveTo(p.x + p.nx, p.y + p.ny);
+      else g.lineTo(p.x + p.nx, p.y + p.ny);
+    }
+    for (let i = n; i >= 0; i--) {
+      const p = bez(i / n);
+      g.lineTo(p.x - p.nx, p.y - p.ny);
+    }
+    g.closePath();
+    g.fillStyle = color;
+    g.globalAlpha = 1;
+    g.fill();
+    g.strokeStyle = "rgba(255,255,255,0.38)";
+    g.lineWidth = Math.max(1.2, width * 0.2);
+    g.lineCap = "round";
+    g.beginPath();
+    for (let i = 0; i <= n; i++) {
+      const p = bez(i / n);
+      const hx = p.x + p.nx * 0.35, hy = p.y + p.ny * 0.35;
+      if (i === 0) g.moveTo(hx, hy); else g.lineTo(hx, hy);
+    }
+    g.stroke();
+  }
+
   function strokeTentacle(g, x0, y0, ang, len, wobble, color, width) {
     const x1 = x0 + Math.cos(ang) * len * 0.45 + Math.cos(ang + 1.2) * wobble;
     const y1 = y0 + Math.sin(ang) * len * 0.45 + Math.sin(ang + 1.2) * wobble;
@@ -2381,9 +2489,13 @@
     if (kind === "herald") {
       const n = 8;
       for (let i = 0; i < n; i++) {
-        const base = Math.PI * 0.25 + i * (Math.PI * 0.65 / (n - 1));
-        const wob = Math.sin(t * (rage ? 5 : 2.4) + i * 0.9) * (rage ? 38 : 24);
-        strokeTentacle(g, Math.sin(base - Math.PI / 2) * 90, 40, base, 200 + (i % 3) * 24, wob, tentCol, 14 - (i % 3) * 2);
+        const u = i / (n - 1);
+        const base = Math.PI * (0.22 + u * 0.56);
+        const mid = 1 - Math.abs(u - 0.5) * 2;
+        const len = 360 + mid * 110;
+        const wob = Math.sin(t * (rage ? 4.0 : 1.55) + i * 0.85) * (rage ? 52 : 48) + Math.sin(t * 2.45 + i * 1.35) * (rage ? 26 : 22);
+        const w = 22 + mid * 8;
+        fillTentacle(g, Math.sin(base - Math.PI / 2) * 64, 70, base, len, wob, tentCol, w);
       }
       blit(g, "boss-herald-body", 0, 0, 1);
       blit(g, blink ? "boss-herald-eyeShut" : "boss-herald-eye", 0, -30, rage ? 1.15 : 1);
@@ -2398,7 +2510,7 @@
       }
       blit(g, "boss-twin-body", 0, 30, 1);
       for (const sx of [-1, 1]) {
-        const hx = sx * 150, hy = -36 + Math.sin(t * 2.0 + sx) * 6;
+        const hx = sx * 148, hy = -42 + Math.sin(t * 2.0 + sx) * 6;
         g.save(); g.translate(hx, hy); g.rotate(sx * 0.12 + Math.sin(t * 1.2) * 0.05 * sx);
         blit(g, "boss-twin-head", 0, 0, 1.15);
         blit(g, blink ? "boss-twin-eyeShut" : "boss-twin-eye", sx * -10, -8, 1.15);
