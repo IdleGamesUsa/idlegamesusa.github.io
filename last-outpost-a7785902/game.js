@@ -11,7 +11,7 @@
   let SHIP_Y = 1812;
   const CONSOLE_H = 100; // ground gutter under the wall; the console now lives in a CSS overlay
   const STORAGE_KEY = "idleusa.lastOutpost.v2";
-  const BUILD = "v10.1-steady-base";
+  const BUILD = "v10.2-shield-drones";
   const MAX_PARTICLES = 90;
   const MAX_FLOATERS = 18;
   const MAX_PICKUPS = 48;
@@ -484,6 +484,29 @@
   function turretPivotY() { return RAIL_Y - 72; }
   function baseHalfW(tier) { return TURRET_LAYOUT[Math.max(0, Math.min(5, tier | 0))].halfW; }
   function wallFace() { return RAIL_Y - 6; }
+  const DRONE_RESPAWN = 5;
+  function fortressTopH(tier) {
+    const t = Math.max(0, Math.min(5, tier | 0));
+    return 100 + t * 10 + 16 + Math.min(10, t * 2) + (t >= 5 ? 52 : (t >= 4 ? 28 : 10));
+  }
+  function fortressBastionExtra(tier) {
+    const t = Math.max(0, Math.min(5, tier | 0));
+    return t >= 2 ? (48 + t * 5) : 22;
+  }
+  function pylonPos(run) {
+    const t = turretTierOf(run || { prest: {} });
+    const halfW = baseHalfW(t);
+    const x = Math.max(70, SHIP_X - halfW - 58);
+    return { x: x, y: RAIL_Y - 6, emitX: x, emitY: RAIL_Y - 62 };
+  }
+  function droneMaxHp(st) {
+    const u = (st && st._up) ? st._up : st;
+    const drone = (st && st._droneLv != null) ? st._droneLv : ((u && u.drone) || 0);
+    const dcount = (st && st._dcount != null) ? st._dcount : ((u && u.dcount) || 0);
+    const dmgD = (st && st._dmgDrone != null) ? st._dmgDrone : ((u && u.dmgDrone) || 0);
+    const tier = (st && st.tierDrone) || 0;
+    return Math.round(42 + 12 * drone + 8 * dcount + 10 * dmgD + 14 * tier);
+  }
   function turretHardpoints(run) {
     const t = turretTierOf(run);
     const xs = TURRET_LAYOUT[t].xs;
@@ -578,6 +601,11 @@
     st.mcount = 1 + (u.mcount || 0);
     st.drones = Math.min(6, (u.drone > 0 ? 1 : 0) + (u.dcount || 0));
     st.droneDmg = (0.55 + (u.dmgDrone || 0) * 0.18) * prestMul(pr.drone);
+    st._droneLv = u.drone || 0;
+    st._dcount = u.dcount || 0;
+    st._dmgDrone = u.dmgDrone || 0;
+    st.tierDrone = pr.drone || 0;
+    st.droneMaxHp = droneMaxHp(st);
     st.laserDmgMul = prestMul(pr.laser);
     st.missileDmgMul = prestMul(pr.missile);
     st.shRegen = BAL.shieldRegenPerSec + (u.shRegen || 0) * 6 + (p.shRegen || 0) * 5;
@@ -630,14 +658,14 @@
     missile: "Launches homing missiles from the turrets or the core at the closest threats. Core item: Prestige at level 10 for bigger frames, brighter exhaust, heavier blasts, and a new look.",
     ship: "The outpost itself. Raises base max health. Prestige at level 10 to a new fortress class: Mk I bunker (1 center turret), Mk II (2 turrets), Mk III (3), Mk IV (4), Mk V (5), Mk VI citadel (5 turrets plus a sweeping S-curve void beam from the core). Each turret rotates independently up to 70° left or right to lead its own target. Damage is split across turrets with a modest per-tier gain. Spread and Multishot apply per turret. The base never moves or flips.",
     hp: "Buys more max health and instantly repairs a chunk of the base. A mid-run survival purchase; Base is the prestige path for the outpost look and turret count.",
-    shield: "A rechargeable energy ARC or dome wall projected over the front of the base, not a bubble. It blocks frontal shots that pass through the arc. When shield HP hits 0 the arc cracks and fades; when it regenerates, it visibly powers back up. Prestige adds strength.",
+    shield: "A rechargeable energy dome projected over the entire fortress. The arc meets the rail beyond the base corners so no part of the bunker or its corner pylons sits outside it. It blocks frontal shots that pass through the dome. When shield HP hits 0 the dome cracks and fades; when it regenerates, it visibly powers back up. Prestige adds strength.",
     shRegen: "The shield refills faster after you stop taking hits.",
     armor: "Cuts incoming damage by a percent (capped). Core item: Prestige at level 10 for a larger cut and heavier visible hull plating.",
     regen: "Slowly repairs hull over time, even between hits.",
     thorns: "When something rams the wall, a portion of that damage is reflected back.",
     knock: "Shoves enemies back up the field. Low levels only push foes very close to the base a short distance. Each level extends the trigger range and the push. Max level can drive enemies to the top edge of the visible field, never off-screen or into a rail pile. At high waves, knockback resistance keeps swarms visible and pressing mid-field. Bosses barely flinch and never reach the wall. Enemies that do reach the wall deal contact damage, explode, and vanish.",
     freeze: "Hits slow enemies for a short time. Stacks a little with more levels, and is capped so they never freeze solid.",
-    drone: "A wingman that hovers near the base and fires on the closest threat. Core item: Prestige at level 10 for a new, spikier drone shape, orbit trails, and more punch.",
+    drone: "A wingman that hovers in front of the base, off to the left or right flank, clear of the center gun lanes, and fires on the closest threat. Drones have their own hit points (scaling with drone upgrades) and can be destroyed by enemy shots, missiles, or contact. A destroyed drone respawns after 5 seconds. Core item: Prestige at level 10 for a new, spikier drone shape, orbit trails, and more punch.",
     dcount: "Adds extra drones, up to a small squad.",
     dmgDrone: "Raises the damage of every drone shot.",
     laserW: "Widens the laser beam so it is easier to clip enemies.",
@@ -647,7 +675,7 @@
     tesla: "Shop weapon. Chain lightning leaps between nearby enemies. Unlock and upgrade it with gems in the Gem Shop, then equip it.",
     flak: "Shop weapon. Shells burst in a radius, shredding tight packs. Unlock and upgrade it with gems in the Gem Shop, then equip it.",
     nuke: "Shop weapon. A nuke-style missile that fires about every 5 seconds. A lone target dies; groups take a large neon mushroom blast and shockwave. Unlock and upgrade it with gems in the Gem Shop, then equip it.",
-    pylon: "Shop add-on. A tesla tower mounted on the base wall zaps the nearest threat. Unlock and upgrade it with gems in the Gem Shop, then equip it.",
+    pylon: "Shop add-on. A tesla tower standing just beyond the left edge of the wall, in front of the bunker, that zaps the nearest threat from its emitter. Unlock and upgrade it with gems in the Gem Shop, then equip it.",
     mines: "Shop add-on. If equipped, each wave plants several mines at random spots on the field. They stay until an enemy hits them, then blast. Upgrades add mine count and damage. Unlock and upgrade with gems in the Gem Shop.",
     pdef: "Point Defense. Sentry guns mounted on the outpost wall intercept incoming bullets and missiles. The first sentry comes online at level 1. Additional sentries unlock at levels 4, 8 and 12, up to four. They track and fire at projectiles in their reach with a modest intercept rate, thinning volleys without erasing them. Laser sweeps cannot be intercepted. From level 6 some shots are deflected back at enemies.",
     coinVal: "Increases coins dropped by every kill. Stacks with the permanent Coin Value node.",
@@ -755,7 +783,7 @@
       dead: false, dyingT: 0, time: 0, waveTime: 0,
       phase: "break", phaseT: 0, pending: [], spawnCd: 0,
       enemies: [], bullets: [], pickups: [], floaters: [], particles: [], lasers: [],
-      fireCd: 0, missileCd: 0, laserCd: 0, droneFire: [0, 0, 0, 0, 0, 0],
+      fireCd: 0, missileCd: 0, laserCd: 0, droneFire: [0, 0, 0, 0, 0, 0], droneHp: [], droneRespawn: [],
       empCd: 0, pdefCd: 0, pdefBeams: [], orbitT: 0, hullAng: -Math.PI / 2, aimAng: -Math.PI / 2, turretAng: [-Math.PI/2,-Math.PI/2,-Math.PI/2,-Math.PI/2,-Math.PI/2], turretTgt: [null,null,null,null,null], wallFx: [], wallHits: 0, prestFx: null, bossBeams: [],
       shake: 0, flash: 0, banner: null,
       rng: makeRng(opts.seed || (Date.now() & 0x7fffffff)),
@@ -1114,11 +1142,22 @@
     run.bullets.push(b);
   }
 
-  function dronePos(i, t, n) {
-    const total = Math.max(1, n || 2);
+  function dronePos(i, t, n, run) {
     const side = (i % 2 === 0) ? -1 : 1;
     const row = Math.floor(i / 2);
-    return { x: SHIP_X + side * (190 + row * 40), y: SHIP_Y - 30 - row * 50 + Math.sin(t * 3 + i) * 8 };
+    const tier = (typeof turretTierOf === "function") ? turretTierOf(run || {}) : 0;
+    const halfW = (typeof baseHalfW === "function") ? baseHalfW(tier) : 260;
+    // In front of the bunker, on the left/right flanks, clear of the center firing lanes.
+    const flank = Math.max(250, Math.min(470, halfW + 28));
+    let x = SHIP_X + side * (flank - row * 18);
+    x = Math.max(70, Math.min(1010, x));
+    const y = RAIL_Y - (214 + row * 58) + Math.sin((t || 0) * 3 + i) * 8;
+    return { x: x, y: y };
+  }
+  function droneAlive(run, i) {
+    if (!run) return true;
+    const resp = run.droneRespawn && run.droneRespawn[i];
+    return !resp || resp <= 0;
   }
 
 
@@ -1288,15 +1327,20 @@
 
 
   // Unlock order: inner-right, inner-left, outer-right, outer-left (up to 4 wall sentries).
-  const PDEF_SLOTS = [
-    { x: 760, oy: 18 },
-    { x: 320, oy: 18 },
-    { x: 950, oy: 28 },
-    { x: 130, oy: 28 }
-  ];
-  function pdefTurretPos(i, n) {
-    const slot = PDEF_SLOTS[Math.max(0, Math.min(PDEF_SLOTS.length - 1, i | 0))];
-    return { x: slot.x, y: RAIL_Y - slot.oy };
+  function pdefTurretPos(i, n, run) {
+    const t = (typeof turretTierOf === "function") ? turretTierOf(run || {}) : 0;
+    const halfW = (typeof baseHalfW === "function") ? baseHalfW(t) : 260;
+    const wallH = 100 + t * 10;
+    // Sit on the front corners / flanks, not buried at the rail behind the bunker.
+    const xs = [
+      Math.min(1010, SHIP_X + halfW + 20),
+      Math.max(70, SHIP_X - halfW - 20),
+      Math.min(1000, SHIP_X + halfW - 64),
+      Math.max(80, SHIP_X - halfW + 64)
+    ];
+    const x = xs[Math.max(0, Math.min(3, i | 0))];
+    const y = RAIL_Y - Math.max(36, Math.min(52, wallH * 0.38));
+    return { x: x, y: y };
   }
 
   function updatePointDef(run, dt, st) {
@@ -1311,7 +1355,7 @@
     const range = st.pdefRange || 0;
     // idle track: each barrel looks at the nearest incoming shot
     for (let t = 0; t < 4; t++) {
-      const tp = pdefTurretPos(t, 4);
+      const tp = pdefTurretPos(t, 4, run);
       let best = null, bestD = 1e9;
       for (let i = 0; i < run.bullets.length; i++) {
         const b = run.bullets[i];
@@ -1336,7 +1380,7 @@
     const claimed = {};
     for (let t = 0; t < turrets; t++) {
       if (run.pdefCds[t] > 0) continue;
-      const tp = pdefTurretPos(t, turrets);
+      const tp = pdefTurretPos(t, turrets, run);
       let best = -1, bestScore = 1e9;
       for (let i = 0; i < run.bullets.length; i++) {
         if (claimed[i]) continue;
@@ -1352,7 +1396,7 @@
       claimed[best] = true;
       run.pdefAim[t] = Math.atan2(b.y - tp.y, b.x - tp.x);
       if (run.pdefBeams.length < 12) {
-        run.pdefBeams.push({ x0: tp.x, y0: tp.y, x1: b.x, y1: b.y, t: 0.40, life: 0.40, deflect: false });
+        run.pdefBeams.push({ x0: tp.x, y0: tp.y, x1: b.x, y1: b.y, t: 0.14, life: 0.14, deflect: false });
       }
       if (st.pdefDeflect > 0 && run.rng() < st.pdefDeflect) {
         b.friendly = true;
@@ -1467,18 +1511,70 @@
   }
 
 
+
+  function syncDroneState(run, st, dt) {
+    const n = st.drones || 0;
+    const maxHp = st.droneMaxHp || droneMaxHp(st);
+    if (!run.droneHp) run.droneHp = [];
+    if (!run.droneRespawn) run.droneRespawn = [];
+    while (run.droneHp.length < n) {
+      run.droneHp.push(maxHp);
+      run.droneRespawn.push(0);
+    }
+    const wait = (typeof DRONE_RESPAWN === "number") ? DRONE_RESPAWN : 5;
+    for (let i = 0; i < n; i++) {
+      if (run.droneRespawn[i] > 0) {
+        run.droneRespawn[i] -= (dt || 0);
+        if (run.droneRespawn[i] <= 0) {
+          run.droneRespawn[i] = 0;
+          run.droneHp[i] = maxHp;
+        }
+      } else if (run.droneHp[i] == null || run.droneHp[i] <= 0) {
+        run.droneHp[i] = maxHp;
+        run.droneRespawn[i] = 0;
+      } else if (run.droneHp[i] > maxHp) {
+        run.droneHp[i] = maxHp;
+      }
+    }
+  }
+  function hurtDrone(run, i, dmg, st) {
+    if (!droneAlive(run, i)) return false;
+    const maxHp = (st && st.droneMaxHp) || 48;
+    run.droneHp[i] = (run.droneHp[i] != null ? run.droneHp[i] : maxHp) - dmg;
+    if (run.droneHp[i] <= 0) {
+      run.droneHp[i] = 0;
+      run.droneRespawn[i] = (typeof DRONE_RESPAWN === "number") ? DRONE_RESPAWN : 5;
+      const p = dronePos(i, run.time, st.drones || 2, run);
+      burst(run, p.x, p.y, C.cyan, 14);
+      burst(run, p.x, p.y, C.yellow, 8);
+      return true;
+    }
+    return false;
+  }
+
   function shieldArcGeom(run) {
     const t = turretTierOf(run || { prest: {} });
     const halfW = baseHalfW(t);
-    // Shallow dome over the bunker: peak sits a short way above the turrets, covering the wall.
-    const peak = 200 + t * 10;
-    const r = Math.hypot(halfW + 28, peak) + 6;
-    const cy = RAIL_Y + (r - peak);
-    const half = Math.atan2(halfW + 28, r - peak) + 0.12;
-    return { cx: SHIP_X, cy: cy, r: r, thick: 26, half: Math.min(1.2, half) };
+    const bast = (typeof fortressBastionExtra === "function") ? fortressBastionExtra(t) : (t >= 2 ? 48 + t * 5 : 22);
+    const endPad = Math.min(SHIP_X - 18, halfW + bast + 32);
+    const topH = (typeof fortressTopH === "function") ? fortressTopH(t) : (110 + t * 12);
+    const need = Math.min(halfW + bast + 6, endPad - 2);
+    let peak = Math.max(280 + t * 24, topH + 140);
+    function xoffAt(p, h) {
+      const r = (endPad * endPad + p * p) / (2 * p);
+      const cyu = (p * p - endPad * endPad) / (2 * p);
+      const v = r * r - (h - cyu) * (h - cyu);
+      return v > 0 ? Math.sqrt(v) : 0;
+    }
+    while (peak < 920 && xoffAt(peak, topH) < need) peak += 16;
+    const r = (endPad * endPad + peak * peak) / (2 * peak);
+    const cy = RAIL_Y + r - peak;
+    const half = Math.atan2(endPad, r - peak);
+    return { cx: SHIP_X, cy: cy, r: r, thick: 28, half: half, peak: peak, endPad: endPad };
   }
   function pointHitsShieldArc(x, y, rad, run) {
     const A = shieldArcGeom(run);
+    if (y > RAIL_Y + 8 + rad) return false;
     const dx = x - A.cx, dy = y - A.cy;
     const d = Math.hypot(dx, dy);
     if (d < A.r - A.thick - rad || d > A.r + A.thick + rad) return false;
@@ -1587,8 +1683,10 @@
       }
       if (run.teslaCd <= 0 && run.enemies.length) {
         const hops = 2 + (lvT / 3 | 0);
-        const pts = [{ x: SHIP_X, y: turretPivotY() - 16 }];
-        let from = { x: SHIP_X, y: turretPivotY() - 16 }, used = {};
+        const top = (typeof fortressTopH === "function") ? fortressTopH(st.tierShip || 0) : 130;
+        const ox = SHIP_X, oy = RAIL_Y - top - 8;
+        const pts = [{ x: ox, y: oy }];
+        let from = { x: ox, y: oy }, used = {};
         let dmg = st.dmg * (1.4 + 0.2 * lvT);
         for (let h = 0; h < hops; h++) {
           let nxt = null, bestD = 240 + lvT * 8;
@@ -1655,16 +1753,16 @@
     }
     const lvPy = shopLv(run, "pylon");
     if (lvPy > 0) {
-      const pp = { x: SHIP_X - 175, y: RAIL_Y };
-      const tgt = closestEnemy(run, pp.x, pp.y - 40);
-      if (tgt) run.pylonAim = Math.atan2(tgt.y - pp.y, tgt.x - pp.x);
+      const pp = (typeof pylonPos === "function") ? pylonPos(run) : { x: SHIP_X - 175, y: RAIL_Y, emitX: SHIP_X - 175, emitY: RAIL_Y - 62 };
+      const tgt = closestEnemy(run, pp.emitX || pp.x, (pp.emitY || pp.y) - 10);
+      if (tgt) run.pylonAim = Math.atan2(tgt.y - (pp.emitY || pp.y), tgt.x - (pp.emitX || pp.x));
       run.pylonCd = (run.pylonCd || 0) - dt;
       const reach = 340 + lvPy * 18;
-      if (run.pylonCd <= 0 && tgt && Math.hypot(tgt.x - pp.x, tgt.y - pp.y) <= reach + tgt.r) {
+      if (run.pylonCd <= 0 && tgt && Math.hypot(tgt.x - (pp.emitX || pp.x), tgt.y - (pp.emitY || pp.y)) <= reach + tgt.r) {
         const dmg = st.dmg * (1.25 + 0.22 * lvPy);
         hitEnemy(run, tgt, dmg, false);
         if (!run.teslaArcs) run.teslaArcs = [];
-        const pts = [{ x: pp.x, y: pp.y - 36 }, { x: tgt.x, y: tgt.y }];
+        const pts = [{ x: pp.emitX || pp.x, y: pp.emitY || (pp.y - 62) }, { x: tgt.x, y: tgt.y }];
         if (lvPy >= 5) {
           const hop = closestEnemy(run, tgt.x, tgt.y, tgt);
           if (hop && Math.hypot(hop.x - tgt.x, hop.y - tgt.y) < 200) {
@@ -1773,10 +1871,12 @@
       if (run.laserCd <= 0 && run.enemies.length) { fireLaser(run, st); run.laserCd = 1.25 * Math.pow(0.9, Math.min(8, run.up.laser - 1)); }
     }
     const drones = st.drones;
+    syncDroneState(run, st, dt);
     for (let i = 0; i < drones; i++) {
+      if (!droneAlive(run, i)) continue;
       run.droneFire[i] = (run.droneFire[i] || 0) - dt;
       if (run.droneFire[i] <= 0 && run.enemies.length) {
-        const p = dronePos(i, run.time, drones);
+        const p = dronePos(i, run.time, drones, run);
         fireDrone(run, st, p.x, p.y);
         run.droneFire[i] = st.interval * 1.15;
       }
@@ -1941,6 +2041,19 @@
         }
         if (hit && !run.bullets[i]) continue;
       } else {
+        let ate = false;
+        const dn = st.drones || 0;
+        for (let d = 0; d < dn; d++) {
+          if (!droneAlive(run, d)) continue;
+          const dp = dronePos(d, run.time, dn, run);
+          if (distToSegment(dp.x, dp.y, x0, y0, b.x, b.y) < 26 + (b.r || 6)) {
+            hurtDrone(run, d, b.dmg || 8, st);
+            give("bullets", popAt(run.bullets, i));
+            ate = true;
+            break;
+          }
+        }
+        if (ate) continue;
         const hitArc = (st.maxShield > 0 && run.shield > 0) && segmentHitsShieldArc(x0, y0, b.x, b.y, b.r, run);
         const half = baseHalfW(st.tierShip || 0) + 20;
         const hitHull = (b.y > RAIL_Y - 90 && Math.abs(b.x - SHIP_X) < half) || (b.y > wallFace() - 8);
@@ -1964,6 +2077,16 @@
       if (e.stun > 0) e.stun -= dt;
       if (run.enemies.indexOf(e) < 0) continue;
       stepEnemy(run, e, dt);
+      if (!run.dead && e && e.hp > 0) {
+        const dn = st.drones || 0;
+        for (let d = 0; d < dn; d++) {
+          if (!droneAlive(run, d)) continue;
+          const dp = dronePos(d, run.time, dn, run);
+          if (Math.hypot(e.x - dp.x, e.y - dp.y) < (e.r || 16) + 22) {
+            hurtDrone(run, d, e.dmg || 12, st);
+          }
+        }
+      }
       if (run.dead) break;
     }
 
@@ -2459,7 +2582,7 @@
 
   const LO = {
     BAL, UPGRADES, PERMA, ENEMY, TABS,
-    createRun, updateRun, tryBuy, tryBuyPerma, autoBuyMid, autoBuyPerma, fireMissile, fireBlaster, shopLv, shopUpgradeCost, shipMuzzles, turretHardpoints, turretCount, simulateSwarmCheck, placeWaveMines, waveEnemyCount, fieldTop, wallFace,
+    createRun, updateRun, tryBuy, tryBuyPerma, autoBuyMid, autoBuyPerma, fireMissile, fireBlaster, shopLv, shopUpgradeCost, shipMuzzles, turretHardpoints, turretCount, simulateSwarmCheck, placeWaveMines, waveEnemyCount, fieldTop, wallFace, pylonPos, dronePos, droneMaxHp, DRONE_RESPAWN, shieldArcGeom, fortressTopH,
     playerStats, gemsFor, simulateUntilDeath, simulateRuns, beginWave, spawnEnemy,
     defaultPerma, defaultMid, defaultPrest, defaultSave, defaultShop, loadSave, writeSave, migrateSave, midCost, costOf, isUnlocked, SHOP, carryRate, pdefTurretCount, pdefNextAt,
     bossInfo, settlePickups, tryPrestige, prestigeCost, prestMul, tierOf, PRESTIGE_IDS, TIER, MAX_PREST, INFO, PERMA_INFO, effectLine,
@@ -4938,6 +5061,7 @@
     const r = A.r;
     const a0 = -Math.PI / 2 - A.half, a1 = -Math.PI / 2 + A.half;
     g.save();
+    g.beginPath(); g.rect(0, 0, W, RAIL_Y + 3); g.clip();
     g.lineCap = "round";
     g.globalAlpha = Math.max(0.15, Math.min(1, power || 1));
     if (state === "broken") {
@@ -5156,24 +5280,6 @@
         const a = Math.max(0, L.t / (L.kind === "rail" ? 0.12 : 0.18));
         drawLaserLook(g, L.x0, L.y0, L.x1, L.y1, L.tier || 0, a);
       }
-      if (run.teslaArcs) {
-        for (let i = 0; i < run.teslaArcs.length; i++) {
-          const arc = run.teslaArcs[i];
-          const a = Math.max(0, arc.t / (arc.life || 0.16));
-          g.strokeStyle = C.cyan; g.lineWidth = 4; g.globalAlpha = a;
-          g.beginPath();
-          g.moveTo(arc.pts[0].x, arc.pts[0].y);
-          for (let k = 1; k < arc.pts.length; k++) {
-            const p0 = arc.pts[k - 1], p1 = arc.pts[k];
-            const mx = (p0.x + p1.x) / 2 + (Math.random() - 0.5) * 16;
-            const my = (p0.y + p1.y) / 2 + (Math.random() - 0.5) * 16;
-            g.quadraticCurveTo(mx, my, p1.x, p1.y);
-          }
-          g.stroke();
-          g.strokeStyle = "#fff"; g.lineWidth = 1.5; g.stroke();
-          g.globalAlpha = 1;
-        }
-      }
       let blastN = 0;
       for (let bi = 0; bi < run.bullets.length; bi++) {
         const bb = run.bullets[bi];
@@ -5235,18 +5341,28 @@
       }
       g.restore();
 
-      const drones = st.drones;
-      const dkey = "drone-t" + (st.tierDrone || 0);
-      const dTier = st.tierDrone || 0;
-      for (let i = 0; i < drones; i++) {
-        const p = dronePos(i, t, drones);
-        if (dTier >= 2) {
-          g.save(); g.globalAlpha = 0.28; g.strokeStyle = TIER[dTier].color; g.lineWidth = 2;
-          g.beginPath(); g.arc(p.x, p.y, 22 + dTier * 3, t * 3 + i, t * 3 + i + 1.8); g.stroke(); g.restore();
-        }
-        blit(g, dkey, p.x, p.y, 0.8 + dTier * 0.06);
+      // Fortress first, then the dome in front of it so no corner sticks out of the shield.
+      {
+        const shipT = st.tierShip || 0;
+        const skin = (run.shop && run.shop.skin) || "default";
+        drawFortressAt(g, SHIP_X, RAIL_Y, shipT, skin, 1, run.turretAng);
       }
-      // Forward energy arc (full / cracked / broken / powering up)
+      if (shopLv && shopLv(run, "pylon") > 0) {
+        const pp = (typeof pylonPos === "function") ? pylonPos(run) : { x: SHIP_X - 175, y: RAIL_Y };
+        blit(g, "pylon", pp.x, pp.y, 1.1);
+      }
+      if (st.pdefLv > 0) {
+        const n = st.pdefTurrets || 1;
+        for (let i = 0; i < n; i++) {
+          const tp = pdefTurretPos(i, n, run);
+          blit(g, "pdef-base", tp.x, tp.y, 1.15);
+          g.save();
+          g.translate(tp.x, tp.y);
+          g.rotate((run.pdefAim && run.pdefAim[i]) || -Math.PI / 2);
+          blit(g, "pdef-barrel", 0, 0, 1.15);
+          g.restore();
+        }
+      }
       if (st.maxShield > 0) {
         const ratio = run.shield / Math.max(1, st.maxShield);
         let state = "hidden";
@@ -5264,12 +5380,77 @@
       if (run.voidBeam && run.voidBeam.pts && run.voidBeam.pts.length > 1) {
         drawVoidBeam(g, run.voidBeam, t);
       }
-      // Stationary fortress + rotating turrets. Always drawn solid and fully lit
-      // at the current rail Y. No sprite cache, no hit-flash, no frame skip.
-      {
-        const shipT = st.tierShip || 0;
-        const skin = (run.shop && run.shop.skin) || "default";
-        drawFortressAt(g, SHIP_X, RAIL_Y, shipT, skin, 1, run.turretAng);
+      // Tesla / pylon bolts in front of the bunker, from their emitters.
+      if (run.teslaArcs) {
+        g.save();
+        g.globalCompositeOperation = "lighter";
+        g.lineCap = "round"; g.lineJoin = "round";
+        for (let i = 0; i < run.teslaArcs.length; i++) {
+          const arc = run.teslaArcs[i];
+          if (!arc.pts || !arc.pts.length) continue;
+          const a = Math.max(0, arc.t / (arc.life || 0.16));
+          g.strokeStyle = C.cyan; g.lineWidth = 4; g.globalAlpha = a;
+          g.beginPath();
+          g.moveTo(arc.pts[0].x, arc.pts[0].y);
+          for (let k = 1; k < arc.pts.length; k++) {
+            const p0 = arc.pts[k - 1], p1 = arc.pts[k];
+            const mx = (p0.x + p1.x) / 2 + (Math.random() - 0.5) * 16;
+            const my = (p0.y + p1.y) / 2 + (Math.random() - 0.5) * 16;
+            g.quadraticCurveTo(mx, my, p1.x, p1.y);
+          }
+          g.stroke();
+          g.strokeStyle = "#fff"; g.lineWidth = 1.5; g.stroke();
+          g.globalAlpha = 1;
+        }
+        g.restore();
+      }
+      const drones = st.drones;
+      const dkey = "drone-t" + (st.tierDrone || 0);
+      const dTier = st.tierDrone || 0;
+      const dMax = st.droneMaxHp || 48;
+      for (let i = 0; i < drones; i++) {
+        const p = dronePos(i, t, drones, run);
+        const dead = run.droneRespawn && run.droneRespawn[i] > 0;
+        const col = TIER[dTier].color;
+        if (dead) {
+          const wait = (typeof DRONE_RESPAWN === "number") ? DRONE_RESPAWN : 5;
+          const left = run.droneRespawn[i];
+          const frac = Math.max(0, Math.min(1, 1 - left / wait));
+          g.save();
+          g.globalAlpha = 0.55 + 0.35 * Math.abs(Math.sin(t * 6));
+          g.strokeStyle = col;
+          g.lineWidth = 3;
+          g.beginPath(); g.arc(p.x, p.y, 22 + dTier * 2, 0, Math.PI * 2); g.stroke();
+          g.globalAlpha = 1;
+          g.strokeStyle = "rgba(0,0,0,0.7)";
+          g.lineWidth = 6;
+          g.beginPath();
+          g.arc(p.x, p.y, 28 + dTier * 2, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac);
+          g.stroke();
+          g.strokeStyle = col;
+          g.lineWidth = 4;
+          g.beginPath();
+          g.arc(p.x, p.y, 28 + dTier * 2, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac);
+          g.stroke();
+          g.strokeStyle = "#fff";
+          g.lineWidth = 1.6;
+          g.beginPath();
+          g.arc(p.x, p.y, 28 + dTier * 2, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac);
+          g.stroke();
+          g.globalAlpha = 0.4 + 0.15 * Math.abs(Math.sin(t * 6));
+          blit(g, dkey, p.x, p.y, 0.72 + dTier * 0.04);
+          g.restore();
+        } else {
+          g.save();
+          g.fillStyle = "rgba(0,0,0,0.5)";
+          g.beginPath(); g.arc(p.x, p.y, 18, 0, Math.PI * 2); g.fill();
+          g.restore();
+          if (dTier >= 2) {
+            g.save(); g.globalAlpha = 0.28; g.strokeStyle = col; g.lineWidth = 2;
+            g.beginPath(); g.arc(p.x, p.y, 22 + dTier * 3, t * 3 + i, t * 3 + i + 1.8); g.stroke(); g.restore();
+          }
+          blit(g, dkey, p.x, p.y, 0.8 + dTier * 0.06);
+        }
       }
       if (run.wallFx && run.wallFx.length) {
         for (let i = 0; i < run.wallFx.length; i++) {
@@ -5298,24 +5479,8 @@
       if (run.mines) {
         for (let i = 0; i < run.mines.length; i++) blit(g, "mine", run.mines[i].x, run.mines[i].y, 1);
       }
-      if (shopLv && shopLv(run, "pylon") > 0) {
-        const px = SHIP_X - 175, py = RAIL_Y;
-        blit(g, "pylon", px, py, 1.1);
-      }
       if (run.nukeFx && run.nukeFx.length) {
         for (let i = 0; i < run.nukeFx.length; i++) drawNukeFx(g, run.nukeFx[i]);
-      }
-      if (st.pdefLv > 0) {
-        const n = st.pdefTurrets || 1;
-        for (let i = 0; i < n; i++) {
-          const tp = pdefTurretPos(i, n);
-          blit(g, "pdef-base", tp.x, tp.y, 1.15);
-          g.save();
-          g.translate(tp.x, tp.y);
-          g.rotate((run.pdefAim && run.pdefAim[i]) || -Math.PI / 2);
-          blit(g, "pdef-barrel", 0, 0, 1.15);
-          g.restore();
-        }
       }
       if (run.pdefBeams && run.pdefBeams.length) {
         g.save();
@@ -6394,6 +6559,11 @@
       setPlayDock(true);
       if (root.LastOutpost) root.LastOutpost._run = run;
     }
+    if (name === "dronekill") {
+      v9Play({ wave: 10, prest: { ship: 2, drone: 1, shield: 1 }, up: { dmg: 4, rate: 2, hp: 4, ship: 6, shield: 6, drone: 3, dcount: 3, dmgDrone: 2 }, shield: "full",
+        enemies: [["shooter",200,360],["shooter",880,340]] });
+      return;
+    }
     if (name === "wave7" || name === "bugfix") {
       save.shop = defaultShop();
       save.shop.speed3 = 1;
@@ -6415,17 +6585,32 @@
       return;
     }
     if (name === "mki") {
-      v9Play({ wave: 4, prest: { ship: 0 }, up: { dmg: 2, rate: 2, hp: 2, ship: 3, shield: 2, spread: 1 }, shield: "full",
+      save.shop = defaultShop();
+      save.shop.unlocked.pylon = 1; save.shop.unlocked.tesla = 1;
+      save.shop.levels = { pylon: 3, tesla: 2 };
+      save.shop.weapons = ["tesla"]; save.shop.addons = ["pylon"];
+      v9Play({ wave: 4, prest: { ship: 0, shield: 1 }, up: { dmg: 2, rate: 2, hp: 2, ship: 3, shield: 6, spread: 1, drone: 2, dcount: 1, pdef: 2 }, shield: "full",
+        shop: save.shop,
         enemies: [["spark",300,400],["spark",760,360],["drifter",540,520]] });
       return;
     }
     if (name === "mkiii") {
-      v9Play({ wave: 12, prest: { ship: 2, dmg: 1 }, up: { dmg: 6, rate: 3, hp: 4, ship: 8, shield: 4, spread: 1, pdef: 2 }, shield: "full",
-        enemies: [["spark",200,500],["razor",880,520],["drifter",540,420],["shellback",700,360]] });
+      save.shop = defaultShop();
+      save.shop.unlocked.pylon = 1; save.shop.unlocked.tesla = 1;
+      save.shop.levels = { pylon: 5, tesla: 4 };
+      save.shop.weapons = ["tesla"]; save.shop.addons = ["pylon"];
+      v9Play({ wave: 28, prest: { ship: 2, dmg: 1, shield: 1, drone: 1 }, up: { dmg: 6, rate: 3, hp: 4, ship: 8, shield: 8, spread: 1, pdef: 4, drone: 3, dcount: 3, dmgDrone: 2 }, shield: "full",
+        shop: save.shop,
+        enemies: [["spark",200,500],["razor",880,520],["drifter",540,420],["shellback",700,360],["shooter",360,300],["shooter",720,280]] });
       return;
     }
     if (name === "mkvi") {
-      v9Play({ wave: 24, prest: { ship: 5, dmg: 2, shield: 2 }, up: { dmg: 8, rate: 4, hp: 6, ship: 10, shield: 6, spread: 2, multi: 1, pdef: 4 }, shield: "full",
+      save.shop = defaultShop();
+      save.shop.unlocked.pylon = 1; save.shop.unlocked.tesla = 1;
+      save.shop.levels = { pylon: 6, tesla: 5 };
+      save.shop.weapons = ["tesla"]; save.shop.addons = ["pylon"];
+      v9Play({ wave: 24, prest: { ship: 5, dmg: 2, shield: 2, drone: 2 }, up: { dmg: 8, rate: 4, hp: 6, ship: 10, shield: 8, spread: 2, multi: 1, pdef: 8, drone: 5, dcount: 5, dmgDrone: 3 }, shield: "full",
+        shop: save.shop,
         enemies: [["spark",200,300],["spark",500,260],["spark",800,320],["coil",300,500],["coil",760,540],["brood",540,700]] });
       return;
     }
