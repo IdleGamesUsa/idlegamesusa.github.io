@@ -11,6 +11,7 @@
   let SHIP_Y = 1812;
   const CONSOLE_H = 100; // ground gutter under the wall; the console now lives in a CSS overlay
   const STORAGE_KEY = "idleusa.lastOutpost.v2";
+  const BUILD = "v10.1-steady-base";
   const MAX_PARTICLES = 90;
   const MAX_FLOATERS = 18;
   const MAX_PICKUPS = 48;
@@ -2463,7 +2464,7 @@
     defaultPerma, defaultMid, defaultPrest, defaultSave, defaultShop, loadSave, writeSave, migrateSave, midCost, costOf, isUnlocked, SHOP, carryRate, pdefTurretCount, pdefNextAt,
     bossInfo, settlePickups, tryPrestige, prestigeCost, prestMul, tierOf, PRESTIGE_IDS, TIER, MAX_PREST, INFO, PERMA_INFO, effectLine,
     W, get H() { return H; }, get RAIL_Y() { return RAIL_Y; }, SHIP_X,
-    get SHIP_Y() { return SHIP_Y; }, C
+    get SHIP_Y() { return SHIP_Y; }, C, BUILD
   };
 
   if (typeof document === "undefined") {
@@ -2523,11 +2524,16 @@
     death() { this.tone(200, 0.5, "sawtooth", 0.14, 50); }
   };
 
+  let lastFitKey = "";
   function fit() {
     const fitEl = document.getElementById("fit");
     const stack = document.getElementById("game-stack") || frame || fitEl;
     const vw = Math.max(1, stack.clientWidth || fitEl.clientWidth);
     const vh = Math.max(1, stack.clientHeight || fitEl.clientHeight);
+    const dpr = window.devicePixelRatio || 1;
+    const key = vw + "x" + vh + "x" + dpr.toFixed(3);
+    if (key === lastFitKey && canvas.width) return;
+    lastFitKey = key;
     const scale = vw / W;
     const logicalH = Math.max(1, Math.round(vh / scale));
     H = logicalH;
@@ -2536,10 +2542,10 @@
     stage.style.width = W + "px";
     stage.style.height = H + "px";
     stage.style.transform = "scale(" + scale + ")";
-    // Backing store tracks the *displayed* size, not 1080 * devicePixelRatio.
-    const cap = 1.5;
-    dprScale = Math.min((window.devicePixelRatio || 1), cap) * scale;
-    dprScale = Math.max(0.5, Math.min(2, dprScale));
+    // Backing store tracks the *displayed* size. Cap device pixels but don't go too soft on phones.
+    const cap = 2;
+    dprScale = Math.min(dpr, cap) * scale;
+    dprScale = Math.max(0.75, Math.min(2.5, dprScale));
     canvas.width = Math.round(W * dprScale);
     canvas.height = Math.round(H * dprScale);
     canvas.style.width = W + "px";
@@ -4173,14 +4179,271 @@
   }
 
 
-  function buildSprites() {
-    const BASE_SKINS = ["default", "stealth", "racer", "chrome", "alien"];
-    TIER.forEach((ti, i) => {
-      BASE_SKINS.forEach((sk) => {
-        sprite("base-t" + i + "-" + sk, 1080, 280, g => drawOutpostBase(g, i, sk));
-        sprite("turret-t" + i + "-" + sk, 96, 140, g => drawOutpostTurret(g, i, sk));
+
+  /* Live fortress: always drawn, no cached-canvas dependency, no per-frame shadowBlur.
+     Origin (x,y) is the rail point under the bunker; turrets pivot at y-72. */
+  function drawFortressAt(g, x, y, tier, skin, scale, angs) {
+    tier = Math.max(0, Math.min(5, tier | 0));
+    skin = skin || "default";
+    scale = scale || 1;
+    const pal = skinPal(tier, skin);
+    const halfW = (typeof baseHalfW === "function" ? baseHalfW(tier) : 210 + tier * 50);
+    const wallH = 100 + tier * 10;
+    const coreR = 22 + tier * 4;
+    const xs = (typeof TURRET_LAYOUT !== "undefined" ? TURRET_LAYOUT[tier].xs : [0]);
+    const metalHi = (skin === "default") ? "#8aa0b8" : (pal.metalHi || "#6a7d96");
+    const metal = (skin === "default") ? "#3c4c62" : (pal.metal || "#2a3546");
+    const metalDark = (skin === "default") ? "#1a2432" : (pal.metalDark || "#101820");
+
+    g.save();
+    g.translate(x, y);
+    g.scale(scale, scale);
+
+    g.fillStyle = metalDark;
+    g.beginPath();
+    g.moveTo(-halfW - 22, 2);
+    g.lineTo(halfW + 22, 2);
+    g.lineTo(halfW + 12, 18);
+    g.lineTo(-halfW - 12, 18);
+    g.closePath();
+    g.fill();
+
+    const body = function () {
+      g.beginPath();
+      g.moveTo(-halfW, 0);
+      g.lineTo(-halfW + 16, -wallH);
+      g.lineTo(halfW - 16, -wallH);
+      g.lineTo(halfW, 0);
+      g.closePath();
+    };
+    const bodyGrad = g.createLinearGradient(0, -wallH, 0, 4);
+    bodyGrad.addColorStop(0, metalHi);
+    bodyGrad.addColorStop(0.4, metal);
+    bodyGrad.addColorStop(1, metalDark);
+    body();
+    g.fillStyle = bodyGrad;
+    g.fill();
+    g.strokeStyle = pal.glow;
+    g.lineWidth = 5;
+    g.lineJoin = "round";
+    body();
+    g.stroke();
+    g.strokeStyle = pal.core || "#fff";
+    g.globalAlpha = 0.55;
+    g.lineWidth = 2;
+    body();
+    g.stroke();
+    g.globalAlpha = 1;
+
+    const merlonW = 26 + tier * 2;
+    const merlonH = 16 + Math.min(10, tier * 2);
+    const topY = -wallH;
+    let mx = -halfW + 22;
+    g.fillStyle = metal;
+    g.strokeStyle = pal.glow;
+    g.lineWidth = 2.2;
+    while (mx < halfW - 22) {
+      const mw = merlonW * 0.72;
+      if (skin === "stealth") {
+        g.beginPath();
+        g.moveTo(mx, topY);
+        g.lineTo(mx + merlonW * 0.5, topY - merlonH - 4);
+        g.lineTo(mx + merlonW, topY);
+        g.closePath();
+        g.fill();
+        g.stroke();
+      } else {
+        g.fillRect(mx, topY - merlonH, mw, merlonH + 2);
+        g.strokeRect(mx, topY - merlonH, mw, merlonH + 2);
+      }
+      mx += merlonW + 8;
+    }
+
+    g.strokeStyle = pal.glow;
+    g.globalAlpha = 0.45;
+    g.lineWidth = 1.4;
+    const seams = 4 + tier;
+    for (let i = 1; i < seams; i++) {
+      const sx = -halfW + 20 + i * ((2 * halfW - 40) / seams);
+      g.beginPath(); g.moveTo(sx, -8); g.lineTo(sx * 0.96, -wallH + 10); g.stroke();
+    }
+    g.beginPath(); g.moveTo(-halfW + 18, -wallH * 0.48); g.lineTo(halfW - 18, -wallH * 0.48); g.stroke();
+    g.globalAlpha = 1;
+
+    if (tier >= 2) {
+      const bw = 40 + tier * 5, bh = wallH * 0.72;
+      [-1, 1].forEach(function (side) {
+        const bx = side * (halfW - 6);
+        g.beginPath();
+        g.moveTo(bx, 0);
+        g.lineTo(bx + side * bw, -8);
+        g.lineTo(bx + side * (bw - 6), -bh);
+        g.lineTo(bx - side * 10, -bh + 8);
+        g.closePath();
+        g.fillStyle = metalDark;
+        g.fill();
+        g.strokeStyle = pal.accent || pal.glow;
+        g.lineWidth = 2.4;
+        g.stroke();
       });
-    });
+    }
+    if (tier >= 4) {
+      [-1, 1].forEach(function (side) {
+        const tx = side * (halfW * 0.55);
+        g.fillStyle = metal;
+        g.fillRect(tx - 16, -wallH - 26, 32, 30);
+        g.strokeStyle = pal.glow; g.lineWidth = 2;
+        g.strokeRect(tx - 16, -wallH - 26, 32, 30);
+      });
+    }
+    if (tier >= 5) {
+      [-1, 1].forEach(function (side) {
+        const sx = side * (halfW * 0.78);
+        g.beginPath();
+        g.moveTo(sx - 10, -wallH);
+        g.lineTo(sx, -wallH - 48);
+        g.lineTo(sx + 10, -wallH);
+        g.closePath();
+        g.fillStyle = pal.accent;
+        g.fill();
+        g.strokeStyle = pal.glow; g.lineWidth = 2;
+        g.stroke();
+      });
+    }
+
+    const coreY = -wallH * 0.42;
+    const grd = g.createRadialGradient(0, coreY, 2, 0, coreY, coreR + 22);
+    grd.addColorStop(0, "#fff");
+    grd.addColorStop(0.22, pal.core);
+    grd.addColorStop(0.55, pal.glow);
+    grd.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = grd;
+    g.beginPath(); g.arc(0, coreY, coreR + 22, 0, Math.PI * 2); g.fill();
+    g.fillStyle = pal.ink || "#03060b";
+    g.beginPath(); g.arc(0, coreY, coreR * 0.78, 0, Math.PI * 2); g.fill();
+    g.fillStyle = pal.core;
+    if (skin === "alien") {
+      g.beginPath(); g.ellipse(0, coreY, coreR * 0.46, coreR * 0.66, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = pal.accent;
+      g.beginPath(); g.ellipse(0, coreY - 2, 5, 7, 0, 0, Math.PI * 2); g.fill();
+    } else {
+      g.beginPath(); g.arc(0, coreY, coreR * 0.5, 0, Math.PI * 2); g.fill();
+    }
+    g.fillStyle = "#fff";
+    g.globalAlpha = 0.85;
+    g.beginPath(); g.arc(-3, coreY - 4, coreR * 0.18, 0, Math.PI * 2); g.fill();
+    g.globalAlpha = 1;
+    g.strokeStyle = pal.glow; g.lineWidth = 2.4;
+    g.beginPath(); g.arc(0, coreY, coreR * 0.78, 0, Math.PI * 2); g.stroke();
+
+    if (skin === "racer") {
+      g.fillStyle = pal.accent;
+      g.fillRect(-7, -wallH + 4, 14, wallH - 10);
+      g.fillStyle = "#111";
+      g.fillRect(-2.5, -wallH + 4, 5, wallH - 10);
+      [-1, 1].forEach(function (side) {
+        g.fillStyle = pal.accent;
+        g.beginPath();
+        g.moveTo(side * (halfW - 24), -wallH + 6);
+        g.lineTo(side * (halfW + 20), -wallH - 12);
+        g.lineTo(side * (halfW + 10), -wallH + 20);
+        g.closePath(); g.fill();
+      });
+    } else if (skin === "chrome") {
+      const sheen = g.createLinearGradient(-halfW, -wallH, halfW, 0);
+      sheen.addColorStop(0, "rgba(255,255,255,0)");
+      sheen.addColorStop(0.45, "rgba(255,255,255,0.28)");
+      sheen.addColorStop(1, "rgba(160,210,255,0.1)");
+      g.fillStyle = sheen;
+      body(); g.fill();
+    } else if (skin === "alien") {
+      g.strokeStyle = pal.glow; g.globalAlpha = 0.75; g.lineWidth = 2;
+      g.beginPath(); g.moveTo(-halfW * 0.4, -8); g.bezierCurveTo(-halfW * 0.6, -wallH * 0.4, -20, -wallH * 0.7, 0, coreY); g.stroke();
+      g.beginPath(); g.moveTo(halfW * 0.4, -8); g.bezierCurveTo(halfW * 0.6, -wallH * 0.4, 20, -wallH * 0.7, 0, coreY); g.stroke();
+      g.globalAlpha = 1;
+    } else if (skin === "stealth") {
+      g.globalAlpha = 0.22;
+      g.fillStyle = pal.ink || "#020305";
+      body(); g.fill();
+      g.globalAlpha = 1;
+    }
+
+    g.strokeStyle = pal.glow;
+    g.lineWidth = 4;
+    g.beginPath(); g.moveTo(-halfW - 10, 0); g.lineTo(halfW + 10, 0); g.stroke();
+    g.strokeStyle = "#fff";
+    g.globalAlpha = 0.5;
+    g.lineWidth = 1.4;
+    g.beginPath(); g.moveTo(-halfW - 10, 0); g.lineTo(halfW + 10, 0); g.stroke();
+    g.globalAlpha = 1;
+
+    const barrelL = 52 + tier * 5;
+    const barrelW = 12 + Math.min(6, tier);
+    const angsArr = angs || [];
+    for (let i = 0; i < xs.length; i++) {
+      const sx = xs[i];
+      const ang = (angsArr[i] != null) ? angsArr[i] : -Math.PI / 2;
+      g.save();
+      g.translate(sx, -72);
+      g.rotate(ang + Math.PI / 2);
+
+      g.fillStyle = metalDark;
+      g.beginPath(); g.arc(0, 0, 18, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = pal.glow; g.lineWidth = 3;
+      g.beginPath(); g.arc(0, 0, 18, 0, Math.PI * 2); g.stroke();
+      g.strokeStyle = pal.accent || pal.core; g.lineWidth = 1.8;
+      g.beginPath(); g.arc(0, 0, 12, 0, Math.PI * 2); g.stroke();
+
+      g.beginPath();
+      if (skin === "alien") {
+        g.moveTo(-barrelW * 0.5, 6);
+        g.quadraticCurveTo(-barrelW - 3, -barrelL * 0.5, -barrelW * 0.5, -barrelL);
+        g.lineTo(barrelW * 0.5, -barrelL);
+        g.quadraticCurveTo(barrelW + 3, -barrelL * 0.5, barrelW * 0.5, 6);
+        g.closePath();
+      } else {
+        g.moveTo(-barrelW, 6);
+        g.lineTo(-barrelW * 0.65, -barrelL);
+        g.lineTo(barrelW * 0.65, -barrelL);
+        g.lineTo(barrelW, 6);
+        g.closePath();
+      }
+      const bg = g.createLinearGradient(-barrelW, 0, barrelW, 0);
+      bg.addColorStop(0, metalDark);
+      bg.addColorStop(0.45, metalHi);
+      bg.addColorStop(1, metalDark);
+      g.fillStyle = bg;
+      g.fill();
+      g.strokeStyle = pal.glow; g.lineWidth = 2.4;
+      g.stroke();
+
+      const mz = g.createRadialGradient(0, -barrelL, 0, 0, -barrelL, barrelW + 6);
+      mz.addColorStop(0, "#fff");
+      mz.addColorStop(0.35, pal.core);
+      mz.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = mz;
+      g.beginPath(); g.arc(0, -barrelL, barrelW + 6, 0, Math.PI * 2); g.fill();
+      g.fillStyle = pal.core;
+      g.beginPath(); g.ellipse(0, -barrelL, barrelW * 0.75, 4, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#fff";
+      g.beginPath(); g.ellipse(0, -barrelL - 1, 3, 2, 0, 0, Math.PI * 2); g.fill();
+
+      g.fillStyle = pal.core;
+      g.beginPath(); g.arc(0, 0, 6.5 + tier * 0.5, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = "#fff"; g.globalAlpha = 0.7; g.lineWidth = 1.4;
+      g.beginPath(); g.arc(0, 0, 6.5 + tier * 0.5, 0, Math.PI * 2); g.stroke();
+      g.globalAlpha = 1;
+      g.restore();
+    }
+
+    g.restore();
+  }
+
+  function buildSprites() {
+    // Base and turrets are drawn live (see drawFortress). Caching 30 full-width
+    // 1080x280 canvases with shadowBlur was blowing mobile GPU memory and leaving
+    // the outpost invisible on some Android devices.
+
     sprite("pdef-base", 90, 70, g => {
       const pad = () => { g.beginPath(); g.moveTo(-28, 18); g.lineTo(-22, 8); g.lineTo(22, 8); g.lineTo(28, 18); g.lineTo(20, 24); g.lineTo(-20, 24); g.closePath(); };
       const house = () => { g.beginPath(); g.moveTo(-16, 10); g.lineTo(-14, -6); g.lineTo(14, -6); g.lineTo(16, 10); g.closePath(); };
@@ -4680,9 +4943,9 @@
     if (state === "broken") {
       const shards = [[-0.95, -0.7], [-0.55, -0.32], [-0.12, 0.14], [0.28, 0.5], [0.62, 0.95]];
       shards.forEach((sg, i) => {
-        g.strokeStyle = col; g.shadowColor = col; g.shadowBlur = 16;
+        g.strokeStyle = col; g.shadowColor = "transparent"; g.shadowBlur = 0;
         g.globalAlpha = (0.45 + 0.5 * (power || 0.7)) * (0.75 + 0.25 * (i % 2));
-        g.lineWidth = 5.5;
+        g.lineWidth = 6.5;
         g.beginPath();
         g.arc(cx, cy, r + (i % 2) * 5, -Math.PI / 2 + sg[0], -Math.PI / 2 + sg[1]);
         g.stroke();
@@ -4702,9 +4965,9 @@
       g.lineWidth = w; g.shadowColor = style; g.shadowBlur = blur;
       segs.forEach(sg => { g.beginPath(); g.arc(cx, cy, r, sg[0], sg[1]); g.stroke(); });
     };
-    stroke(14, 0.22, 18, col);
-    stroke(6, 0.9, 10, col);
-    stroke(2, 0.95, 6, core || "#fff");
+    stroke(16, 0.3, 0, col);
+    stroke(7, 0.95, 0, col);
+    stroke(2.4, 1, 0, core || "#fff");
     g.restore();
   }
   function drawVoidBeam(g, beam, t) {
@@ -4767,7 +5030,7 @@
       g.save();
       drawShieldArcAt(g, x, y, 1, ti.color, ti.core, "full");
       g.restore();
-      blit(g, "base-t" + i + "-default", x, RAIL_Y, 0.42);
+      drawFortressAt(g, x, RAIL_Y, i, "default", 0.42, null);
       blit(g, "drone-t" + i, x - 160 - i * 8, y - 24, 0.85 + i * 0.05);
       blit(g, "drone-t" + i, x + 160 + i * 8, y - 24, 0.85 + i * 0.05);
       const boltScale = i >= 5 ? 1.35 : (i >= 3 ? 1.2 : 1.05);
@@ -4853,8 +5116,7 @@
     if (mode === "title") {
       const t = performance.now() / 1000;
       const titleY = Math.min(H - 280, 1280);
-      blit(g, "base-t0-default", SHIP_X, titleY, 0.7);
-      blit(g, "turret-t0-default", SHIP_X, titleY - 72 * 0.7, 1);
+      drawFortressAt(g, SHIP_X, titleY, 0, "default", 0.7, null);
       if (titleShots.length === 0 || titleShots[titleShots.length - 1].y < titleY - 140) titleShots.push({ x: 540, y: titleY - 110 });
       g.save(); g.globalCompositeOperation = "lighter";
       for (let i = 0; i < titleShots.length; i++) {
@@ -4865,7 +5127,7 @@
       if (titleShots.length && titleShots[0].y <= 580) titleShots.shift();
     } else if (mode === "over") {
       const overTier = (save && save.prest && save.prest.ship) || 0;
-      blit(g, "base-t" + overTier + "-default", 820, Math.min(H - 80, 1480), 0.45);
+      drawFortressAt(g, 820, Math.min(H - 80, 1480), overTier, "default", 0.45, null);
     } else if (run) {
       const t = run.time;
       const st = playerStats(run);
@@ -4912,12 +5174,15 @@
           g.globalAlpha = 1;
         }
       }
-      const blastCap = 36;
       let blastN = 0;
-      for (let bi = 0; bi < run.bullets.length; bi++) if (run.bullets[bi].kind === "blast" || (run.bullets[bi].friendly && run.bullets[bi].kind !== "missile" && run.bullets[bi].kind !== "flak" && run.bullets[bi].kind !== "nuke")) blastN++;
-      const blastStep = blastN > blastCap ? Math.ceil(blastN / blastCap) : 1;
-      const denseA = blastN > blastCap ? Math.max(0.35, blastCap / blastN) : 1;
-      let blastDrawn = 0;
+      for (let bi = 0; bi < run.bullets.length; bi++) {
+        const bb = run.bullets[bi];
+        if (bb.kind === "blast" || (bb.friendly && bb.kind !== "missile" && bb.kind !== "flak" && bb.kind !== "nuke")) blastN++;
+      }
+      // Draw every blast every frame at steady brightness. Never skip or flicker.
+      // Subtle constant dim only for genuinely dense late-wave volleys.
+      const lateDense = (run.wave || 0) >= 28 && blastN > 64;
+      const blastA = lateDense ? 0.88 : 1;
       for (let i = 0; i < run.bullets.length; i++) {
         const b = run.bullets[i];
         const a = Math.atan2(b.vy, b.vx);
@@ -4927,27 +5192,24 @@
           g.restore();
         } else if (b.kind === "flak") {
           g.save(); g.translate(b.x, b.y); g.rotate(a);
-          g.fillStyle = C.orange; g.shadowColor = C.orange; g.shadowBlur = 12;
+          g.fillStyle = C.orange;
           g.beginPath(); g.arc(0, 0, 7, 0, Math.PI * 2); g.fill();
           g.restore();
         } else if (b.kind === "nuke") {
           g.save(); g.translate(b.x, b.y); g.rotate(a);
-          g.fillStyle = C.magenta; g.shadowColor = C.magenta; g.shadowBlur = 16;
+          g.fillStyle = C.magenta;
           g.beginPath(); g.arc(0, 0, 8, 0, Math.PI * 2); g.fill();
           g.restore();
         } else if (b.friendly) {
-          blastDrawn++;
-          if (blastStep > 1 && (blastDrawn % blastStep) && !b.crit) continue;
           g.save(); g.translate(b.x, b.y); g.rotate(a);
-          const slim = (b.thin || blastN > 28) ? 0.72 : 1;
-          g.globalAlpha = denseA * (b.thin ? 0.55 : 0.9);
-          blit(g, "streak-t" + (b.tier || 0), 0, 0, slim * (b.crit ? 1.15 : 0.92) * (1 + (b.tier || 0) * 0.04));
+          g.globalAlpha = blastA;
+          blit(g, "streak-t" + (b.tier || 0), 0, 0, (b.crit ? 1.2 : 1.05) * (1 + (b.tier || 0) * 0.05));
           const trail = (run.shop && run.shop.trail) || "default";
-          if (trail === "spark" && !b.thin) {
-            g.fillStyle = C.yellow; g.globalAlpha = 0.55 * denseA;
+          if (trail === "spark") {
+            g.fillStyle = C.yellow; g.globalAlpha = 0.7 * blastA;
             g.beginPath(); g.arc(-14, 0, 3, 0, Math.PI * 2); g.fill();
-          } else if (trail === "prism" && !b.thin) {
-            g.fillStyle = C.magenta; g.globalAlpha = 0.65 * denseA;
+          } else if (trail === "prism") {
+            g.fillStyle = C.magenta; g.globalAlpha = 0.7 * blastA;
             g.beginPath(); g.moveTo(8, 0); g.lineTo(-10, -5); g.lineTo(-10, 5); g.closePath(); g.fill();
           }
           g.restore();
@@ -5002,26 +5264,12 @@
       if (run.voidBeam && run.voidBeam.pts && run.voidBeam.pts.length > 1) {
         drawVoidBeam(g, run.voidBeam, t);
       }
-      // Stationary base + independently rotating turrets. Never hide the outpost on hit.
+      // Stationary fortress + rotating turrets. Always drawn solid and fully lit
+      // at the current rail Y. No sprite cache, no hit-flash, no frame skip.
       {
         const shipT = st.tierShip || 0;
         const skin = (run.shop && run.shop.skin) || "default";
-        const sk = (skin && skin !== "default") ? skin : "default";
-        const hitFlash = run.invuln > 0 && Math.sin(t * 30) > 0;
-        g.save();
-        if (hitFlash) g.globalAlpha = 0.85;
-        blit(g, "base-t" + shipT + "-" + sk, SHIP_X, RAIL_Y, 1);
-        g.restore();
-        const hps = turretHardpoints(run);
-        for (let i = 0; i < hps.length; i++) {
-          const hp = hps[i];
-          const ang = (run.turretAng && run.turretAng[i] != null) ? run.turretAng[i] : -Math.PI / 2;
-          g.save();
-          g.translate(hp.x, hp.y);
-          g.rotate(ang + Math.PI / 2);
-          blit(g, "turret-t" + shipT + "-" + sk, 0, 0, 1);
-          g.restore();
-        }
+        drawFortressAt(g, SHIP_X, RAIL_Y, shipT, skin, 1, run.turretAng);
       }
       if (run.wallFx && run.wallFx.length) {
         for (let i = 0; i < run.wallFx.length; i++) {
@@ -5038,9 +5286,9 @@
           g.globalAlpha = 1 - u * 0.85;
           g.fillStyle = grd;
           g.beginPath(); g.arc(fx.x, fx.y - 8, rr, 0, Math.PI * 2); g.fill();
-          g.strokeStyle = col; g.shadowColor = col; g.shadowBlur = 18; g.lineWidth = 5;
+          g.strokeStyle = col; g.shadowBlur = 0; g.lineWidth = 5;
           g.beginPath(); g.arc(fx.x, fx.y - 4, rr * 0.85, 0, Math.PI * 2); g.stroke();
-          g.strokeStyle = "#fff"; g.lineWidth = 2; g.shadowBlur = 8;
+          g.strokeStyle = "#fff"; g.lineWidth = 2; g.shadowBlur = 0;
           g.beginPath(); g.arc(fx.x, fx.y - 4, rr * 1.05, 0, Math.PI * 2); g.stroke();
           g.fillStyle = "#fff"; g.globalAlpha = (1 - u) * 0.85;
           g.beginPath(); g.arc(fx.x, fx.y - 10, 8 * (1 - u), 0, Math.PI * 2); g.fill();
@@ -6146,6 +6394,26 @@
       setPlayDock(true);
       if (root.LastOutpost) root.LastOutpost._run = run;
     }
+    if (name === "wave7" || name === "bugfix") {
+      save.shop = defaultShop();
+      save.shop.speed3 = 1;
+      save.bestWave = 40;
+      save.gems = 120;
+      save.perma = Object.assign(defaultPerma(), { hp: 10, shield: 8, dmg: 4, rate: 3 });
+      v9Play({
+        wave: 7, coins: 559,
+        prest: { ship: 0, missile: 1, drone: 1 },
+        up: { dmg: 10, rate: 8, hp: 16, ship: 4, shield: 12, spread: 4, drone: 3, dcount: 3, missile: 3, mcount: 2, crit: 2 },
+        shield: "full",
+        shop: save.shop,
+        enemies: [
+          ["spark", 200, 380], ["spark", 400, 340], ["spark", 600, 360], ["spark", 800, 400],
+          ["drifter", 300, 520], ["drifter", 540, 500], ["razor", 780, 560],
+          ["shellback", 480, 680], ["shooter", 250, 620], ["shooter", 820, 640]
+        ]
+      });
+      return;
+    }
     if (name === "mki") {
       v9Play({ wave: 4, prest: { ship: 0 }, up: { dmg: 2, rate: 2, hp: 2, ship: 3, shield: 2, spread: 1 }, shield: "full",
         enemies: [["spark",300,400],["spark",760,360],["drifter",540,520]] });
@@ -6305,11 +6573,21 @@
     if (demo) applyDemo(demo);
     else showTitle();
     window.addEventListener("resize", fit);
+    window.addEventListener("orientationchange", fit);
+    if (window.visualViewport) {
+      visualViewport.addEventListener("resize", fit);
+    }
     requestAnimationFrame(loop);
     document.body.dataset.ready = "1";
   }
 
   LO._getRun = function () { return run; };
+  LO.setSpeed = function (n) {
+    speed = Math.max(1, Math.min(3, n | 0));
+    el("btn-speed").textContent = speed + "x";
+    el("btn-speed").classList.toggle("on", speed > 1);
+  };
+  LO.setPaused = function (p) { setPaused(!!p); };
   root.LastOutpost = LO;
   if (typeof module !== "undefined") module.exports = LO;
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
