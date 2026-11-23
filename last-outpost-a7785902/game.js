@@ -7,11 +7,11 @@
   const W = 1080;
   let H = 2000;
   let RAIL_Y = 1900;
-  const SHIP_X = 540;
-  let SHIP_Y = 1812;
+  const SHIP_X = 540; // horizontal center of the fortress (legacy name)
+  let SHIP_Y = 1812; // alias of turretPivotY() = RAIL_Y-72; not an orbit/weapon center
   const CONSOLE_H = 100; // ground gutter under the wall; the console now lives in a CSS overlay
   const STORAGE_KEY = "idleusa.lastOutpost.v2";
-  const BUILD = "v10.2-shield-drones";
+  const BUILD = "v10.3-wall-orbit-pdef";
   const MAX_PARTICLES = 90;
   const MAX_FLOATERS = 18;
   const MAX_PICKUPS = 48;
@@ -459,7 +459,7 @@
   }
   function bossTargetY(kind) {
     const standoff = kind === "twin" ? 920 : (kind === "lattice" ? 960 : 940);
-    return Math.max(220, SHIP_Y - standoff);
+    return Math.max(220, turretPivotY() - standoff);
   }
   function dmgScale(wave) {
     const n = Math.max(0, wave - 1);
@@ -499,6 +499,31 @@
     const x = Math.max(70, SHIP_X - halfW - 58);
     return { x: x, y: RAIL_Y - 6, emitX: x, emitY: RAIL_Y - 62 };
   }
+  function orbitGeom(run, st) {
+    const lv = (st && st.orbits) || 0;
+    const n = 2 + Math.min(4, lv >> 1);
+    const tier = (typeof turretTierOf === "function") ? turretTierOf(run || {}) : 0;
+    const top = (typeof fortressTopH === "function") ? fortressTopH(tier) : 130;
+    const radX = 118 + lv * 8;
+    const radY = 46 + lv * 3;
+    // Entire ellipse sits in front of (above) the bunker, around the core's upper face.
+    const cx = SHIP_X;
+    const cy = RAIL_Y - top - radY - 36;
+    return { n: n, radX: radX, radY: radY, cx: cx, cy: cy };
+  }
+  function orbitPos(i, t, run, st) {
+    const G = orbitGeom(run, st);
+    const a = (t || 0) * 2.4 + i * (Math.PI * 2 / Math.max(1, G.n));
+    return { x: G.cx + Math.cos(a) * G.radX, y: G.cy + Math.sin(a) * G.radY };
+  }
+  function isForwardEnemy(e, hpY) {
+    if (!e || e.hp <= 0) return false;
+    const face = (typeof wallFace === "function") ? wallFace() : (RAIL_Y - 6);
+    if (e.y + (e.r || 16) >= face) return false;
+    const pivot = hpY != null ? hpY : ((typeof turretPivotY === "function") ? turretPivotY() : (RAIL_Y - 72));
+    if (e.y >= pivot - 4) return false;
+    return true;
+  }
   function droneMaxHp(st) {
     const u = (st && st._up) ? st._up : st;
     const drone = (st && st._droneLv != null) ? st._droneLv : ((u && u.drone) || 0);
@@ -534,6 +559,21 @@
     while (d > Math.PI) d -= Math.PI * 2;
     while (d < -Math.PI) d += Math.PI * 2;
     return Math.abs(d) <= TURRET_MAX_DEV + 0.02;
+  }
+  // Interpolate the signed offset from straight up so a far-left to far-right
+  // retarget stays inside the ±70° arc (through up), never swings down behind the bunker.
+  function lerpTurretAng(have, want, k) {
+    const mid = -Math.PI / 2;
+    function dev(a) {
+      let d = a - mid;
+      while (d > Math.PI) d -= Math.PI * 2;
+      while (d < -Math.PI) d += Math.PI * 2;
+      if (d > TURRET_MAX_DEV) d = TURRET_MAX_DEV;
+      if (d < -TURRET_MAX_DEV) d = -TURRET_MAX_DEV;
+      return d;
+    }
+    const t = Math.max(0, Math.min(1, k));
+    return mid + dev(have) + (dev(want) - dev(have)) * t;
   }
   function shipGunCount(tier) { return turretCount(tier); }
   function shipGunShare(tier) { return turretShare(tier); }
@@ -592,8 +632,9 @@
     st.magnet = 80;
     const pdefLv = (u.pdef || 0) + (p.pdef || 0) * 0.8;
     st.pdefLv = pdefLv;
-    st.pdefRange = pdefLv > 0 ? 260 + pdefLv * 20 : 0;
-    st.pdefInterval = pdefLv > 0 ? Math.max(0.40, 1.15 * Math.pow(0.95, Math.max(0, pdefLv - 1))) : 1;
+    // Reach is finalized in updatePointDef from the live dome height; this is a floor.
+    st.pdefRange = pdefLv > 0 ? 420 + pdefLv * 28 : 0;
+    st.pdefInterval = pdefLv > 0 ? Math.max(0.16, 0.48 * Math.pow(0.90, Math.max(0, pdefLv - 1))) : 1;
     st.pdefTurrets = pdefTurretCount(pdefLv);
     st.pdefDeflect = pdefLv >= 6 ? Math.min(0.35, 0.06 + (pdefLv - 6) * 0.035) : 0;
     st.shop = (run.shop || (run._shop) || null);
@@ -677,11 +718,11 @@
     nuke: "Shop weapon. A nuke-style missile that fires about every 5 seconds. A lone target dies; groups take a large neon mushroom blast and shockwave. Unlock and upgrade it with gems in the Gem Shop, then equip it.",
     pylon: "Shop add-on. A tesla tower standing just beyond the left edge of the wall, in front of the bunker, that zaps the nearest threat from its emitter. Unlock and upgrade it with gems in the Gem Shop, then equip it.",
     mines: "Shop add-on. If equipped, each wave plants several mines at random spots on the field. They stay until an enemy hits them, then blast. Upgrades add mine count and damage. Unlock and upgrade with gems in the Gem Shop.",
-    pdef: "Point Defense. Sentry guns mounted on the outpost wall intercept incoming bullets and missiles. The first sentry comes online at level 1. Additional sentries unlock at levels 4, 8 and 12, up to four. They track and fire at projectiles in their reach with a modest intercept rate, thinning volleys without erasing them. Laser sweeps cannot be intercepted. From level 6 some shots are deflected back at enemies.",
+    pdef: "Point Defense. Lime sentry guns on the wall corners intercept incoming bullets and missiles well above the shield dome, prioritizing the shots closest to impact. The first sentry comes online at level 1. Additional sentries unlock at levels 4, 8 and 12, up to four, and each one adds firepower. Laser sweeps cannot be intercepted. From level 6 some shots are deflected back at enemies.",
     coinVal: "Increases coins dropped by every kill. Stacks with the permanent Coin Value node.",
     interest: "At the start of each new wave, grants bonus coins based on this level (plus any permanent Interest).",
     skip: "When a non-boss wave is built, automatically cashes out and removes a few of the weakest upcoming spawns.",
-    orbit: "Unlocks at wave 25. Spinning orbs circle the core and damage anything they touch. Milestone weapon.",
+    orbit: "Unlocks at wave 25. Spinning orbs circle in front of the fortress, above the bunker around the core, and damage anything they touch. Milestone weapon.",
     emp: "Unlocks at wave 50. A periodic pulse damages and briefly stuns enemies near the rail. Milestone weapon."
   };
   const PERMA_INFO = {
@@ -752,7 +793,7 @@
       if (!lv) return "No sentries";
       const n = pdefTurretCount(lv);
       const next = pdefNextAt(lv);
-      const range = Math.round(260 + lv * 20);
+      const range = Math.round(420 + lv * 28);
       const defl = lv >= 6 ? Math.round(Math.min(0.35, 0.06 + (lv - 6) * 0.035) * 100) : 0;
       return n + " sentr" + (n === 1 ? "y" : "ies") + "  ·  range " + range + (defl ? ("  ·  " + defl + "% deflect") : "") + (next ? ("  ·  next turret at Lv " + next) : "  ·  all 4 online");
     }
@@ -934,13 +975,15 @@
   }
 
   function shootEnemyAtPlayer(run, e) {
-    const ang = Math.atan2(SHIP_Y - e.y, SHIP_X - e.x);
+    // Aim at the fortress core (turret pivot), not a leftover ship seat.
+    const ang = Math.atan2(turretPivotY() - e.y, SHIP_X - e.x);
     const spd = (280 + 20 * Math.min(run.wave, 20)) * Math.min(1.4, approachMul());
     const b = take("bullets");
     b.x = e.x; b.y = e.y + e.r; b.vx = Math.cos(ang) * spd; b.vy = Math.sin(ang) * spd;
     b.r = 6; b.dmg = e.shotDmg || 7; b.friendly = false; b.color = e.color || C.magenta;
     b.life = 3; b.kind = "enemy"; b.crit = false; b.pierce = 0; b.bounces = 0; b.target = null; b.turn = 0;
     run.bullets.push(b);
+    if (run._pdefStats) run._pdefStats.spawned = (run._pdefStats.spawned || 0) + 1;
   }
 
   function threatScore(e, fromX, fromY) {
@@ -953,6 +996,7 @@
     for (let i = 0; i < run.enemies.length; i++) {
       const e = run.enemies[i];
       if (e === ignore || e.y < -40 || e.hp <= 0) continue;
+      if (typeof isForwardEnemy === "function" && !isForwardEnemy(e)) continue;
       const s = threatScore(e, fromX, fromY);
       if (s < bestS) { bestS = s; best = e; }
     }
@@ -964,6 +1008,7 @@
     for (let i = 0; i < run.enemies.length; i++) {
       const e = run.enemies[i];
       if (e.y < -40 || e.hp <= 0) continue;
+      if (typeof isForwardEnemy === "function" && !isForwardEnemy(e)) continue;
       list.push(e);
     }
     list.sort((a, b) => threatScore(a, fromX, fromY) - threatScore(b, fromX, fromY));
@@ -1019,12 +1064,19 @@
     const spd = (st && st.bulletSpd) || BAL.bulletSpd;
     function pick(hp, allowUsed) {
       let best = null, bestS = 1e15;
+      const face = (typeof wallFace === "function") ? wallFace() : (RAIL_Y - 6);
       for (let i = 0; i < run.enemies.length; i++) {
         const e = run.enemies[i];
         if (!e || e.hp <= 0 || e.y < -40) continue;
+        if (typeof isForwardEnemy === "function" && !isForwardEnemy(e, hp.y)) continue;
         if (!allowUsed && used.indexOf(e) >= 0) continue;
         const lp = leadPoint(hp.x, hp.y, e, spd);
+        // Never lead at a point behind or below the wall; fall back to the live position.
+        if (lp.y + (e.r || 16) >= face || lp.y >= hp.y - 4) {
+          lp.x = e.x; lp.y = e.y; lp.ang = Math.atan2(e.y - hp.y, e.x - hp.x);
+        }
         if (!angInTurretArc(lp.ang)) continue;
+        if (e.y >= hp.y - 4) continue;
         const s = threatScore(e, hp.x, hp.y);
         if (s < bestS) { bestS = s; best = e; }
       }
@@ -1130,7 +1182,7 @@
   }
 
   function fireDrone(run, st, x, y) {
-    const e = closestEnemy(run, SHIP_X, SHIP_Y);
+    const e = closestEnemy(run, x, y);
     const spd = st.bulletSpd * 0.88;
     const ang = e ? leadPoint(x, y, e, spd).ang : -Math.PI / 2;
     const b = take("bullets");
@@ -1235,7 +1287,7 @@
         run.invuln = 1.6; run.flash = 0.5;
       } else {
         run.hp = 0; run.dead = true; run.dyingT = 1.15;
-        burst(run, SHIP_X, SHIP_Y, C.cyan, 16);
+        burst(run, SHIP_X, turretPivotY(), C.cyan, 16);
       }
     }
   }
@@ -1271,8 +1323,9 @@
     const lv = st.knockLv || 0;
     if (lv <= 0 || !e || e.type === "boss") return;
     const t = Math.min(1, lv / 12);
-    const reach = 140 + t * Math.max(80, SHIP_Y - fieldTop() - 140);
-    const dist = Math.hypot(e.x - SHIP_X, e.y - SHIP_Y);
+    const pivotY = turretPivotY();
+    const reach = 140 + t * Math.max(80, pivotY - fieldTop() - 140);
+    const dist = Math.hypot(e.x - SHIP_X, e.y - pivotY);
     if (dist > reach) return;
     const resist = knockResist(run.wave);
     // At high waves some hits fail to shove, so a dense swarm can leak to the wall.
@@ -1280,8 +1333,8 @@
     const top = fieldTop() + (e.r || 16);
     // Max level can drive enemies to the top edge. Wave resistance raises the ceiling so
     // late swarms hold around mid-field instead of being pinned off the top.
-    const unresisted = SHIP_Y - 90 - t * (SHIP_Y - 90 - top);
-    const hold = resist * (SHIP_Y - top) * 0.95;
+    const unresisted = pivotY - 90 - t * (pivotY - 90 - top);
+    const hold = resist * (pivotY - top) * 0.95;
     const ceil = Math.max(top, unresisted + hold);
     const step = 18 + t * 70;
     e.y = Math.max(ceil, e.y - step);
@@ -1343,6 +1396,73 @@
     return { x: x, y: y };
   }
 
+  function pdefReach(run, st) {
+    const A = (typeof shieldArcGeom === "function") ? shieldArcGeom(run) : null;
+    const peak = (A && A.peak) ? A.peak : 320;
+    const floor = st && st.pdefRange ? st.pdefRange : 0;
+    // From the wall emitters, cover well above the dome peak so shots are popped before they kiss the arc.
+    return Math.max(floor, peak + 240 + ((st && st.pdefLv) || 0) * 20);
+  }
+  function projectileTimeToDome(b, run) {
+    if (!b || b.friendly) return -1;
+    if (b.y > RAIL_Y - 8) return -1;
+    const A = shieldArcGeom(run);
+    const vx = b.vx || 0, vy = b.vy || 0;
+    const qa = vx * vx + vy * vy;
+    if (qa < 1) {
+      if (vy <= 0) return 9;
+      return Math.max(0.01, (RAIL_Y - 40 - b.y) / Math.max(vy, 1));
+    }
+    const ox = b.x - A.cx, oy = b.y - A.cy;
+    const qb = 2 * (ox * vx + oy * vy);
+    const qc = ox * ox + oy * oy - A.r * A.r;
+    const disc = qb * qb - 4 * qa * qc;
+    if (disc < 0) {
+      if (vy <= 0) return 9;
+      const tRail = (RAIL_Y - 24 - b.y) / vy;
+      return tRail > 0 ? tRail : -1;
+    }
+    const sd = Math.sqrt(disc);
+    const t0 = (-qb - sd) / (2 * qa), t1 = (-qb + sd) / (2 * qa);
+    let t = 1e9;
+    if (t0 > 0.004) t = t0;
+    if (t1 > 0.004 && t1 < t) t = t1;
+    if (t === 1e9) return -1;
+    const hx = b.x + vx * t, hy = b.y + vy * t;
+    if (hy > RAIL_Y + 8) return -1;
+    let a = Math.atan2(hy - A.cy, hx - A.cx) + Math.PI / 2;
+    while (a > Math.PI) a -= Math.PI * 2;
+    while (a < -Math.PI) a += Math.PI * 2;
+    if (Math.abs(a) > A.half + 0.18) {
+      if (vy > 0) {
+        const tWall = (wallFace() - b.y) / vy;
+        return tWall > 0 ? tWall + 0.2 : -1;
+      }
+      return -1;
+    }
+    return t;
+  }
+  function clampPdefAim(ang) {
+    // Sentries only look into the forward hemisphere, never behind the wall.
+    const mid = -Math.PI / 2;
+    let d = ang - mid;
+    while (d > Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    const max = 80 * Math.PI / 180;
+    if (d > max) d = max;
+    if (d < -max) d = -max;
+    return mid + d;
+  }
+  function notePdefIntercept(run, how) {
+    if (!run._pdefStats) return;
+    run._pdefStats.intercepted = (run._pdefStats.intercepted || 0) + 1;
+    if (how === "drone") run._pdefStats.drone = (run._pdefStats.drone || 0) + 1;
+    else run._pdefStats.pdef = (run._pdefStats.pdef || 0) + 1;
+  }
+  function noteShieldHit(run) {
+    if (run._pdefStats) run._pdefStats.shieldHits = (run._pdefStats.shieldHits || 0) + 1;
+  }
+
   function updatePointDef(run, dt, st) {
     if (!run.pdefBeams) run.pdefBeams = [];
     if (!run.pdefAim) run.pdefAim = [-Math.PI / 2, -Math.PI / 2, -Math.PI / 2, -Math.PI / 2];
@@ -1352,28 +1472,30 @@
       if (run.pdefBeams[i].t <= 0) run.pdefBeams.splice(i, 1);
     }
     const turrets = st.pdefTurrets || 0;
-    const range = st.pdefRange || 0;
-    // idle track: each barrel looks at the nearest incoming shot
+    const range = pdefReach(run, st);
     for (let t = 0; t < 4; t++) {
-      const tp = pdefTurretPos(t, 4, run);
-      let best = null, bestD = 1e9;
+      const tp = pdefTurretPos(t, Math.max(1, turrets || 4), run);
+      let best = null, bestT = 1e9;
       for (let i = 0; i < run.bullets.length; i++) {
         const b = run.bullets[i];
         if (!b || b.friendly) continue;
+        if (b.y >= RAIL_Y - 8) continue;
+        const eta = projectileTimeToDome(b, run);
+        if (eta < 0) continue;
         const d = Math.hypot(b.x - tp.x, b.y - tp.y);
-        if (d < bestD) { bestD = d; best = b; }
+        if (d > range && eta > 0.9) continue;
+        if (eta < bestT) { bestT = eta; best = b; }
       }
-      const want = best ? Math.atan2(best.y - tp.y, best.x - tp.x) : -Math.PI / 2;
+      const want = best ? clampPdefAim(Math.atan2(best.y - tp.y, best.x - tp.x)) : -Math.PI / 2;
       let have = run.pdefAim[t] || -Math.PI / 2;
       let diff = want - have;
       while (diff > Math.PI) diff -= Math.PI * 2;
       while (diff < -Math.PI) diff += Math.PI * 2;
-      run.pdefAim[t] = have + Math.max(-10 * dt, Math.min(10 * dt, diff));
+      run.pdefAim[t] = clampPdefAim(have + Math.max(-14 * dt, Math.min(14 * dt, diff)));
     }
     if (!st.pdefLv || st.pdefLv <= 0 || turrets <= 0) return;
-    // Combined intercept rate stays modest; extra sentries mainly add coverage.
-    const rateMul = 0.70 + 0.30 * turrets;
-    const interval = Math.max(0.50, (st.pdefInterval || 1.15) * rateMul);
+    // Per-sentry interval: extra sentries add capacity, they do not slow each barrel.
+    const interval = Math.max(0.16, st.pdefInterval || 0.48);
     for (let t = 0; t < turrets; t++) {
       run.pdefCds[t] = (run.pdefCds[t] || 0) - dt;
     }
@@ -1386,17 +1508,21 @@
         if (claimed[i]) continue;
         const b = run.bullets[i];
         if (!b || b.friendly) continue;
+        if (b.y >= RAIL_Y - 12) continue;
+        const eta = projectileTimeToDome(b, run);
+        if (!(eta >= 0) || eta > 1.05) continue;
         const d = Math.hypot(b.x - tp.x, b.y - tp.y);
-        if (d > range) continue;
-        const score = d + (b.y < tp.y - 400 ? 80 : 0) - (b.vy > 0 ? 50 : 0);
+        if (d > range && eta > 0.55) continue;
+        // Nearest to impacting the dome first (smallest positive time-to-arc).
+        const score = eta * 1000 + d * 0.02;
         if (score < bestScore) { bestScore = score; best = i; }
       }
       if (best < 0) continue;
       const b = run.bullets[best];
       claimed[best] = true;
-      run.pdefAim[t] = Math.atan2(b.y - tp.y, b.x - tp.x);
-      if (run.pdefBeams.length < 12) {
-        run.pdefBeams.push({ x0: tp.x, y0: tp.y, x1: b.x, y1: b.y, t: 0.14, life: 0.14, deflect: false });
+      run.pdefAim[t] = clampPdefAim(Math.atan2(b.y - tp.y, b.x - tp.x));
+      if (run.pdefBeams.length < 16) {
+        run.pdefBeams.push({ x0: tp.x, y0: tp.y, x1: b.x, y1: b.y, t: 0.18, life: 0.18, deflect: false });
       }
       if (st.pdefDeflect > 0 && run.rng() < st.pdefDeflect) {
         b.friendly = true;
@@ -1409,18 +1535,17 @@
         b.vx = Math.cos(ang) * spd; b.vy = Math.sin(ang) * spd;
         b.dmg = (b.dmg || 8) * 0.9;
         if (run.pdefBeams.length) run.pdefBeams[run.pdefBeams.length - 1].deflect = true;
+        notePdefIntercept(run, "pdef");
       } else {
         burst(run, b.x, b.y, C.lime, 12);
         give("bullets", popAt(run.bullets, best));
-        // claimed indices after splice: mark so we don't use this slot; remaining loop uses original indices carefully
-        // popAt shifts later bullets; rebuild claimed by skipping this object (already removed)
+        notePdefIntercept(run, "pdef");
         const shifted = {};
         Object.keys(claimed).forEach(k => {
           const ki = k | 0;
           if (ki === best) return;
           shifted[ki > best ? ki - 1 : ki] = true;
         });
-        // copy back
         for (const k of Object.keys(claimed)) delete claimed[k];
         Object.keys(shifted).forEach(k => { claimed[k] = true; });
       }
@@ -1849,14 +1974,19 @@
     for (let i = 0; i < assigned.length; i++) {
       const a0 = assigned[i];
       let want = -Math.PI / 2;
-      if (a0.target) want = leadPoint(a0.hp.x, a0.hp.y, a0.target, st.bulletSpd).ang;
+      if (a0.target && (typeof isForwardEnemy !== "function" || isForwardEnemy(a0.target, a0.hp.y))) {
+        const lp = leadPoint(a0.hp.x, a0.hp.y, a0.target, st.bulletSpd);
+        const face = wallFace();
+        if (lp.y + (a0.target.r || 16) >= face || lp.y >= a0.hp.y - 4) {
+          want = Math.atan2(a0.target.y - a0.hp.y, a0.target.x - a0.hp.x);
+        } else {
+          want = lp.ang;
+        }
+        if (!angInTurretArc(want)) want = -Math.PI / 2;
+      }
       want = clampTurretAng(want);
-      let have = run.turretAng[i] != null ? run.turretAng[i] : -Math.PI / 2;
-      let da = want - have;
-      while (da > Math.PI) da -= Math.PI * 2;
-      while (da < -Math.PI) da += Math.PI * 2;
-      have += da * Math.min(1, 12 * dt);
-      run.turretAng[i] = clampTurretAng(have);
+      const have = run.turretAng[i] != null ? run.turretAng[i] : -Math.PI / 2;
+      run.turretAng[i] = lerpTurretAng(have, want, Math.min(1, 12 * dt));
     }
     run.aimAng = run.turretAng[assigned.length >> 1] || -Math.PI / 2;
 
@@ -1901,7 +2031,7 @@
         run.flash = Math.max(run.flash, 0.2);
         for (let k = run.enemies.length - 1; k >= 0; k--) {
           const e = run.enemies[k];
-          if (Math.hypot(e.x - SHIP_X, e.y - SHIP_Y) < rad) {
+          if (Math.hypot(e.x - SHIP_X, e.y - turretPivotY()) < rad) {
             hitEnemy(run, e, st.dmg * (1.1 + 0.25 * st.emp), false);
             if (e.hp > 0) e.stun = Math.max(e.stun || 0, 0.35 + st.emp * 0.05);
           }
@@ -1909,18 +2039,15 @@
       }
     }
 
-    if (st.orbits > 0 && run.enemies.length) {
+    if (st.orbits > 0) {
       run.orbitT = (run.orbitT || 0) + dt;
-      const n = 2 + Math.min(4, st.orbits >> 1);
-      const rad = 130 + st.orbits * 6;
-      for (let i = 0; i < n; i++) {
-        const a = run.orbitT * 2.4 + i * (Math.PI * 2 / n);
-        const ox = SHIP_X + Math.cos(a) * rad;
-        const oy = SHIP_Y + Math.sin(a) * rad * 0.7;
+      const G = orbitGeom(run, st);
+      for (let i = 0; i < G.n; i++) {
+        const op = orbitPos(i, run.orbitT, run, st);
         for (let k = run.enemies.length - 1; k >= 0; k--) {
           const e = run.enemies[k];
-          if ((e.hitCd || 0) > 0) continue;
-          if (Math.hypot(e.x - ox, e.y - oy) < e.r + 16) {
+          if (!e || e.hp <= 0 || (e.hitCd || 0) > 0) continue;
+          if (Math.hypot(e.x - op.x, e.y - op.y) < e.r + 16) {
             hitEnemy(run, e, st.dmg * (0.55 + 0.12 * st.orbits), false);
             e.hitCd = 0.18;
           }
@@ -2049,6 +2176,7 @@
           if (distToSegment(dp.x, dp.y, x0, y0, b.x, b.y) < 26 + (b.r || 6)) {
             hurtDrone(run, d, b.dmg || 8, st);
             give("bullets", popAt(run.bullets, i));
+            if (typeof notePdefIntercept === "function") notePdefIntercept(run, "drone");
             ate = true;
             break;
           }
@@ -2058,6 +2186,7 @@
         const half = baseHalfW(st.tierShip || 0) + 20;
         const hitHull = (b.y > RAIL_Y - 90 && Math.abs(b.x - SHIP_X) < half) || (b.y > wallFace() - 8);
         if (hitArc || hitHull) {
+          if (hitArc && typeof noteShieldHit === "function") noteShieldHit(run);
           hurt(run, b.dmg);
           give("bullets", popAt(run.bullets, i));
         }
@@ -2092,6 +2221,12 @@
 
     updatePickups(run, dt);
     updateFx(run, dt);
+
+    // Final wall sweep: anything that reached or slipped past the rail explodes and is removed.
+    for (let i = run.enemies.length - 1; i >= 0; i--) {
+      const e = run.enemies[i];
+      if (e && e.hp > 0) finishEnemyStep(run, e, 0);
+    }
   }
 
   function stepEnemy(run, e, dt) {
@@ -2152,9 +2287,10 @@
     b.r = r || 7; b.dmg = dmg; b.friendly = false; b.color = color || C.magenta;
     b.life = 4.2; b.kind = "enemy"; b.crit = false; b.pierce = 0; b.bounces = 0; b.target = null; b.turn = 0;
     run.bullets.push(b);
+    if (run._pdefStats) run._pdefStats.spawned = (run._pdefStats.spawned || 0) + 1;
   }
 
-  function bossAim(e) { return Math.atan2(SHIP_Y - e.y, SHIP_X - e.x); }
+  function bossAim(e) { return Math.atan2(turretPivotY() - e.y, SHIP_X - e.x); }
 
   function addBossBeam(run, x0, y0, x1, y1, hot, life, w) {
     if (!run.bossBeams) run.bossBeams = [];
@@ -2197,9 +2333,14 @@
       const y1 = e.y + Math.sin(ang) * 1800;
       e.beamX1 = x1; e.beamY1 = y1;
       if (e.sweepHot > 0) {
-        if (distToSegment(SHIP_X, SHIP_Y, e.x, e.y + 80, x1, y1) < 28 + (e.enraged ? 8 : 0)) {
-          hurt(run, 16 * scD);
+        const half = (typeof baseHalfW === "function") ? baseHalfW((typeof turretTierOf === "function") ? turretTierOf(run) : 0) : 260;
+        const fy = wallFace() - 16;
+        const pad = 28 + (e.enraged ? 8 : 0);
+        let beamHit = false;
+        for (const sx of [-half * 0.7, 0, half * 0.7]) {
+          if (distToSegment(SHIP_X + sx, fy, e.x, e.y + 80, x1, y1) < pad) { beamHit = true; break; }
         }
+        if (beamHit) hurt(run, 16 * scD);
       }
     } else { e.beamX1 = 0; e.beamY1 = 0; }
 
@@ -2220,7 +2361,7 @@
         e.fireCd = e.fireEvery;
       } else if (kind === "twin") {
         for (const sx of [-70, 70]) {
-          const ax = Math.atan2(SHIP_Y - e.y, SHIP_X - (e.x + sx));
+          const ax = Math.atan2(turretPivotY() - e.y, SHIP_X - (e.x + sx));
           const n = e.enraged ? 4 : 3;
           for (let i = 0; i < n; i++) {
             bossShot(run, e.x + sx, e.y + 80, ax + (i - (n - 1) / 2) * 0.18, 250, shotDmg, C.violet, 7);
@@ -2304,7 +2445,7 @@
     }
     if (e.type === "boss") return; // bosses never reach the wall
     const face = wallFace();
-    if (e.y + (e.r || 16) >= face) {
+    if (e.y + (e.r || 16) >= face || e.y > RAIL_Y - 12) {
       const sizeMul = 0.9 + Math.max(0, ((e.r || 16) - 14) / 36);
       hurt(run, e.dmg * sizeMul, e, true);
       run.wallHits = (run.wallHits || 0) + 1;
@@ -2379,7 +2520,7 @@
     if (id === "shield") { run.shield = st.maxShield; run.shieldWait = 0; }
     run.prestFx = { t: 1.05, id: id, tier: t + 1, name: def.name, color: tierOf(t + 1).color };
     run.flash = 0.55;
-    burst(run, SHIP_X, SHIP_Y, tierOf(t + 1).color, 18);
+    burst(run, SHIP_X, turretPivotY(), tierOf(t + 1).color, 18);
     const nt = t + 1;
     const col = tierOf(nt).color;
     if (id === "dmg") {
@@ -2582,7 +2723,7 @@
 
   const LO = {
     BAL, UPGRADES, PERMA, ENEMY, TABS,
-    createRun, updateRun, tryBuy, tryBuyPerma, autoBuyMid, autoBuyPerma, fireMissile, fireBlaster, shopLv, shopUpgradeCost, shipMuzzles, turretHardpoints, turretCount, simulateSwarmCheck, placeWaveMines, waveEnemyCount, fieldTop, wallFace, pylonPos, dronePos, droneMaxHp, DRONE_RESPAWN, shieldArcGeom, fortressTopH,
+    createRun, updateRun, tryBuy, tryBuyPerma, autoBuyMid, autoBuyPerma, fireMissile, fireBlaster, shopLv, shopUpgradeCost, shipMuzzles, turretHardpoints, turretCount, simulateSwarmCheck, placeWaveMines, waveEnemyCount, fieldTop, wallFace, pylonPos, dronePos, droneMaxHp, DRONE_RESPAWN, shieldArcGeom, fortressTopH, orbitGeom, orbitPos, isForwardEnemy, pdefTurretPos, pdefReach, clampTurretAng, angInTurretArc, lerpTurretAng, TURRET_MAX_DEV, turretPivotY,
     playerStats, gemsFor, simulateUntilDeath, simulateRuns, beginWave, spawnEnemy,
     defaultPerma, defaultMid, defaultPrest, defaultSave, defaultShop, loadSave, writeSave, migrateSave, midCost, costOf, isUnlocked, SHOP, carryRate, pdefTurretCount, pdefNextAt,
     bossInfo, settlePickups, tryPrestige, prestigeCost, prestMul, tierOf, PRESTIGE_IDS, TIER, MAX_PREST, INFO, PERMA_INFO, effectLine,
@@ -2661,7 +2802,7 @@
     const logicalH = Math.max(1, Math.round(vh / scale));
     H = logicalH;
     RAIL_Y = H - CONSOLE_H;
-    SHIP_Y = RAIL_Y - 72;
+    SHIP_Y = RAIL_Y - 72; // keep alias in sync with turretPivotY()
     stage.style.width = W + "px";
     stage.style.height = H + "px";
     stage.style.transform = "scale(" + scale + ")";
@@ -5147,7 +5288,7 @@
     g.font = "600 18px Tomorrow, sans-serif";
     g.fillText("Base  ·  Turrets  ·  Bullets  ·  Laser  ·  Missiles  ·  Drones  ·  Shield", W / 2, 136);
     for (let n = 0; n < 3; n++) {
-      const i = ids[n], x = xs[n], y = SHIP_Y, ti = TIER[i];
+      const i = ids[n], x = xs[n], y = turretPivotY(), ti = TIER[i];
       g.fillStyle = ti.color;
       g.font = "700 24px Orbitron, sans-serif";
       g.fillText(labels[n], x, 180);
@@ -5331,14 +5472,6 @@
         blitGlow(g, "spark", p.x, p.y, 0.7);
       }
       g.globalAlpha = 1;
-      if (st.orbits > 0) {
-        const n = 2 + Math.min(4, st.orbits >> 1);
-        const rad = 130 + st.orbits * 6;
-        for (let i = 0; i < n; i++) {
-          const a = (run.orbitT || 0) * 2.4 + i * (Math.PI * 2 / n);
-          blitGlow(g, "orb", SHIP_X + Math.cos(a) * rad, SHIP_Y + Math.sin(a) * rad * 0.7, 0.85);
-        }
-      }
       g.restore();
 
       // Fortress first, then the dome in front of it so no corner sticks out of the shield.
@@ -5451,6 +5584,16 @@
           }
           blit(g, dkey, p.x, p.y, 0.8 + dTier * 0.06);
         }
+      }
+      if (st.orbits > 0) {
+        const G = (typeof orbitGeom === "function") ? orbitGeom(run, st) : { n: 2, radX: 118, radY: 46, cx: SHIP_X, cy: RAIL_Y - 200 };
+        g.save();
+        g.globalCompositeOperation = "lighter";
+        for (let i = 0; i < G.n; i++) {
+          const op = (typeof orbitPos === "function") ? orbitPos(i, run.orbitT || 0, run, st) : { x: G.cx, y: G.cy };
+          blitGlow(g, "orb", op.x, op.y, 0.95);
+        }
+        g.restore();
       }
       if (run.wallFx && run.wallFx.length) {
         for (let i = 0; i < run.wallFx.length; i++) {
@@ -6387,7 +6530,7 @@
       const stw = playerStats(run); run.hp = stw.maxHp; run.shield = stw.maxShield;
       run.invuln = 8;
       run.enemies = [];
-      const low = SHIP_Y;
+      const low = turretPivotY();
       [["spark",low-240, 300],["spark",low-200, 540],["drifter",low-280, 420],["shellback",low-260, 700],["razor",low-180, 800],["spark",low-220, 200],["spark",low-230, 480],["drifter",low-250, 620]]
         .forEach(row => { const e = spawnEnemy(run, row[0], { x: row[2], y: row[1] }); if (e) { e.hp = e.maxHp = Math.max(e.hp, 90); e.vy = 12; e._onField = true; } });
       run.nukeCd = 0.15;
@@ -6459,9 +6602,9 @@
       run.coins = 80; run._st = null;
       const st = playerStats(run); run.hp = st.maxHp;
       run.enemies = [];
-      spawnEnemy(run, "shellback", { x: 130, y: SHIP_Y - 220 });
-      spawnEnemy(run, "spark", { x: 70, y: SHIP_Y - 340 });
-      spawnEnemy(run, "drifter", { x: 210, y: SHIP_Y - 430 });
+      spawnEnemy(run, "shellback", { x: 130, y: turretPivotY() - 220 });
+      spawnEnemy(run, "spark", { x: 70, y: turretPivotY() - 340 });
+      spawnEnemy(run, "drifter", { x: 210, y: turretPivotY() - 430 });
       spawnEnemy(run, "spark", { x: 540, y: 240 });
       spawnEnemy(run, "spark", { x: 980, y: 360 });
       spawnEnemy(run, "coil", { x: 860, y: 520 });
@@ -6490,7 +6633,7 @@
       const st = playerStats(run); run.hp = st.maxHp; run.shield = st.maxShield;
       run.invuln = 30;
       run.enemies = [];
-      const low = SHIP_Y;
+      const low = turretPivotY();
       [["shooter",130,low-420],["shooter",320,low-360],["shooter",540,low-480],["shooter",760,low-360],["shooter",950,low-420],["shooter",200,low-560],["shooter",400,low-620],["shooter",700,low-620],["shooter",880,low-560]]
         .forEach(p => {
           const e = spawnEnemy(run, p[0], { x: p[1], y: p[2] });
@@ -6694,6 +6837,49 @@
       if (root.LastOutpost) root.LastOutpost._run = run;
       return;
     }
+
+    if (name === "orbit") {
+      v9Play({ wave: 40, prest: { ship: 2, dmg: 1, shield: 1, drone: 1 },
+        up: { dmg: 8, rate: 5, hp: 6, ship: 8, shield: 8, spread: 2, pdef: 5, orbit: 8, drone: 3, dcount: 2 },
+        shield: "full",
+        enemies: [["spark",240,520],["drifter",820,480],["shooter",400,360]] });
+      run.orbitT = 0.4;
+      return;
+    }
+    if (name === "pdef") {
+      v9Play({ wave: 22, prest: { ship: 2, shield: 1 },
+        up: { dmg: 6, rate: 4, hp: 6, ship: 8, shield: 10, pdef: 5, spread: 1 },
+        shield: "full",
+        enemies: [["shooter",200,380],["shooter",400,320],["shooter",680,300],["shooter",880,360],["shooter",540,280]] });
+      return;
+    }
+    if (name === "wave40" || name === "w40-mkiii") {
+      v9Play({ wave: 42, prest: { ship: 2, dmg: 2, shield: 2, drone: 1, armor: 1 },
+        up: { dmg: 12, rate: 8, hp: 10, ship: 10, shield: 10, spread: 3, multi: 2, pdef: 10, orbit: 6, drone: 4, dcount: 3, knock: 8, pierce: 3, missile: 3, mcount: 2, laser: 3 },
+        shield: "full", coins: 2400,
+        enemies: [] });
+      run.pending = [];
+      const kinds = ["spark","drifter","razor","needle","coil","shooter","shellback","splitter","brood"];
+      for (let i = 0; i < 28; i++) {
+        const e = spawnEnemy(run, kinds[i % kinds.length], { x: 80 + (i * 97) % 920, y: 180 + (i * 53) % 900 });
+        if (e) e._onField = true;
+      }
+      return;
+    }
+    if (name === "w40-mkvi") {
+      v9Play({ wave: 42, prest: { ship: 5, dmg: 3, shield: 3, drone: 2, armor: 2 },
+        up: { dmg: 14, rate: 9, hp: 12, ship: 12, shield: 12, spread: 4, multi: 3, pdef: 15, orbit: 8, drone: 6, dcount: 5, knock: 10, pierce: 4, missile: 4, mcount: 3, laser: 4 },
+        shield: "full", coins: 3200,
+        enemies: [] });
+      run.pending = [];
+      const kinds = ["spark","drifter","razor","needle","coil","shooter","shellback","splitter","brood"];
+      for (let i = 0; i < 32; i++) {
+        const e = spawnEnemy(run, kinds[i % kinds.length], { x: 80 + (i * 97) % 920, y: 180 + (i * 53) % 900 });
+        if (e) e._onField = true;
+      }
+      return;
+    }
+
     if (name === "shop-upg") {
       save.gems = 420;
       save.shop = defaultShop();
