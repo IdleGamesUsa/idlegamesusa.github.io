@@ -162,11 +162,11 @@ canvas { position: absolute; inset: 0; z-index: 1; display: block; }
 .hp-fill.low { background: linear-gradient(180deg, #ffe0a0, #ff7a00 40%, #a33000); box-shadow: 0 0 8px #ff7a00, 0 0 16px #ff7a00; }
 .sh-fill { height: 100%; width: 0; background: linear-gradient(180deg, #f0d8ff, #b14cff 40%, #5a1480); box-shadow: 0 0 8px #b14cff; }
 .hp-num {
-  font-family: Orbitron, sans-serif; font-weight: 700; font-size: 22px; color: #d7fbff;
-  width: 120px; text-align: right; text-shadow: 0 0 6px #00f6ff;
+  font-family: Orbitron, sans-serif; font-weight: 700; font-size: 18px; color: #d7fbff;
+  width: 168px; flex: 0 0 168px; text-align: right; text-shadow: 0 0 6px #00f6ff;
 }
-.hud-best { font-family: Tomorrow, sans-serif; font-weight: 600; font-size: 22px; letter-spacing: 0.12em; color: #c9d3e0; white-space: nowrap; }
-.hud-best b { font-family: Orbitron, sans-serif; font-weight: 800; font-size: 26px; margin-left: 6px; color: #eaffff; text-shadow: 0 0 8px #00f6ff; }
+.hud-best { font-family: Tomorrow, sans-serif; font-weight: 600; font-size: 18px; letter-spacing: 0.1em; color: #c9d3e0; white-space: nowrap; flex: 0 0 auto; margin-left: 8px; }
+.hud-best b { font-family: Orbitron, sans-serif; font-weight: 800; font-size: 22px; margin-left: 6px; color: #eaffff; text-shadow: 0 0 8px #00f6ff; }
 .boss-tag {
   display: none; margin-left: 14px; font-family: Orbitron, sans-serif; font-weight: 800; font-size: 22px;
   letter-spacing: 0.18em; padding: 4px 12px 2px; border: 2px solid #ff2bd6; color: #ffe6fb;
@@ -522,7 +522,9 @@ html.overlay-open, body.overlay-open { touch-action: pan-y; }
   cursor: pointer; white-space: nowrap;
 }
 .shop-on { border-color: #c8ff00; color: #f5ffd8; }
-.shop-buy:disabled, .shop-card.owned .shop-buy { opacity: 0.55; cursor: default; }
+.shop-buy:disabled { opacity: 0.55; cursor: default; }
+.shop-lv { color: #9ef7ff !important; font-weight: 700 !important; margin-top: 4px; }
+.shop-card > div:last-child { display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
 .pack-card { text-align: left; }
 .pack-price { font-family: Orbitron, sans-serif; font-weight: 800; font-size: 16px; color: #fff4c2; }
 .pack-demo {

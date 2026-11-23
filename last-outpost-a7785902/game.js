@@ -28,7 +28,7 @@
     baseHp: 100, hpPerBuy: 14, hpHealFrac: 0.40, permaDmg: 4, permaHp: 22,
     permaArmor: 0.035, permaCrit: 0.035, permaStartCoins: 22, permaCoinValue: 0.12,
     permaGemBonus: 0, permaShield: 16, interestPerWave: 4, gemPerWave: 0,
-    gemKillDiv: 99999, gemPerBoss: 10, gemBestWave: 1, gemDaily: 5, coinPayout: 1.25, countBase: 5, countPerWave: 1.10, countMax: 22,
+    gemKillDiv: 99999, gemPerBoss: 10, gemBestWave: 1, gemDaily: 5, coinPayout: 1.32, countBase: 5, countPerWave: 1.10, countMax: 22,
     bulletSpd: 980, waveBreak: 1.55, bossIntro: 2.2, maxShieldBase: 50, shieldPerLv: 24,
     shieldRegenDelay: 3.0, shieldRegenPerSec: 10, coinDrop: 0.55, shipHpPerLv: 18
   };
@@ -93,7 +93,7 @@
     { id: "rail",     name: "RAILGUN",    tab: "atk",  base: 200, grow: 1.50, max: 10, unlock: 0, shop: "rail", slot: "weapon" },
     { id: "tesla",    name: "TESLA ARC",  tab: "atk",  base: 210, grow: 1.50, max: 10, unlock: 0, shop: "tesla", slot: "weapon" },
     { id: "flak",     name: "FLAK",       tab: "atk",  base: 190, grow: 1.50, max: 10, unlock: 0, shop: "flak", slot: "weapon" },
-    { id: "flame",    name: "FLAME",      tab: "atk",  base: 200, grow: 1.50, max: 10, unlock: 0, shop: "flame", slot: "weapon" },
+    { id: "nuke",     name: "NUKE",       tab: "atk",  base: 200, grow: 1.50, max: 10, unlock: 0, shop: "nuke", slot: "weapon" },
     { id: "pylon",    name: "ARC PYLON",  tab: "util", base: 180, grow: 1.48, max: 10, unlock: 0, shop: "pylon", slot: "addon" },
     { id: "mines",    name: "MINES",      tab: "util", base: 170, grow: 1.48, max: 10, unlock: 0, shop: "mines", slot: "addon" }
   ];
@@ -137,24 +137,24 @@
 
   const SHOP = {
     weapons: [
-      { id: "rail", name: "RAILGUN", cost: 80, blurb: "A piercing beam that punches through a line of foes." },
-      { id: "tesla", name: "TESLA ARC", cost: 100, blurb: "Chain lightning that leaps from target to target." },
-      { id: "flak", name: "FLAK CANNON", cost: 90, blurb: "Bursting shells that explode among tight formations." },
-      { id: "flame", name: "PLASMA FLAMETHROWER", cost: 95, blurb: "A short-range cone of neon plasma. Burns anything that gets close to the wall." }
+      { id: "rail", name: "RAILGUN", cost: 80, blurb: "A piercing beam that punches through a line of foes. Upgraded with gems." },
+      { id: "tesla", name: "TESLA ARC", cost: 100, blurb: "Chain lightning that leaps from target to target. Upgraded with gems." },
+      { id: "flak", name: "FLAK CANNON", cost: 90, blurb: "Bursting shells that explode among tight formations. Upgraded with gems." },
+      { id: "nuke", name: "NUKE MISSILE", cost: 95, blurb: "A slow, heavy warhead. A lone target dies; groups take a large neon blast. Upgraded with gems." }
     ],
     addons: [
-      { id: "pylon", name: "ARC PYLON", cost: 120, blurb: "A tesla tower on the wall that zaps nearby enemies." },
-      { id: "mines", name: "MINE LAYER", cost: 90, blurb: "Drops proximity mines along the approach." }
+      { id: "pylon", name: "ARC PYLON", cost: 120, blurb: "A tesla tower on the wall that zaps nearby enemies. Upgraded with gems." },
+      { id: "mines", name: "MINES", cost: 90, blurb: "Each wave, mines are planted across the field and detonate on contact. Upgraded with gems." }
     ],
     cosmo: [
-      { id: "skin_crimson", name: "CRIMSON HULL", cost: 45, kind: "skin", value: "crimson", blurb: "A deep red ship skin." },
-      { id: "skin_gold", name: "GILDED HULL", cost: 50, kind: "skin", value: "gold", blurb: "A gold-trimmed ship skin." },
-      { id: "skin_ice", name: "ICE HULL", cost: 45, kind: "skin", value: "ice", blurb: "A pale ice-blue ship skin." },
+      { id: "skin_stealth", name: "STEALTH", cost: 55, kind: "skin", value: "stealth", blurb: "Faceted matte hull and sawtooth edges. A real redesign, not a tint." },
+      { id: "skin_racer", name: "RACER", cost: 55, kind: "skin", value: "racer", blurb: "Long-nose racer paint, spine stripe, and a rear spoiler." },
+      { id: "skin_chrome", name: "CHROME", cost: 60, kind: "skin", value: "chrome", blurb: "Mirror hull with rounded leading edges and a cool canopy." },
+      { id: "skin_alien", name: "ALIEN BIO-SHIP", cost: 70, kind: "skin", value: "alien", blurb: "Organic veins, an eye canopy, and stalk-mounted guns." },
       { id: "trail_spark", name: "SPARK TRAILS", cost: 40, kind: "trail", value: "spark", blurb: "Bullets leave a sparking trail." },
       { id: "trail_prism", name: "PRISM ROUNDS", cost: 40, kind: "trail", value: "prism", blurb: "Shots shimmer with prism color." }
     ],
     extras: [
-      { id: "autoPrest", name: "AUTO-PRESTIGE", cost: 200, blurb: "Automatically prestige a core when you can afford it." },
       { id: "speed3", name: "3× SPEED", cost: 150, blurb: "Unlocks a 3× combat speed toggle." }
     ],
     packs: [
@@ -183,12 +183,22 @@
       unlocked: {},
       weapons: [],
       addons: [],
+      levels: {},
       skin: "default",
       trail: "default",
       autoPrestige: false,
       speed3: false
     };
   }
+
+  const SHOP_IDS = ["rail", "tesla", "flak", "nuke", "pylon", "mines"];
+  const OLD_SKINS = { skin_crimson: 45, skin_gold: 50, skin_ice: 45 };
+  function shopUpgradeCost(id, lv) {
+    // Cost in gems to go from level lv to lv+1. Unlock is already paid; lv is current (min 1).
+    const n = Math.max(1, lv | 0);
+    return Math.floor(18 * Math.pow(1.42, n - 1));
+  }
+
   function carryRate(perma) {
     const lv = (perma && perma.salvage) || 0;
     return Math.min(0.70, 0.50 + lv * 0.015);
@@ -207,7 +217,7 @@
   };
 
   const BOSS = {
-    10: { name: "THE HERALD",     kind: "herald",     hp: 14000, r: 155, coins: 70 },
+    10: { name: "THE HERALD",     kind: "herald",     hp: 13200, r: 155, coins: 70 },
     20: { name: "TWIN SPIRE",     kind: "twin",       hp: 18500, r: 170, coins: 110 },
     30: { name: "THE LATTICE",    kind: "lattice",    hp: 23000, r: 180, coins: 150 },
     40: { name: "THE HARBINGER",  kind: "harbinger",  hp: 44000, r: 200, coins: 200 },
@@ -247,14 +257,14 @@
       dmg: 0, rate: 0, spread: 0, crit: 0, critDmg: 0, pierce: 0, multi: 0, bspd: 0, burn: 0, chain: 0, laser: 0, missile: 0,
       ship: 0, hp: 0, shield: 0, shRegen: 0, armor: 0, regen: 0, thorns: 0, knock: 0, freeze: 0, pdef: 0,
       drone: 0, dcount: 0, dmgDrone: 0, laserW: 0, mcount: 0, ricochet: 0,
-      coinVal: 0, interest: 0, skip: 0, orbit: 0, emp: 0, rail: 0, tesla: 0, flak: 0, flame: 0, pylon: 0, mines: 0
+      coinVal: 0, interest: 0, skip: 0, orbit: 0, emp: 0, rail: 0, tesla: 0, flak: 0, flame: 0, nuke: 0, pylon: 0, mines: 0
     };
   }
   function defaultPrest() {
     return { dmg: 0, laser: 0, missile: 0, drone: 0, armor: 0, shield: 0, ship: 0 };
   }
   function defaultSave() {
-    return { bestWave: 0, gems: 0, perma: defaultPerma(), mid: defaultMid(), prest: defaultPrest(), carryCoins: 0, bankCoins: 0, shop: defaultShop(), lastDaily: "", mute: false, ver: 9 };
+    return { bestWave: 0, gems: 0, perma: defaultPerma(), mid: defaultMid(), prest: defaultPrest(), carryCoins: 0, bankCoins: 0, shop: defaultShop(), lastDaily: "", mute: false, ver: 10 };
   }
 
   function convertOverflowToPrestige(mid, prest) {
@@ -307,6 +317,7 @@
       d.shop.unlocked = Object.assign({}, (s.shop.unlocked || {}));
       d.shop.weapons = Array.isArray(s.shop.weapons) ? s.shop.weapons.slice() : [];
       d.shop.addons = Array.isArray(s.shop.addons) ? s.shop.addons.slice() : [];
+      d.shop.levels = Object.assign({}, (s.shop.levels || {}));
     }
     d.lastDaily = s.lastDaily || "";
     d.bankCoins = Math.max(0, (s.bankCoins | 0));
@@ -327,7 +338,47 @@
       d.shop = sh;
       if (d.mid) d.mid.wing = 0;
     }
-    d.ver = 9;
+    if (prevVer < 10) {
+      const sh = d.shop || defaultShop();
+      if (!sh.levels || typeof sh.levels !== "object") sh.levels = {};
+      // Auto-Prestige removed: refund the 200 gem cost if owned.
+      if ((sh.unlocked && sh.unlocked.autoPrest) || sh.autoPrestige) {
+        d.gems = (d.gems | 0) + 200;
+      }
+      if (sh.unlocked) delete sh.unlocked.autoPrest;
+      sh.autoPrestige = false;
+      // Flamethrower replaced by Nuke Missile: refund unlock, convert loadout and levels.
+      const ownedFlame = !!(sh.unlocked && sh.unlocked.flame);
+      if (ownedFlame) {
+        d.gems = (d.gems | 0) + 95;
+        sh.unlocked.nuke = 1;
+        delete sh.unlocked.flame;
+      }
+      if (Array.isArray(sh.weapons)) {
+        sh.weapons = sh.weapons.map(id => id === "flame" ? "nuke" : id).filter((id, i, a) => id && a.indexOf(id) === i);
+      }
+      const flameLv = Math.max(d.mid && d.mid.flame || 0, sh.levels.flame || 0);
+      if (ownedFlame || flameLv > 0) sh.levels.nuke = Math.max(sh.levels.nuke || 0, flameLv || 1);
+      delete sh.levels.flame;
+      if (d.mid) d.mid.flame = 0;
+      // Keep existing coin levels on gem-shop items; further upgrades cost gems.
+      SHOP_IDS.forEach((id) => {
+        if (id === "nuke" && sh.levels.nuke) return;
+        const midLv = (d.mid && d.mid[id]) | 0;
+        const have = !!(sh.unlocked && sh.unlocked[id]);
+        if (have) sh.levels[id] = Math.max(sh.levels[id] | 0, midLv, 1);
+      });
+      // Old color-only skins: refund and clear.
+      Object.keys(OLD_SKINS).forEach((id) => {
+        if (sh.unlocked && sh.unlocked[id]) {
+          d.gems = (d.gems | 0) + OLD_SKINS[id];
+          delete sh.unlocked[id];
+        }
+      });
+      if (sh.skin === "crimson" || sh.skin === "gold" || sh.skin === "ice") sh.skin = "default";
+      d.shop = sh;
+    }
+    d.ver = 10;
     return d;
   }
 
@@ -414,6 +465,60 @@
     return Math.pow(1.10, Math.min(n, 8)) * Math.pow(1.08, Math.max(0, Math.min(n, 40) - 8)) * Math.pow(1.10, Math.max(0, n - 40));
   }
 
+  const SHIP_GUN_LAYOUT = [
+    { scale: 0.70, guns: [{ x: 0, y: -72 }] },
+    { scale: 0.76, guns: [{ x: -78, y: -18 }, { x: 78, y: -18 }] },
+    { scale: 0.82, guns: [{ x: 0, y: -118 }, { x: -92, y: -28 }, { x: 92, y: -28 }] },
+    { scale: 0.88, guns: [{ x: -13, y: -112 }, { x: 13, y: -112 }, { x: -108, y: -30 }, { x: 108, y: -30 }] },
+    { scale: 0.92, guns: [{ x: 0, y: -136 }, { x: -58, y: -32 }, { x: 58, y: -32 }, { x: -118, y: -30 }, { x: 118, y: -30 }] },
+    { scale: 0.96, guns: [{ x: 0, y: -130 }, { x: -64, y: -36 }, { x: 64, y: -36 }, { x: -132, y: -36 }, { x: 132, y: -36 }] }
+  ];
+  function shipGunCount(tier) { return SHIP_GUN_LAYOUT[Math.max(0, Math.min(5, tier | 0))].guns.length; }
+  function shipGunShare(tier) {
+    // Split base damage across guns, plus a modest per-tier total bump.
+    const t = Math.max(0, Math.min(5, tier | 0));
+    const n = shipGunCount(t);
+    const total = 1 + 0.12 * t;
+    return total / n;
+  }
+  function shipMuzzles(run) {
+    const t = Math.max(0, Math.min(5, (run.prest && run.prest.ship) | 0));
+    const layout = SHIP_GUN_LAYOUT[t];
+    const ang = run.hullAng != null ? run.hullAng : -Math.PI / 2;
+    const rot = ang + Math.PI / 2;
+    const ca = Math.cos(rot), sa = Math.sin(rot), sc = layout.scale;
+    const out = [];
+    for (let i = 0; i < layout.guns.length; i++) {
+      const g = layout.guns[i];
+      out.push({
+        x: SHIP_X + (g.x * ca - g.y * sa) * sc,
+        y: SHIP_Y + (g.x * sa + g.y * ca) * sc
+      });
+    }
+    return out;
+  }
+  function fieldTop() { return 56; }
+  function fieldBottom() { return RAIL_Y - 8; }
+  function knockResist(wave) {
+    const n = wave | 0;
+    if (n < 16) return 0;
+    return Math.min(0.72, (n - 15) * 0.034);
+  }
+  function clampEnemyPos(e) {
+    if (!e) return;
+    const top = fieldTop() + (e.r || 16);
+    const bot = fieldBottom() - (e.r || 16);
+    e.x = Math.max(40, Math.min(W - 40, e.x));
+    e.y = Math.max(top, Math.min(bot, e.y));
+  }
+  function waveEnemyCount(n) {
+    let count = Math.min(BAL.countMax, Math.floor(BAL.countBase + n * BAL.countPerWave));
+    if (n >= 20) count += Math.floor((n - 19) * 0.85);
+    if (n >= 28) count += Math.floor((n - 27) * 1.5);
+    const cap = n >= 30 ? 56 : (n >= 20 ? 38 : BAL.countMax);
+    return Math.min(cap, count);
+  }
+
   function playerStats(run) {
     if (run._st) return run._st;
     const p = run.perma, u = run.up, pr = run.prest || defaultPrest();
@@ -433,7 +538,8 @@
     st.multi = (u.multi || 0) + (p.multi || 0);
     st.regen = (u.regen || 0) * 2.2 + (p.regen || 0) * 2.0;
     st.thorns = (u.thorns || 0) * 0.14 + (p.thorns || 0) * 0.12;
-    st.knock = (u.knock || 0) * 18;
+    st.knockLv = u.knock || 0;
+    st.knock = st.knockLv * 18;
     st.chill = Math.min(0.55, (u.freeze || 0) * 0.06);
     st.burn = (u.burn || 0) * 0.22;
     st.chain = u.chain || 0;
@@ -463,6 +569,9 @@
     st.tierDrone = pr.drone || 0;
     st.tierShield = pr.shield || 0;
     st.tierShip = pr.ship || 0;
+    st.gunCount = shipGunCount(st.tierShip);
+    st.gunDmg = st.dmg * shipGunShare(st.tierShip);
+    st.skin = (run.shop && run.shop.skin) || "default";
     st.tierArmor = pr.armor || 0;
     st.orbits = u.orbit || 0;
     st.emp = u.emp || 0;
@@ -487,24 +596,24 @@
   const INFO = {
     dmg: "Your main blaster. Each level raises bullet damage. This is a core item: at level 10 you can Prestige it for a new shape, a new color, and a big power bonus.",
     rate: "Shortens the time between blaster volleys. Higher fire rate means more shots per second. Caps high and does not prestige.",
-    spread: "Adds extra bullets that fan around your aim. Level 1 gives a 3-shot fan; higher levels add more shots in a wider cone.",
+    spread: "Adds extra bullets that fan around your aim — from EVERY gun. Level 1 gives a 3-shot fan per muzzle; higher levels add more shots in a wider cone.",
     crit: "Chance for a shot to crit and use your Crit Damage multiplier. Shown as a white, heavier bolt when it procs.",
     critDmg: "How hard a critical hit hurts. Starts at 2× and climbs with each level.",
     pierce: "Bullets keep going after a hit. Each level lets a shot pass through one more enemy.",
-    multi: "Adds extra projectiles on top of your spread fan, for a thicker volley.",
+    multi: "Adds extra projectiles on top of the spread fan on EVERY gun, for a thicker volley from each hardpoint.",
     bspd: "Makes your shots fly faster so lead aiming lands more cleanly and they cross the screen sooner.",
     burn: "Hits set enemies on fire, dealing damage over time after the shot.",
     chain: "On hit, lightning jumps to a nearby enemy for a fraction of the damage. Higher levels jump farther and more times.",
     laser: "Fires a piercing beam at the closest threats. Core item: Prestige at level 10 for a thicker, cooler beam (split and spiral at the top tiers) and more power.",
     missile: "Launches homing missiles at the closest threats. Core item: Prestige at level 10 for bigger frames, brighter exhaust, heavier blasts, and a new look.",
-    ship: "The hull itself. Raises max health and slightly toughens the outpost. Core item: Prestige at level 10 to grow the ship — extra wings, engines, armor and glow — and multiply its hull.",
+    ship: "The hull itself. Raises max health. Prestige at level 10 to a new ship class: Mk I scout (1 nose gun), Mk II fighter (2 wing guns), Mk III heavy fighter (3), Mk IV gunship (4), Mk V interceptor (5), Mk VI flagship (5 guns plus a sweeping S-curve void beam). Damage is split across guns with a modest per-tier gain. Spread and Multishot apply per gun.",
     hp: "Buys more max health and instantly repairs a chunk of hull. A mid-run survival purchase; the Ship is the prestige path for the hull look.",
-    shield: "A rechargeable energy bubble in front of the hull. Core item: Prestige at level 10 for a new shield shape (ring, hex lattice, then a double dome) and more strength.",
+    shield: "A rechargeable energy ARC projected in front of the hull, not a bubble. It blocks frontal shots that pass through the arc. When shield HP hits 0 the arc cracks and fades; when it regenerates, it visibly powers back up. Prestige adds strength.",
     shRegen: "The shield refills faster after you stop taking hits.",
     armor: "Cuts incoming damage by a percent (capped). Core item: Prestige at level 10 for a larger cut and heavier visible hull plating.",
     regen: "Slowly repairs hull over time, even between hits.",
     thorns: "When something rams the rail or the ship, a portion of that damage is reflected back.",
-    knock: "Hits shove enemies back up the screen, buying you a little space. Bosses barely flinch.",
+    knock: "Shoves enemies back up the field. Low levels only push foes very close to the ship a short distance. Each level extends the trigger range and the push. Max level can drive enemies to the top edge of the visible field, never off-screen. At high waves, knockback resistance keeps swarms visible. Bosses barely flinch.",
     freeze: "Hits slow enemies for a short time. Stacks a little with more levels, and is capped so they never freeze solid.",
     drone: "A wingman that hovers near the ship and fires on the closest threat. Core item: Prestige at level 10 for a new, spikier drone shape, orbit trails, and more punch.",
     dcount: "Adds extra drones, up to a small squad.",
@@ -512,12 +621,12 @@
     laserW: "Widens the laser beam so it is easier to clip enemies.",
     mcount: "Adds extra missiles to each volley.",
     ricochet: "After a hit, a bullet can bounce toward another nearby target. Each level is another bounce.",
-    rail: "Shop weapon. A focused piercing beam that cuts through a line of enemies. Unlock in the Gem Shop, equip it, then level it with coins.",
-    tesla: "Shop weapon. Chain lightning leaps between nearby enemies. Unlock in the Gem Shop, equip it, then level it with coins.",
-    flak: "Shop weapon. Shells burst in a radius, shredding tight packs. Unlock in the Gem Shop, equip it, then level it with coins.",
-    flame: "Shop weapon. A short-range cone of neon plasma that scorches anything close to the wall and leaves a burn. Unlock in the Gem Shop, equip it, then level it with coins.",
-    pylon: "Shop add-on. A tesla tower mounted on the base wall zaps the nearest threat. Unlock in the Gem Shop, then level it with coins.",
-    mines: "Shop add-on. Drops proximity mines that detonate on enemy contact. Unlock in the Gem Shop, then level it with coins.",
+    rail: "Shop weapon. A focused piercing beam that cuts through a line of enemies. Unlock and upgrade it with gems in the Gem Shop, then equip it.",
+    tesla: "Shop weapon. Chain lightning leaps between nearby enemies. Unlock and upgrade it with gems in the Gem Shop, then equip it.",
+    flak: "Shop weapon. Shells burst in a radius, shredding tight packs. Unlock and upgrade it with gems in the Gem Shop, then equip it.",
+    nuke: "Shop weapon. A nuke-style missile that fires about every 5 seconds. A lone target dies; groups take a large neon mushroom blast and shockwave. Unlock and upgrade it with gems in the Gem Shop, then equip it.",
+    pylon: "Shop add-on. A tesla tower mounted on the base wall zaps the nearest threat. Unlock and upgrade it with gems in the Gem Shop, then equip it.",
+    mines: "Shop add-on. If equipped, each wave plants several mines at random spots on the field. They stay until an enemy hits them, then blast. Upgrades add mine count and damage. Unlock and upgrade with gems in the Gem Shop.",
     pdef: "Point Defense. Sentry guns on the outpost wall behind your ship intercept incoming bullets and missiles. The first sentry comes online at level 1. Additional sentries unlock at levels 4, 8 and 12, up to four. They track and fire at projectiles in their reach with a modest intercept rate, thinning volleys without erasing them. Laser sweeps cannot be intercepted. From level 6 some shots are deflected back at enemies.",
     coinVal: "Increases coins dropped by every kill. Stacks with the permanent Coin Value node.",
     interest: "At the start of each new wave, grants bonus coins based on this level (plus any permanent Interest).",
@@ -559,11 +668,11 @@
       const iv = Math.max(BAL.minInterval, BAL.baseInterval * Math.pow(BAL.rateDecay, lv));
       return (1 / iv).toFixed(2) + " shots/sec";
     }
-    if (id === "spread") return lv <= 0 ? "Single bolt" : ((lv === 1 ? 3 : (lv < 4 ? 5 : 7)) + "-shot fan");
+    if (id === "spread") return lv <= 0 ? "Single bolt per gun" : ((lv === 1 ? 3 : (lv < 4 ? 5 : 7)) + "-shot fan per gun");
     if (id === "crit") return "Crit chance " + Math.round(Math.min(0.7, lv * 0.035) * 100) + "%";
     if (id === "critDmg") return "Crits deal " + (2 + lv * 0.22).toFixed(2) + "×";
     if (id === "pierce") return lv ? ("Pierce " + lv + " target" + (lv > 1 ? "s" : "")) : "No pierce";
-    if (id === "multi") return lv ? ("+" + lv + " extra shot" + (lv > 1 ? "s" : "")) : "No extra shots";
+    if (id === "multi") return lv ? ("+" + lv + " extra shot" + (lv > 1 ? "s" : "") + " per gun") : "No extra shots";
     if (id === "bspd") return "Shot speed " + Math.round(BAL.bulletSpd * (1 + 0.10 * lv));
     if (id === "burn") return lv ? ("Burn " + Math.round(lv * 22) + "% of damage over time") : "No burn";
     if (id === "chain") return lv ? (Math.min(4, 1 + (lv / 3 | 0)) + " jump" + (lv > 2 ? "s" : "") + ", " + Math.round(40 + 4 * lv) + "% carry") : "No chain";
@@ -571,7 +680,9 @@
     if (id === "missile") return lv ? ("Missiles online  ·  " + prestMul(t).toFixed(2) + "×" + (t ? "  ·  " + tierOf(t).name : "")) : "Locked";
     if (id === "ship") {
       const hp = Math.round((BAL.baseHp + BAL.shipHpPerLv * (lv + prestBank(t))) * prestMul(t));
-      return "Hull base " + hp + " HP" + (t ? "  ·  " + tierOf(t).name : "");
+      const guns = shipGunCount(t);
+      const extra = t >= 5 ? "  ·  void beam" : "";
+      return "Hull " + hp + " HP  ·  " + guns + " gun" + (guns > 1 ? "s" : "") + extra + (t ? "  ·  " + tierOf(t).name : "  ·  Mk I");
     }
     if (id === "hp") return "+" + (BAL.hpPerBuy * lv) + " max HP, repairs on buy";
     if (id === "shield") return lv ? ("Shield " + Math.round((BAL.maxShieldBase + BAL.shieldPerLv * (lv - 1 + prestBank(t))) * prestMul(t)) + (t ? "  ·  " + tierOf(t).name : "")) : "No shield";
@@ -579,7 +690,7 @@
     if (id === "armor") return "Damage cut " + Math.round(Math.min(0.62, lv * 0.035 + t * 0.06) * 100) + "%";
     if (id === "regen") return lv ? ( (lv * 2.2).toFixed(1) + " HP/sec") : "No hull regen";
     if (id === "thorns") return lv ? (Math.round(lv * 14) + "% reflect") : "No thorns";
-    if (id === "knock") return lv ? ("Knockback " + (lv * 18)) : "No knockback";
+    if (id === "knock") return lv ? ("Range and push Lv " + lv + "/12  ·  never off-screen") : "No knockback";
     if (id === "freeze") return lv ? ("Slow " + Math.round(Math.min(0.55, lv * 0.06) * 100) + "%") : "No freeze";
     if (id === "drone") return lv ? ("Drone online  ·  " + prestMul(t).toFixed(2) + "×" + (t ? "  ·  " + tierOf(t).name : "")) : "No drone";
     if (id === "dcount") return lv ? ("+" + lv + " extra drone" + (lv > 1 ? "s" : "")) : "Single drone when owned";
@@ -598,9 +709,9 @@
     if (id === "rail") return lv ? ("Rail every " + (Math.max(0.35, 0.85 * Math.pow(0.92, lv - 1))).toFixed(2) + "s") : "Locked in the Gem Shop";
     if (id === "tesla") return lv ? ("Arc hops " + (2 + (lv / 3 | 0)) + "  ·  " + (Math.max(0.40, 1.0 * Math.pow(0.93, lv - 1))).toFixed(2) + "s") : "Locked in the Gem Shop";
     if (id === "flak") return lv ? ("Flak burst " + (70 + lv * 6) + "r") : "Locked in the Gem Shop";
-    if (id === "flame") return lv ? ("Cone " + (300 + lv * 18) + "r  ·  close-range burn") : "Locked in the Gem Shop";
+    if (id === "nuke") return lv ? ("Nuke every " + (Math.max(3.4, 5.2 - lv * 0.14)).toFixed(1) + "s  ·  blast " + (200 + lv * 16) + "r") : "Locked in the Gem Shop";
     if (id === "pylon") return lv ? ("Pylon zap  " + (340 + lv * 18) + "r") : "Locked in the Gem Shop";
-    if (id === "mines") return lv ? ("Mine every " + (Math.max(1.2, 2.4 - lv * 0.1)).toFixed(1) + "s") : "Locked in the Gem Shop";
+    if (id === "mines") return lv ? ((3 + ((lv - 1) * 0.7 | 0)) + " mines each wave  ·  blast " + (80 + lv * 6) + "r") : "Locked in the Gem Shop";
 
     if (id === "coinVal") return "Kill coins +" + Math.round(lv * 10) + "%";
     if (id === "interest") return lv ? (BAL.interestPerWave * lv) + " coins each wave" : "No interest";
@@ -629,7 +740,7 @@
       bestWave: opts.bestWave || 0,
       persist: opts.persist !== false,
       shop: opts.shop ? Object.assign(defaultShop(), opts.shop) : defaultShop(),
-      railCd: 0, teslaCd: 0, flakCd: 0, flameCd: 0, flames: [], pylonCd: 0, pylonAim: -Math.PI/2, mineCd: 0, mines: [], teslaArcs: [], pdefAim: [-Math.PI/2,-Math.PI/2,-Math.PI/2,-Math.PI/2], pdefCds: [0,0,0,0]
+      railCd: 0, teslaCd: 0, flakCd: 0, nukeCd: 0.8, nukeFx: [], voidBeam: null, pylonCd: 0, pylonAim: -Math.PI/2, mineCd: 0, mines: [], teslaArcs: [], pdefAim: [-Math.PI/2,-Math.PI/2,-Math.PI/2,-Math.PI/2], pdefCds: [0,0,0,0], shieldBreakT: 0
     };
     if (run.perma.slot >= 1) run.up.spread = Math.max(run.up.spread, 1);
     if (run.perma.slot >= 2) run.up.laser = Math.max(run.up.laser, 1);
@@ -670,6 +781,24 @@
       run.phase = "break"; run.phaseT = n === 1 ? 1.2 : BAL.waveBreak;
       run.banner = { type: "wave", n: n, t: run.phaseT };
     }
+    placeWaveMines(run);
+  }
+
+  function placeWaveMines(run) {
+    const lv = shopLv(run, "mines");
+    if (lv <= 0) { run.mines = []; return; }
+    const st = playerStats(run);
+    const n = 3 + ((lv - 1) * 0.7 | 0); // 3 at lv1, up to 9 at lv10
+    const dmg = st.dmg * (2.4 + 0.38 * lv);
+    const top = 180, bot = RAIL_Y - 200, pad = 70;
+    run.mines = [];
+    for (let i = 0; i < n; i++) {
+      let x = pad + run.rng() * (W - pad * 2);
+      let y = top + run.rng() * Math.max(80, bot - top);
+      // keep off the ship pocket
+      if (Math.hypot(x - SHIP_X, y - SHIP_Y) < 140) y = top + run.rng() * 240;
+      run.mines.push({ x: x, y: y, r: 18, t: 9999, dmg: dmg, planted: true });
+    }
   }
 
   function composeWave(run) {
@@ -683,7 +812,7 @@
       }
       return;
     }
-    const count = Math.min(BAL.countMax, Math.floor(BAL.countBase + n * BAL.countPerWave));
+    const count = waveEnemyCount(n);
     const poolE = ["spark", "drifter"];
     if (n >= 3) poolE.push("razor");
     if (n >= 6) poolE.push("shooter");
@@ -697,7 +826,7 @@
     for (let i = 0; i < count; i++) {
       let r = run.rng() * wsum, pick = poolE[0];
       for (let k = 0; k < poolE.length; k++) { r -= weights[k]; if (r <= 0) { pick = poolE[k]; break; } }
-      run.pending.push({ type: pick, delay: 0.12 + i * (n < 5 ? 0.32 : 0.22) });
+      run.pending.push({ type: pick, delay: 0.10 + i * (n < 5 ? 0.32 : n < 20 ? 0.22 : n < 30 ? 0.12 : 0.07) });
     }
     const skipN = Math.min(run.pending.length - 1, playerStats(run).skip | 0);
     if (skipN > 0 && n % 10 !== 0) {
@@ -834,29 +963,35 @@
   }
 
   function fireBlaster(run, st) {
-    const m = muzzle(run);
-    const ang = aimAngle(run, m.x, m.y, st.bulletSpd);
-    run.aimAng = ang;
+    const muzzles = shipMuzzles(run);
+    const gunDmg = st.gunDmg || st.dmg;
     const spreadWays = run.up.spread <= 0 ? 1 : (run.up.spread === 1 ? 3 : (run.up.spread < 4 ? 5 : 7));
     const extra = st.multi || 0;
     const ways = Math.min(9, spreadWays + extra);
     const spreadW = ways === 1 ? 0 : (ways <= 3 ? 0.18 : (ways <= 5 ? 0.14 : 0.11));
     const start = -((ways - 1) / 2);
     const mid = (ways - 1) / 2;
-    for (let i = 0; i < ways; i++) {
-      const a = ang + (start + i) * spreadW;
-      const crit = run.rng() < st.crit;
-      const dmg = st.dmg * (crit ? st.critMul : 1) * (ways > 1 && i !== mid ? 0.85 : 1);
-      const b = take("bullets");
-      b.x = m.x + Math.cos(a) * 8; b.y = m.y + Math.sin(a) * 8;
-      b.vx = Math.cos(a) * st.bulletSpd; b.vy = Math.sin(a) * st.bulletSpd;
-      const ti = tierOf(st.tierBlaster || 0);
-      b.r = crit ? 7 : 5; b.dmg = dmg; b.friendly = true; b.color = crit ? ti.core : ti.color;
-      b.life = 1.85; b.crit = crit; b.kind = "blast"; b.target = null; b.turn = 0;
-      b.tier = st.tierBlaster || 0;
-      b.pierce = st.pierce; b.bounces = st.ricochet; b.hitSet = 0;
-      run.bullets.push(b);
+    let aim = -Math.PI / 2;
+    for (let g = 0; g < muzzles.length; g++) {
+      const m = muzzles[g];
+      const ang = aimAngle(run, m.x, m.y, st.bulletSpd);
+      if (g === 0) aim = ang;
+      for (let i = 0; i < ways; i++) {
+        const a = ang + (start + i) * spreadW;
+        const crit = run.rng() < st.crit;
+        const dmg = gunDmg * (crit ? st.critMul : 1) * (ways > 1 && i !== mid ? 0.85 : 1);
+        const b = take("bullets");
+        b.x = m.x + Math.cos(a) * 8; b.y = m.y + Math.sin(a) * 8;
+        b.vx = Math.cos(a) * st.bulletSpd; b.vy = Math.sin(a) * st.bulletSpd;
+        const ti = tierOf(st.tierBlaster || 0);
+        b.r = crit ? 6 : 4.5; b.dmg = dmg; b.friendly = true; b.color = crit ? ti.core : ti.color;
+        b.life = 1.85; b.crit = crit; b.kind = "blast"; b.target = null; b.turn = 0;
+        b.tier = st.tierBlaster || 0;
+        b.pierce = st.pierce; b.bounces = st.ricochet; b.hitSet = 0;
+        run.bullets.push(b);
+      }
     }
+    run.aimAng = aim;
   }
 
   function fireMissile(run, st) {
@@ -978,6 +1113,7 @@
     if (run.shield > 0) {
       const used = Math.min(run.shield, dmg);
       run.shield -= used; dmg -= used; run.shieldWait = BAL.shieldRegenDelay;
+      if (run.shield <= 0) { run.shield = 0; run.shieldBreakT = 0.85; }
     }
     if (dmg <= 0) { run.shake = Math.max(run.shake, 6); return; }
     run.hp -= dmg; run.invuln = 0.55; run.shake = 14; run.flash = 0.18;
@@ -1023,10 +1159,28 @@
     run.pickups.push(p);
   }
 
+  function applyKnockback(run, e, st) {
+    const lv = st.knockLv || 0;
+    if (lv <= 0 || !e || e.type === "boss") return;
+    const t = Math.min(1, lv / 12);
+    const reach = 140 + t * Math.max(80, SHIP_Y - fieldTop() - 140);
+    const dist = Math.hypot(e.x - SHIP_X, e.y - SHIP_Y);
+    if (dist > reach) return;
+    const top = fieldTop() + (e.r || 16);
+    // Max level can drive enemies to the top edge. Wave resistance raises the ceiling so
+    // late swarms hold around mid-field instead of being pinned off the top.
+    const unresisted = SHIP_Y - 90 - t * (SHIP_Y - 90 - top);
+    const hold = knockResist(run.wave) * (SHIP_Y - top) * 0.95;
+    const ceil = Math.max(top, unresisted + hold);
+    const step = 18 + t * 70;
+    e.y = Math.max(ceil, e.y - step);
+    e.x = Math.max(40, Math.min(W - 40, e.x));
+  }
+
   function applyOnHit(run, e, dmg, crit, st) {
     if (st.burn > 0) { e.burn = Math.max(e.burn, 1.6 + run.up.burn * 0.15); e.burnDps = st.dmg * st.burn; }
     if (st.chill > 0) e.chill = Math.max(e.chill, 0.7);
-    if (st.knock > 0 && e.type !== "boss") e.y -= st.knock * 0.35;
+    if ((st.knockLv || st.knock) > 0 && e.type !== "boss") applyKnockback(run, e, st);
     if (st.chain > 0) {
       const hops = Math.min(4, 1 + (st.chain / 3 | 0));
       let from = e, carry = dmg * (0.40 + 0.04 * st.chain);
@@ -1236,7 +1390,87 @@
     if (!unlocked) return 0;
     const list = (id === "pylon" || id === "mines") ? (sh.addons || []) : (sh.weapons || []);
     if (list.indexOf(id) < 0) return 0;
-    return Math.max(1, run.up[id] || 1);
+    const lv = (sh.levels && (sh.levels[id] | 0)) || 0;
+    return Math.max(1, lv);
+  }
+
+
+  function shieldArcGeom() {
+    return { cx: SHIP_X, cy: SHIP_Y + 28, r: 152, thick: 24, half: 0.98 };
+  }
+  function pointHitsShieldArc(x, y, rad) {
+    const A = shieldArcGeom();
+    const dx = x - A.cx, dy = y - A.cy;
+    const d = Math.hypot(dx, dy);
+    if (d < A.r - A.thick - rad || d > A.r + A.thick + rad) return false;
+    let a = Math.atan2(dy, dx) + Math.PI / 2;
+    while (a > Math.PI) a -= Math.PI * 2;
+    while (a < -Math.PI) a += Math.PI * 2;
+    return Math.abs(a) < A.half;
+  }
+  function segmentHitsShieldArc(x0, y0, x1, y1, rad) {
+    const steps = 5;
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      if (pointHitsShieldArc(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, rad)) return true;
+    }
+    return false;
+  }
+  function distToPolyline(px, py, pts) {
+    let best = 1e9;
+    for (let i = 1; i < pts.length; i++) {
+      const d = distToSegment(px, py, pts[i - 1].x, pts[i - 1].y, pts[i].x, pts[i].y);
+      if (d < best) best = d;
+    }
+    return best;
+  }
+  function detonateNuke(run, b, primary) {
+    const rad = b.nukeR || 220;
+    if (!run.nukeFx) run.nukeFx = [];
+    run.nukeFx.push({ x: b.x, y: b.y, t: 0, life: 0.72, r: rad, kind: "nuke" });
+    run.flash = Math.max(run.flash || 0, 0.35);
+    run.shake = Math.max(run.shake || 0, 16);
+    burst(run, b.x, b.y, C.orange, 16);
+    burst(run, b.x, b.y, C.magenta, 10);
+    if (primary && primary.hp > 0) hitEnemy(run, primary, b.dmg, false);
+    const splash = b.splash || b.dmg * 0.5;
+    for (let k = run.enemies.length - 1; k >= 0; k--) {
+      const e = run.enemies[k];
+      if (!e || e.hp <= 0 || e === primary) continue;
+      if (Math.hypot(e.x - b.x, e.y - b.y) < e.r + rad) {
+        const fall = 1 - 0.35 * Math.min(1, Math.hypot(e.x - b.x, e.y - b.y) / rad);
+        hitEnemy(run, e, splash * fall, false);
+      }
+    }
+  }
+  function updateVoidBeam(run, dt, st) {
+    if ((st.tierShip || 0) < 5) { run.voidBeam = null; return; }
+    if (!run.voidBeam) run.voidBeam = { t: 0, pts: [], tick: 0 };
+    const b = run.voidBeam;
+    b.t += dt;
+    const pts = [];
+    const originX = SHIP_X, originY = SHIP_Y - 78;
+    const top = fieldTop() + 8;
+    const amp = 210 + 50 * Math.sin(b.t * 0.65);
+    const phase = b.t * 2.15;
+    const k = 0.0078;
+    for (let y = originY; y > top; y -= 20) {
+      const u = originY - y;
+      const x = originX + Math.sin(phase + u * k) * amp + Math.sin(phase * 0.55 + u * k * 2.1) * (amp * 0.32);
+      pts.push({ x: x, y: y });
+    }
+    b.pts = pts;
+    b.tick -= dt;
+    if (b.tick <= 0 && pts.length > 1) {
+      b.tick = 0.08;
+      const dmg = (st.gunDmg || st.dmg) * 5 * 0.08 * 1.15; // modest DoT on top of 5 guns
+      const halfW = 18;
+      for (let i = 0; i < run.enemies.length; i++) {
+        const e = run.enemies[i];
+        if (!e || e.hp <= 0) continue;
+        if (distToPolyline(e.x, e.y, pts) < e.r + halfW) hitEnemy(run, e, dmg, false, true);
+      }
+    }
   }
 
   function updateShopWeapons(run, dt, st) {
@@ -1314,68 +1548,31 @@
         run.flakCd = Math.max(0.40, 0.80 * Math.pow(0.93, lvF - 1));
       }
     }
-    const lvFl = shopLv(run, "flame");
-    if (lvFl > 0) {
-      if (!run.flames) run.flames = [];
-      const range = 300 + lvFl * 18;
-      const half = 0.46 + lvFl * 0.015;
-      const muzzleX = SHIP_X, muzzleY = SHIP_Y - 58;
-      const aim = run.hullAng || -Math.PI / 2;
-      // emit cached flame particles
-      run.flameEmit = (run.flameEmit || 0) + dt;
-      const emitEvery = 0.012;
-      while (run.flameEmit >= emitEvery && run.flames.length < 72) {
-        run.flameEmit -= emitEvery;
-        const spread = (run.rng() - 0.5) * 2 * half;
-        const ang = aim + spread;
-        const spd = 340 + run.rng() * 320 + lvFl * 10;
-        run.flames.push({
-          x: muzzleX + (run.rng() - 0.5) * 22,
-          y: muzzleY + (run.rng() - 0.5) * 10,
-          vx: Math.cos(ang) * spd,
-          vy: Math.sin(ang) * spd,
-          t: 0,
-          life: 0.38 + run.rng() * 0.22,
-          spr: (run.rng() * 3) | 0,
-          spin: (run.rng() - 0.5) * 10,
-          rot: run.rng() * 6.28,
-          sc: 1.15 + run.rng() * 0.9
-        });
-      }
-      for (let i = run.flames.length - 1; i >= 0; i--) {
-        const f = run.flames[i];
-        f.t += dt;
-        f.x += f.vx * dt;
-        f.y += f.vy * dt;
-        f.rot += f.spin * dt;
-        if (f.t >= f.life) run.flames.splice(i, 1);
-      }
-      run.flameTick = (run.flameTick || 0) - dt;
-      if (run.flameTick <= 0) {
-        const tick = 0.08;
-        run.flameTick = tick;
-        const dps = st.dmg * (1.15 + 0.22 * lvFl);
-        const burnDps = st.dmg * (0.40 + 0.07 * lvFl);
-        for (let k = 0; k < run.enemies.length; k++) {
-          const e = run.enemies[k];
-          if (!e || e.hp <= 0) continue;
-          const dx = e.x - muzzleX, dy = e.y - muzzleY;
-          const dist = Math.hypot(dx, dy);
-          if (dist > range + e.r) continue;
-          const ang = Math.atan2(dy, dx);
-          let diff = ang - aim;
-          while (diff > Math.PI) diff -= Math.PI * 2;
-          while (diff < -Math.PI) diff += Math.PI * 2;
-          if (Math.abs(diff) > half + 0.08) continue;
-          const close = 1.45 - 0.45 * Math.min(1, dist / range);
-          const dmg = dps * tick * close;
-          hitEnemy(run, e, dmg, false, true);
-          e.burn = Math.max(e.burn || 0, 1.4 + lvFl * 0.08);
-          e.burnDps = Math.max(e.burnDps || 0, burnDps);
+    const lvNk = shopLv(run, "nuke");
+    if (!run.nukeFx) run.nukeFx = [];
+    for (let i = run.nukeFx.length - 1; i >= 0; i--) {
+      run.nukeFx[i].t += dt;
+      if (run.nukeFx[i].t >= run.nukeFx[i].life) run.nukeFx.splice(i, 1);
+    }
+    if (lvNk > 0) {
+      run.nukeCd = (run.nukeCd == null ? 0.6 : run.nukeCd) - dt;
+      if (run.nukeCd <= 0 && run.enemies.length) {
+        const tgt = closestEnemy(run, SHIP_X, SHIP_Y - 80);
+        if (tgt) {
+          const m = muzzle(run);
+          const ang = Math.atan2(tgt.y - m.y, tgt.x - m.x);
+          const b = take("bullets");
+          b.x = m.x; b.y = m.y;
+          b.vx = Math.cos(ang) * 280; b.vy = Math.sin(ang) * 280;
+          b.r = 11; b.dmg = st.dmg * (16 + 1.6 * lvNk); b.friendly = true;
+          b.color = C.orange; b.life = 3.2; b.kind = "nuke"; b.crit = false;
+          b.tier = 0; b.pierce = 0; b.bounces = 0; b.target = tgt; b.turn = 4;
+          b.splash = st.dmg * (7.5 + 0.85 * lvNk);
+          b.nukeR = 200 + lvNk * 16;
+          run.bullets.push(b);
         }
+        run.nukeCd = Math.max(3.4, 5.2 - lvNk * 0.14);
       }
-    } else if (run.flames && run.flames.length) {
-      run.flames.length = 0;
     }
     const lvPy = shopLv(run, "pylon");
     if (lvPy > 0) {
@@ -1401,34 +1598,27 @@
       }
     }
     const lvM = shopLv(run, "mines");
+    if (!run.mines) run.mines = [];
     if (lvM > 0) {
-      if (!run.mines) run.mines = [];
-      run.mineCd = (run.mineCd || 0) - dt;
-      if (run.mineCd <= 0) {
-        if (run.mines.length < 5) {
-          run.mines.push({ x: SHIP_X + (run.rng() - 0.5) * 80, y: SHIP_Y - 90, r: 16, t: 6, dmg: st.dmg * (1.8 + 0.2 * lvM) });
-        }
-        run.mineCd = Math.max(1.2, 2.4 - lvM * 0.1);
-      }
+      const blastR = 80 + lvM * 6;
       for (let i = run.mines.length - 1; i >= 0; i--) {
         const m = run.mines[i];
-        m.y -= 40 * dt;
-        m.t -= dt;
         let hit = false;
-        for (let k = run.enemies.length - 1; k >= 0; k--) {
+        for (let k = 0; k < run.enemies.length; k++) {
           const e = run.enemies[k];
           if (!e || e.hp <= 0) continue;
-          if (Math.hypot(e.x - m.x, e.y - m.y) < e.r + m.r) {
-            burst(run, m.x, m.y, C.orange, 10);
-            for (let j = run.enemies.length - 1; j >= 0; j--) {
-              const e2 = run.enemies[j];
-              if (e2 && e2.hp > 0 && Math.hypot(e2.x - m.x, e2.y - m.y) < e2.r + 70) hitEnemy(run, e2, m.dmg, false);
-            }
-            hit = true;
-            break;
-          }
+          if (Math.hypot(e.x - m.x, e.y - m.y) < e.r + m.r) { hit = true; break; }
         }
-        if (hit || m.t <= 0 || m.y < -40) run.mines.splice(i, 1);
+        if (hit) {
+          burst(run, m.x, m.y, C.orange, 12);
+          if (!run.nukeFx) run.nukeFx = [];
+          run.nukeFx.push({ x: m.x, y: m.y, t: 0, life: 0.28, r: blastR, kind: "mine" });
+          for (let j = run.enemies.length - 1; j >= 0; j--) {
+            const e2 = run.enemies[j];
+            if (e2 && e2.hp > 0 && Math.hypot(e2.x - m.x, e2.y - m.y) < e2.r + blastR) hitEnemy(run, e2, m.dmg, false);
+          }
+          run.mines.splice(i, 1);
+        }
       }
     }
   }
@@ -1507,6 +1697,8 @@
     }
 
     updateShopWeapons(run, dt, st);
+    updateVoidBeam(run, dt, st);
+    if (run.shieldBreakT > 0) run.shieldBreakT = Math.max(0, run.shieldBreakT - dt);
 
     if (st.emp > 0) {
 
@@ -1624,6 +1816,19 @@
           continue;
         }
       }
+      if (b.kind === "nuke") {
+        let explode = b.life < 0.12;
+        let primary = null;
+        for (let k = 0; k < run.enemies.length; k++) {
+          const e = run.enemies[k];
+          if (e && e.hp > 0 && Math.hypot(e.x - b.x, e.y - b.y) < e.r + 22) { explode = true; primary = e; break; }
+        }
+        if (explode) {
+          detonateNuke(run, b, primary);
+          give("bullets", popAt(run.bullets, i));
+          continue;
+        }
+      }
       if (b.friendly) {
         let hit = false;
         for (let k = run.enemies.length - 1; k >= 0; k--) {
@@ -1643,9 +1848,13 @@
           }
         }
         if (hit && !run.bullets[i]) continue;
-      } else if (distToSegment(SHIP_X, SHIP_Y, x0, y0, b.x, b.y) < ((st.maxShield > 0 && run.shield > 0) ? 95 : 36) + b.r) {
-        hurt(run, b.dmg);
-        give("bullets", popAt(run.bullets, i));
+      } else {
+        const hitArc = (st.maxShield > 0 && run.shield > 0) && segmentHitsShieldArc(x0, y0, b.x, b.y, b.r);
+        const hitHull = distToSegment(SHIP_X, SHIP_Y, x0, y0, b.x, b.y) < 36 + b.r;
+        if (hitArc || hitHull) {
+          hurt(run, b.dmg);
+          give("bullets", popAt(run.bullets, i));
+        }
       }
     }
 
@@ -1705,7 +1914,7 @@
         case "brood":
           e.y += e.spd * sdt;
           e.spawnCd -= sdt;
-          if (e.spawnCd <= 0 && run.enemies.length < BAL.countMax + 6) {
+          if (e.spawnCd <= 0 && run.enemies.length < Math.max(BAL.countMax + 6, waveEnemyCount(run.wave) + 8)) {
             spawnEnemy(run, "spark", { x: e.x, y: e.y + 10 });
             e.spawnCd = ENEMY.brood.spawn;
           }
@@ -1868,6 +2077,11 @@
 
   function finishEnemyStep(run, e, dt) {
     e.x = Math.max(40, Math.min(W - 40, e.x));
+    if (e._onField || e.y + (e.r || 16) >= fieldTop()) {
+      e._onField = true;
+      if (e.type === "boss") e.y = Math.max(fieldTop() + 20, e.y);
+      else clampEnemyPos(e);
+    }
     const hitShip = Math.hypot(e.x - SHIP_X, e.y - SHIP_Y) < e.r + 42;
     const hitRail = e.y + e.r >= RAIL_Y;
     if (hitShip || hitRail) {
@@ -1901,6 +2115,7 @@
     if (run.dead) return false;
     const def = UP_BY_ID[id];
     if (!def) return false;
+    if (def.shop) return false; // gem-shop items upgrade with gems only
     if (!isUnlocked(id, run.wave, run.up, run.bestWave)) return false;
     const lv = run.up[id] || 0;
     if (def.prestige && lv >= 10) return false;
@@ -2070,9 +2285,74 @@
     return rows;
   }
 
+  function simulateSwarmCheck(opts) {
+    opts = opts || {};
+    const mid = Object.assign(defaultMid(), {
+      dmg: 10, rate: 14, spread: 6, multi: 4, pierce: 4, bspd: 6, crit: 6, critDmg: 4, burn: 3,
+      ship: 10, hp: 12, shield: 8, shRegen: 6, armor: 6, regen: 4, knock: 12, pdef: 8,
+      laser: 6, missile: 5, drone: 4, dcount: 2, coinVal: 4
+    });
+    const prest = Object.assign(defaultPrest(), { dmg: 3, ship: 4, laser: 2, missile: 2, armor: 2, shield: 2, drone: 1 });
+    const perma = Object.assign(defaultPerma(), { dmg: 10, rate: 8, hp: 10, armor: 6, shield: 6, crit: 5, startCoins: 8, coinValue: 5, pdef: 4 });
+    const run = createRun(perma, { seed: opts.seed || 4242, bestWave: 40, persist: false, mid: mid, prest: prest, carryCoins: 800, shop: defaultShop() });
+    run.wave = 0;
+    beginWave(run, opts.wave || 33);
+    run.phase = "combat"; run.phaseT = 0; run.banner = null;
+    composeWave(run);
+    // flush pending quickly onto the field
+    const pending = run.pending.slice();
+    run.pending = [];
+    pending.forEach((p, i) => {
+      if (p.type === "boss") return;
+      const e = spawnEnemy(run, p.type);
+      e.y = 80 + (i % 10) * 40 + (i * 13) % 220;
+      e._onField = true;
+    });
+    const samples = [];
+    const dt = 1 / 30;
+    const secs = opts.secs || 8;
+    for (let t = 0; t < secs; t += dt) {
+      autoBuyMid(run);
+      updateRun(run, dt);
+      const on = [];
+      for (let i = 0; i < run.enemies.length; i++) {
+        const e = run.enemies[i];
+        if (!e || e.type === "boss") continue;
+        const vis = e.y + e.r > fieldTop() && e.y - e.r < RAIL_Y;
+        if (vis) on.push(e.y);
+      }
+      const total = run.enemies.filter(e => e && e.type !== "boss").length;
+      samples.push({ n: total, on: on.length, ys: on.slice() });
+    }
+    const ys = [];
+    let onSum = 0, nSum = 0, fracSum = 0, fracN = 0;
+    samples.forEach(s => {
+      nSum += s.n; onSum += s.on;
+      if (s.n > 0) { fracSum += s.on / s.n; fracN++; }
+      s.ys.forEach(y => ys.push(y));
+    });
+    ys.sort((a, b) => a - b);
+    const median = ys.length ? ys[ys.length >> 1] : 0;
+    const avg = ys.length ? ys.reduce((a, b) => a + b, 0) / ys.length : 0;
+    return {
+      wave: opts.wave || 33,
+      samples: samples.length,
+      avgY: Math.round(avg),
+      medianY: Math.round(median),
+      onScreenFrac: fracN ? Math.round(1000 * fracSum / fracN) / 1000 : 0,
+      fieldTop: fieldTop(),
+      railY: RAIL_Y,
+      shipY: SHIP_Y,
+      midY: Math.round((fieldTop() + RAIL_Y) / 2),
+      enemiesEnd: run.enemies.length,
+      knock: playerStats(run).knockLv,
+      dead: !!run.dead
+    };
+  }
+
   const LO = {
     BAL, UPGRADES, PERMA, ENEMY, TABS,
-    createRun, updateRun, tryBuy, tryBuyPerma, autoBuyMid, autoBuyPerma, fireMissile, fireBlaster,
+    createRun, updateRun, tryBuy, tryBuyPerma, autoBuyMid, autoBuyPerma, fireMissile, fireBlaster, shopLv, shopUpgradeCost, shipMuzzles, simulateSwarmCheck, placeWaveMines, waveEnemyCount, fieldTop,
     playerStats, gemsFor, simulateUntilDeath, simulateRuns, beginWave, spawnEnemy,
     defaultPerma, defaultMid, defaultPrest, defaultSave, defaultShop, loadSave, writeSave, migrateSave, midCost, costOf, isUnlocked, SHOP, carryRate, pdefTurretCount, pdefNextAt,
     bossInfo, settlePickups, tryPrestige, prestigeCost, prestMul, tierOf, PRESTIGE_IDS, TIER, MAX_PREST, INFO, PERMA_INFO, effectLine,
@@ -2260,147 +2540,1019 @@
     g.drawImage(im, x - im._ox * s, y - im._oy * s, im.width * s, im.height * s);
   }
 
-  function pathPlayer(g) {
-    g.beginPath();
-    g.moveTo(0, -78); g.lineTo(5, -52); g.lineTo(7, -18); g.lineTo(9, 10);
-    g.lineTo(18, 28); g.lineTo(14, 38); g.lineTo(6, 32); g.lineTo(0, 36);
-    g.lineTo(-6, 32); g.lineTo(-14, 38); g.lineTo(-18, 28); g.lineTo(-9, 10);
-    g.lineTo(-7, -18); g.lineTo(-5, -52); g.closePath();
-  }
-  function pathLWing(g) { g.beginPath(); g.moveTo(-8, -6); g.lineTo(-82, 34); g.lineTo(-94, 44); g.lineTo(-88, 56); g.lineTo(-70, 50); g.lineTo(-14, 26); g.closePath(); }
-  function pathRWing(g) { g.beginPath(); g.moveTo(8, -6); g.lineTo(82, 34); g.lineTo(94, 44); g.lineTo(88, 56); g.lineTo(70, 50); g.lineTo(14, 26); g.closePath(); }
-  function pathCanopy(g) { g.beginPath(); g.moveTo(0, -40); g.lineTo(7, -14); g.lineTo(0, 8); g.lineTo(-7, -14); g.closePath(); }
 
-  function wingPair(g, span, y, drop, tip) {
-    g.beginPath();
-    g.moveTo(-12, y); g.lineTo(-span, y + drop); g.lineTo(-span - 14, y + drop + tip); g.lineTo(-span + 10, y + drop + tip + 8); g.lineTo(-16, y + 18); g.closePath();
+  /* ---- Prestige ship drawers, ported from mockups/ships/ships.js ---- */
+  function skinPal(tier, skin) {
+    const t = TIER[Math.max(0, Math.min(5, tier | 0))];
+    const base = {
+      glow: t.color, core: t.core, accent: t.accent,
+      metalDark: "#080c14", metal: "#171f2c", metalHi: "#4a5b70", ink: "#03060b",
+      name: t.name
+    };
+    if (skin === "stealth") return Object.assign({}, base, {
+      glow: "#c8b56a", core: "#e8dca8", accent: "#7a6a30",
+      metal: "#12161c", metalHi: "#3a4250", metalDark: "#05070a", ink: "#020305"
+    });
+    if (skin === "racer") return Object.assign({}, base, {
+      glow: "#ffe500", core: "#fff8d0", accent: "#ff4a00",
+      metal: "#3a2800", metalHi: "#e8c040", metalDark: "#1a0e00"
+    });
+    if (skin === "chrome") return Object.assign({}, base, {
+      glow: "#d8ecff", core: "#ffffff", accent: "#7ec8ff",
+      metal: "#8a98a8", metalHi: "#f4f8ff", metalDark: "#3a4450", ink: "#1a2430"
+    });
+    if (skin === "alien") return Object.assign({}, base, {
+      glow: "#6dff8a", core: "#e8ffe8", accent: "#c8ff00",
+      metal: "#102018", metalHi: "#2a4a30", metalDark: "#06100a", ink: "#030a06"
+    });
+    return base;
   }
-  function wingPairR(g, span, y, drop, tip) {
-    g.beginPath();
-    g.moveTo(12, y); g.lineTo(span, y + drop); g.lineTo(span + 14, y + drop + tip); g.lineTo(span - 10, y + drop + tip + 8); g.lineTo(16, y + 18); g.closePath();
+  function paintSkinExtras(g, pal, skin, tier) {
+    if (!skin || skin === "default") return;
+    if (skin === "racer") {
+      g.save();
+      g.strokeStyle = pal.accent; g.lineWidth = 4; g.shadowColor = pal.accent; g.shadowBlur = 8;
+      g.beginPath(); g.moveTo(0, -70); g.lineTo(0, 44); g.stroke();
+      g.fillStyle = pal.accent;
+      g.beginPath(); g.moveTo(-22, 40); g.lineTo(22, 40); g.lineTo(26, 50); g.lineTo(-26, 50); g.closePath(); g.fill();
+      outline(g, (gg) => { gg.beginPath(); gg.moveTo(-22, 40); gg.lineTo(22, 40); gg.lineTo(26, 50); gg.lineTo(-26, 50); gg.closePath(); }, pal.glow, 1.4, 6);
+      g.restore();
+    } else if (skin === "chrome") {
+      g.save();
+      const grd = g.createLinearGradient(-80, -40, 80, 50);
+      grd.addColorStop(0, "rgba(255,255,255,0)");
+      grd.addColorStop(0.45, "rgba(255,255,255,0.18)");
+      grd.addColorStop(1, "rgba(180,220,255,0.08)");
+      g.fillStyle = grd;
+      g.beginPath(); g.ellipse(0, 0, 90, 70, 0, 0, Math.PI * 2); g.fill();
+      g.restore();
+    } else if (skin === "alien") {
+      g.save();
+      g.strokeStyle = pal.glow; g.globalAlpha = 0.7; g.lineWidth = 1.4; g.shadowColor = pal.glow; g.shadowBlur = 6;
+      g.beginPath(); g.moveTo(-18, -20); g.bezierCurveTo(-40, 0, -50, 20, -28, 36); g.stroke();
+      g.beginPath(); g.moveTo(18, -20); g.bezierCurveTo(40, 0, 50, 20, 28, 36); g.stroke();
+      // eye canopy overlay
+      const eye = (gg) => { gg.beginPath(); gg.ellipse(0, -16, 10, 16, 0, 0, Math.PI * 2); };
+      shade(g, eye, 0, -28, 0, 4, [[0, "#fff"], [0.35, pal.core], [1, "#041208"]], pal.glow, 8);
+      outline(g, eye, pal.glow, 1.3, 5);
+      g.fillStyle = pal.accent; g.shadowColor = pal.accent; g.shadowBlur = 8;
+      g.beginPath(); g.ellipse(0, -18, 3.2, 5, 0, 0, Math.PI * 2); g.fill();
+      g.restore();
+    }
   }
-  function flame(g, x, y, h, col) {
-    g.save(); g.fillStyle = col; g.shadowColor = col; g.shadowBlur = 14;
-    g.beginPath(); g.moveTo(x - 6, y); g.lineTo(x + 6, y); g.lineTo(x + 2, y + h); g.lineTo(x - 2, y + h); g.closePath(); g.fill();
-    g.fillStyle = "#fff"; g.shadowBlur = 6;
-    g.beginPath(); g.moveTo(x - 2.5, y); g.lineTo(x + 2.5, y); g.lineTo(x + 1, y + h * 0.65); g.lineTo(x - 1, y + h * 0.65); g.closePath(); g.fill();
+  function drawPrestigeShip(g, tier, skin) {
+    tier = Math.max(0, Math.min(5, tier | 0));
+    skin = skin || "default";
+    const p = skinPal(tier, skin);
+    const sc = (typeof SHIP_GUN_LAYOUT !== "undefined" ? SHIP_GUN_LAYOUT[tier].scale : 0.8);
+    g.save();
+    g.scale(sc, sc);
+    const drawers = [drawScout, drawFighter, drawHeavyFighter, drawGunship, drawInterceptor, drawFlagship];
+    if (tier === 1 && skin === "stealth") drawFighterStealth(g, p);
+    else if (tier === 1 && skin === "racer") drawFighterRacer(g, p);
+    else if (tier === 1 && skin === "chrome") drawFighterChrome(g, p);
+    else if (tier === 1 && skin === "alien") drawFighterAlien(g, p);
+    else {
+      drawers[tier](g, p, skin === "default" ? "stock" : skin);
+      if (tier !== 1) paintSkinExtras(g, p, skin, tier);
+    }
     g.restore();
   }
-  function plate(g, col, x, y, w, h) {
-    neonFill(g, col, () => { g.beginPath(); g.rect(x, y, w, h); }, 0.22);
-    neonStroke(g, col, 1.4, () => { g.beginPath(); g.rect(x, y, w, h); }, { bloom: 8 });
+  function drawPlayerTo(g, col, accent, tier, skin) {
+    drawPrestigeShip(g, tier, skin || "default");
   }
 
-  function drawPlayerTo(g, col, accent, tier) {
-    col = col || C.cyan; accent = accent || C.magenta;
-    tier = tier | 0;
-    const span = 88 + tier * 14;
-    const nose = -76 - tier * 7;
+  function path(g, fn) { g.beginPath(); fn(g); }
+  function fillPath(g, fn, style) { path(g, fn); g.fillStyle = style; g.fill(); }
+  function strokePath(g, fn, style, w, join) {
+    path(g, fn); g.strokeStyle = style; g.lineWidth = w; g.lineJoin = join || "round"; g.lineCap = "round"; g.stroke();
+  }
 
-    const leftWing = () => {
+  function shade(g, fn, x0, y0, x1, y1, stops, glow, blur) {
+    g.save();
+    path(g, fn);
+    const grd = g.createLinearGradient(x0, y0, x1, y1);
+    for (let i = 0; i < stops.length; i++) grd.addColorStop(stops[i][0], stops[i][1]);
+    g.fillStyle = grd;
+    if (glow) { g.shadowColor = glow; g.shadowBlur = blur == null ? 16 : blur; }
+    g.fill();
+    g.restore();
+  }
+
+  function outline(g, fn, color, w, blur) {
+    g.save();
+    path(g, fn);
+    g.strokeStyle = color;
+    g.lineWidth = w || 2.2;
+    g.lineJoin = "round";
+    g.lineCap = "round";
+    g.shadowColor = color;
+    g.shadowBlur = blur == null ? 10 : blur;
+    g.stroke();
+    g.restore();
+  }
+
+  function clip(g, fn, draw) {
+    g.save();
+    path(g, fn);
+    g.clip();
+    draw(g);
+    g.restore();
+  }
+
+  function highlight(g, fn, x, y, rx, ry, alpha) {
+    clip(g, fn, () => {
+      const grd = g.createRadialGradient(x, y, 0, x, y, rx);
+      grd.addColorStop(0, "rgba(255,255,255," + (alpha == null ? 0.55 : alpha) + ")");
+      grd.addColorStop(0.45, "rgba(255,255,255,0.12)");
+      grd.addColorStop(1, "rgba(255,255,255,0)");
+      g.fillStyle = grd;
       g.beginPath();
-      g.moveTo(-8, -8);
-      g.lineTo(-span, 28 + tier * 2);
-      g.lineTo(-span - 8, 44 + tier * 2);
-      g.lineTo(-span + 16, 50 + tier);
-      g.lineTo(-14, 24);
-      g.closePath();
+      g.ellipse(x, y, rx, ry || rx, 0, 0, Math.PI * 2);
+      g.fill();
+    });
+  }
+
+  function panel(g, x1, y1, x2, y2, col) {
+    g.save();
+    g.strokeStyle = "rgba(0,0,0,0.55)";
+    g.lineWidth = 1.2;
+    g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+    g.strokeStyle = col || "rgba(255,255,255,0.12)";
+    g.lineWidth = 0.6;
+    g.beginPath(); g.moveTo(x1 + 0.8, y1); g.lineTo(x2 + 0.8, y2); g.stroke();
+    g.restore();
+  }
+
+  function engine(g, x, y, w, h, color, core) {
+    g.save();
+    g.translate(x, y);
+    // nozzle housing
+    const house = (gg) => { gg.beginPath(); gg.moveTo(-w, 0); gg.lineTo(w, 0); gg.lineTo(w * 0.72, h * 0.28); gg.lineTo(-w * 0.72, h * 0.28); gg.closePath(); };
+    shade(g, () => house(g), -w, 0, w, 0, [[0, "#1a1a1a"], [0.5, "#3a3a42"], [1, "#101014"]], color, 6);
+    outline(g, () => house(g), color, 1.2, 6);
+    // plume
+    const plume = (gg) => { gg.beginPath(); gg.moveTo(-w * 0.55, h * 0.25); gg.lineTo(w * 0.55, h * 0.25); gg.lineTo(w * 0.18, h); gg.lineTo(-w * 0.18, h); gg.closePath(); };
+    shade(g, () => plume(g), 0, h * 0.2, 0, h, [[0, "#fff"], [0.25, core || color], [0.7, color], [1, "rgba(0,0,0,0)"]], color, 16);
+    g.restore();
+  }
+
+  function barrel(g, x, y, len, r, pal, ang) {
+    g.save();
+    g.translate(x, y);
+    g.rotate(ang || 0);
+    const body = (gg) => { gg.beginPath(); gg.roundRect(-r, -len, r * 2, len + 4, r * 0.4); };
+    shade(g, () => body(g), -r, 0, r, 0, [[0, pal.metalHi], [0.5, pal.metal], [1, pal.metalDark]], pal.glow, 4);
+    outline(g, () => body(g), pal.glow, 1.1, 5);
+    // muzzle glow
+    g.fillStyle = pal.core;
+    g.shadowColor = pal.glow;
+    g.shadowBlur = 10;
+    g.beginPath();
+    g.ellipse(0, -len, r * 0.7, r * 0.45, 0, 0, Math.PI * 2);
+    g.fill();
+    g.restore();
+    const ca = Math.cos(ang || 0), sa = Math.sin(ang || 0);
+    // local (0, -len) rotated
+    return { x: x + sa * -len, y: y + ca * -len };
+  }
+
+  function canopyGlass(g, fn, pal, hx, hy) {
+    shade(g, fn, hx, hy - 16, hx, hy + 22, [
+      [0, "rgba(255,255,255,0.85)"],
+      [0.22, pal.core],
+      [0.55, pal.accent],
+      [1, "rgba(8,10,20,0.92)"]
+    ], pal.accent, 8);
+    outline(g, fn, pal.accent, 1.5, 6);
+    highlight(g, fn, hx - 4, hy - 8, 10, 16, 0.7);
+  }
+
+  function metalStops(pal) {
+    return [
+      [0, pal.metalHi],
+      [0.28, pal.metal],
+      [0.7, pal.metalDark],
+      [1, pal.ink]
+    ];
+  }
+
+  /* ---------------- SHIPS ---------------- */
+  // All ships drawn nose-up, origin at approximate visual center. Return { muzzles, scaleHint }
+
+  function drawScout(g, pal) {
+    // Compact one-person pod. Single nose gun.
+    const body = (gg) => {
+      gg.beginPath();
+      gg.moveTo(0, -52);
+      gg.bezierCurveTo(16, -48, 24, -20, 24, 4);
+      gg.bezierCurveTo(24, 28, 16, 42, 0, 48);
+      gg.bezierCurveTo(-16, 42, -24, 28, -24, 4);
+      gg.bezierCurveTo(-24, -20, -16, -48, 0, -52);
     };
-    const rightWing = () => {
-      g.beginPath();
-      g.moveTo(8, -8);
-      g.lineTo(span, 28 + tier * 2);
-      g.lineTo(span + 8, 44 + tier * 2);
-      g.lineTo(span - 16, 50 + tier);
-      g.lineTo(14, 24);
-      g.closePath();
-    };
-    const body = () => {
-      g.beginPath();
-      g.moveTo(0, nose);
-      g.lineTo(9 + tier, nose + 28);
-      g.lineTo(13 + tier, 6);
-      g.lineTo(18 + tier, 34);
-      g.lineTo(8, 44);
-      g.lineTo(0, 48);
-      g.lineTo(-8, 44);
-      g.lineTo(-18 - tier, 34);
-      g.lineTo(-13 - tier, 6);
-      g.lineTo(-9 - tier, nose + 28);
-      g.closePath();
-    };
-    const canopy = () => {
-      g.beginPath();
-      g.moveTo(0, nose + 28);
-      g.lineTo(7 + tier * 0.6, -8);
-      g.lineTo(0, 14);
-      g.lineTo(-7 - tier * 0.6, -8);
-      g.closePath();
+    const finL = (gg) => { gg.beginPath(); gg.moveTo(-14, 10); gg.lineTo(-46, 28); gg.lineTo(-40, 40); gg.lineTo(-12, 28); gg.closePath(); };
+    const finR = (gg) => { gg.beginPath(); gg.moveTo(14, 10); gg.lineTo(46, 28); gg.lineTo(40, 40); gg.lineTo(12, 28); gg.closePath(); };
+    const canopy = (gg) => {
+      gg.beginPath();
+      gg.ellipse(0, -16, 11, 18, 0, 0, Math.PI * 2);
     };
 
-    // one clean wing pair, solid
-    fillSolid(g, leftWing, col, { y0: -20, y1: 60, bloom: 14 });
-    fillSolid(g, rightWing, col, { y0: -20, y1: 60, bloom: 14 });
-    // modest canards from Mk III, filled only
-    if (tier >= 2) {
-      const canL = () => { g.beginPath(); g.moveTo(-10, -22); g.lineTo(-46 - tier * 4, -40); g.lineTo(-22, -8); g.closePath(); };
-      const canR = () => { g.beginPath(); g.moveTo(10, -22); g.lineTo(46 + tier * 4, -40); g.lineTo(22, -8); g.closePath(); };
-      fillSolid(g, canL, col, { y0: -50, y1: 0, bloom: 8 });
-      fillSolid(g, canR, col, { y0: -50, y1: 0, bloom: 8 });
-      outlineClean(g, canL, col, 1.8);
-      outlineClean(g, canR, col, 1.8);
-    }
-    outlineClean(g, leftWing, col, 2.2);
-    outlineClean(g, rightWing, col, 2.2);
+    shade(g, finL, -14, 10, -46, 40, metalStops(pal), pal.glow, 8);
+    shade(g, finR, 14, 10, 46, 40, metalStops(pal), pal.glow, 8);
+    outline(g, finL, pal.glow, 1.8, 8);
+    outline(g, finR, pal.glow, 1.8, 8);
 
-    // hull
-    fillSolid(g, body, col, { y0: nose, y1: 50, bloom: 16, hi: 0.5, lo: 0.5 });
-    outlineClean(g, body, col, 2.5);
+    shade(g, body, -24, -52, 24, 48, [
+      [0, pal.metalHi], [0.2, blend(pal.metal, pal.glow, 0.18)], [0.65, pal.metal], [1, pal.ink]
+    ], pal.glow, 16);
+    outline(g, body, pal.glow, 2.4, 12);
+    clip(g, body, () => {
+      panel(g, -8, -36, -16, 20, pal.glow);
+      panel(g, 8, -36, 16, 20, pal.glow);
+      panel(g, -18, 8, 18, 8, pal.glow);
+    });
+    highlight(g, body, -6, -24, 16, 28, 0.45);
 
-    // canopy
-    fillSolid(g, canopy, accent, { y0: nose + 20, y1: 20, hi: 0.65, lo: 0.25, bloom: 10 });
-    outlineClean(g, canopy, accent, 1.6);
-    if (tier >= 3) {
+    canopyGlass(g, canopy, pal, 0, -18);
+
+    engine(g, 0, 48, 11, 28, pal.glow, pal.core);
+    const m = barrel(g, 0, -50, 22, 3.2, pal, 0);
+    return { muzzles: [{ x: m.x, y: m.y, id: "1", label: "Nose cannon" }] };
+  }
+
+  function drawFighter(g, pal, skin) {
+    skin = skin || "stock";
+    const stealth = skin === "stealth";
+    const racer = skin === "racer";
+    const chrome = skin === "chrome";
+    const alien = skin === "alien";
+
+    if (alien) return drawFighterAlien(g, pal);
+    if (stealth) return drawFighterStealth(g, pal);
+    if (racer) return drawFighterRacer(g, pal);
+    if (chrome) return drawFighterChrome(g, pal);
+
+    const span = 108;
+    const body = (gg) => {
+      gg.beginPath();
+      gg.moveTo(0, -78);
+      gg.lineTo(9, -54);
+      gg.lineTo(13, -10);
+      gg.lineTo(16, 22);
+      gg.lineTo(10, 44);
+      gg.lineTo(0, 52);
+      gg.lineTo(-10, 44);
+      gg.lineTo(-16, 22);
+      gg.lineTo(-13, -10);
+      gg.lineTo(-9, -54);
+      gg.closePath();
+    };
+    const wingL = (gg) => {
+      gg.beginPath();
+      gg.moveTo(-10, -8);
+      gg.lineTo(-span, 18);
+      gg.lineTo(-span - 8, 36);
+      gg.lineTo(-span + 18, 48);
+      gg.lineTo(-14, 28);
+      gg.closePath();
+    };
+    const wingR = (gg) => {
+      gg.beginPath();
+      gg.moveTo(10, -8);
+      gg.lineTo(span, 18);
+      gg.lineTo(span + 8, 36);
+      gg.lineTo(span - 18, 48);
+      gg.lineTo(14, 28);
+      gg.closePath();
+    };
+    const canopy = (gg) => {
+      gg.beginPath();
+      gg.moveTo(0, -42);
+      gg.bezierCurveTo(9, -36, 10, -8, 0, 6);
+      gg.bezierCurveTo(-10, -8, -9, -36, 0, -42);
+    };
+    const noseCap = (gg) => {
+      gg.beginPath();
+      gg.moveTo(0, -78);
+      gg.lineTo(6, -60);
+      gg.lineTo(-6, -60);
+      gg.closePath();
+    };
+
+    shade(g, wingL, -10, -8, -span, 48, metalStops(pal), pal.glow, 12);
+    shade(g, wingR, 10, -8, span, 48, metalStops(pal), pal.glow, 12);
+    outline(g, wingL, pal.glow, 2.2, 10);
+    outline(g, wingR, pal.glow, 2.2, 10);
+    clip(g, wingL, () => { panel(g, -22, 4, -90, 28, pal.glow); panel(g, -28, 16, -80, 36, pal.glow); });
+    clip(g, wingR, () => { panel(g, 22, 4, 90, 28, pal.glow); panel(g, 28, 16, 80, 36, pal.glow); });
+
+    shade(g, body, 0, -78, 0, 52, [
+      [0, pal.metalHi], [0.25, blend(pal.metal, pal.glow, 0.15)], [0.7, pal.metal], [1, pal.ink]
+    ], pal.glow, 16);
+    outline(g, body, pal.glow, 2.5, 12);
+    clip(g, body, () => {
+      panel(g, -7, -50, -12, 24, pal.glow);
+      panel(g, 7, -50, 12, 24, pal.glow);
+      panel(g, -10, 16, 10, 16, pal.glow);
+    });
+    highlight(g, body, -5, -30, 14, 26, 0.42);
+
+    // decorative nose sensor (not a gun)
+    shade(g, noseCap, 0, -78, 0, -60, [[0, pal.accent], [1, pal.metalDark]], pal.accent, 6);
+    outline(g, noseCap, pal.accent, 1.2, 5);
+    g.save();
+    g.fillStyle = pal.core; g.shadowColor = pal.accent; g.shadowBlur = 6;
+    g.beginPath(); g.arc(0, -70, 2.2, 0, Math.PI * 2); g.fill();
+    g.restore();
+
+    canopyGlass(g, canopy, pal, 0, -20);
+
+    engine(g, -12, 50, 8, 26, pal.glow, pal.core);
+    engine(g, 12, 50, 8, 26, pal.glow, pal.core);
+
+    const l = barrel(g, -78, 8, 26, 3.1, pal, 0);
+    const r = barrel(g, 78, 8, 26, 3.1, pal, 0);
+    return { muzzles: [
+      { x: l.x, y: l.y, id: "1", label: "Left wing gun" },
+      { x: r.x, y: r.y, id: "2", label: "Right wing gun" }
+    ] };
+  }
+
+  function drawFighterStealth(g, pal) {
+    const p = Object.assign({}, pal, { glow: "#c8b56a", core: "#e8dca8", accent: "#7a6a30", metal: "#0c1016", metalHi: "#222830", metalDark: "#05070a", ink: "#020305" });
+    const body = (gg) => {
+      gg.beginPath();
+      gg.moveTo(0, -74);
+      gg.lineTo(12, -48);
+      gg.lineTo(14, -8);
+      gg.lineTo(18, 28);
+      gg.lineTo(8, 50);
+      gg.lineTo(0, 44);
+      gg.lineTo(-8, 50);
+      gg.lineTo(-18, 28);
+      gg.lineTo(-14, -8);
+      gg.lineTo(-12, -48);
+      gg.closePath();
+    };
+    const wingL = (gg) => {
+      gg.beginPath();
+      gg.moveTo(-12, -4);
+      gg.lineTo(-118, 8);
+      gg.lineTo(-124, 18);
+      gg.lineTo(-96, 22);
+      gg.lineTo(-110, 34);
+      gg.lineTo(-18, 32);
+      gg.closePath();
+    };
+    const wingR = (gg) => {
+      gg.beginPath();
+      gg.moveTo(12, -4);
+      gg.lineTo(118, 8);
+      gg.lineTo(124, 18);
+      gg.lineTo(96, 22);
+      gg.lineTo(110, 34);
+      gg.lineTo(18, 32);
+      gg.closePath();
+    };
+    const canopy = (gg) => {
+      gg.beginPath();
+      gg.moveTo(-7, -28); gg.lineTo(7, -28); gg.lineTo(8, 0); gg.lineTo(0, 8); gg.lineTo(-8, 0); gg.closePath();
+    };
+    shade(g, wingL, -12, -4, -118, 34, [[0, "#3a4250"], [0.45, "#1a2028"], [1, "#0a0d12"]], p.glow, 8);
+    shade(g, wingR, 12, -4, 118, 34, [[0, "#3a4250"], [0.45, "#1a2028"], [1, "#0a0d12"]], p.glow, 8);
+    outline(g, wingL, p.glow, 1.7, 6);
+    outline(g, wingR, p.glow, 1.7, 6);
+    highlight(g, wingL, -40, 8, 36, 18, 0.22);
+    highlight(g, wingR, 40, 8, 36, 18, 0.22);
+    shade(g, body, 0, -74, 0, 50, [[0, "#4a5260"], [0.35, "#1e242c"], [1, "#0a0d12"]], p.glow, 10);
+    outline(g, body, p.glow, 2.0, 8);
+    clip(g, body, () => {
+      panel(g, -8, -50, -14, 20, p.glow);
+      panel(g, 8, -50, 14, 20, p.glow);
+      panel(g, -10, 10, 10, 10, p.glow);
+    });
+    highlight(g, body, -5, -20, 12, 22, 0.28);
+    shade(g, canopy, 0, -28, 0, 8, [[0, "#3a4850"], [0.5, "#151a20"], [1, "#05080c"]], p.glow, 4);
+    outline(g, canopy, p.glow, 1.3, 4);
+    engine(g, -11, 48, 7, 20, p.glow, "#888060");
+    engine(g, 11, 48, 7, 20, p.glow, "#888060");
+    const l = barrel(g, -86, 2, 22, 2.6, p, 0);
+    const r = barrel(g, 86, 2, 22, 2.6, p, 0);
+    return { muzzles: [
+      { x: l.x, y: l.y, id: "1", label: "Left wing gun" },
+      { x: r.x, y: r.y, id: "2", label: "Right wing gun" }
+    ] };
+  }
+
+  function drawFighterRacer(g, pal) {
+    const p = Object.assign({}, pal, { glow: "#ffe500", core: "#fff8d0", accent: "#ff4a00" });
+    const body = (gg) => {
+      gg.beginPath();
+      gg.moveTo(0, -96);
+      gg.lineTo(7, -60);
+      gg.lineTo(11, -8);
+      gg.lineTo(13, 28);
+      gg.lineTo(8, 48);
+      gg.lineTo(0, 54);
+      gg.lineTo(-8, 48);
+      gg.lineTo(-13, 28);
+      gg.lineTo(-11, -8);
+      gg.lineTo(-7, -60);
+      gg.closePath();
+    };
+    const wingL = (gg) => {
+      gg.beginPath();
+      gg.moveTo(-8, 0);
+      gg.lineTo(-112, 26);
+      gg.lineTo(-100, 44);
+      gg.lineTo(-12, 30);
+      gg.closePath();
+    };
+    const wingR = (gg) => {
+      gg.beginPath();
+      gg.moveTo(8, 0);
+      gg.lineTo(112, 26);
+      gg.lineTo(100, 44);
+      gg.lineTo(12, 30);
+      gg.closePath();
+    };
+    const spoiler = (gg) => {
+      gg.beginPath();
+      gg.moveTo(-28, 40); gg.lineTo(28, 40); gg.lineTo(30, 50); gg.lineTo(-30, 50); gg.closePath();
+    };
+    const canopy = (gg) => {
+      gg.beginPath();
+      gg.moveTo(0, -50);
+      gg.bezierCurveTo(8, -44, 9, -12, 0, 4);
+      gg.bezierCurveTo(-9, -12, -8, -44, 0, -50);
+    };
+    shade(g, wingL, -8, 0, -112, 44, [[0, "#f4f0e0"], [0.4, "#c8a020"], [1, "#2a1a00"]], p.glow, 10);
+    shade(g, wingR, 8, 0, 112, 44, [[0, "#f4f0e0"], [0.4, "#c8a020"], [1, "#2a1a00"]], p.glow, 10);
+    outline(g, wingL, p.glow, 2, 8);
+    outline(g, wingR, p.glow, 2, 8);
+    shade(g, body, 0, -96, 0, 54, [[0, "#fff8e0"], [0.25, "#e8c040"], [0.7, "#5a3a00"], [1, "#1a0e00"]], p.glow, 14);
+    outline(g, body, p.glow, 2.4, 10);
+    // racing stripe
+    clip(g, body, () => {
+      g.fillStyle = "#111";
+      g.fillRect(-4, -96, 8, 150);
+      g.fillStyle = p.accent;
+      g.fillRect(-2, -96, 4, 150);
+      // number
+      g.fillStyle = "#111";
+      g.font = "700 16px Orbitron, sans-serif";
+      g.textAlign = "center";
+      g.fillText("02", 0, 24);
+    });
+    shade(g, spoiler, 0, 40, 0, 50, [[0, "#222"], [1, "#000"]], p.accent, 6);
+    outline(g, spoiler, p.accent, 1.4, 5);
+    canopyGlass(g, canopy, p, 0, -24);
+    engine(g, -11, 52, 7.5, 30, p.glow, "#fff");
+    engine(g, 11, 52, 7.5, 30, p.glow, "#fff");
+    const l = barrel(g, -80, 14, 24, 2.8, p, 0);
+    const r = barrel(g, 80, 14, 24, 2.8, p, 0);
+    return { muzzles: [
+      { x: l.x, y: l.y, id: "1", label: "Left wing gun" },
+      { x: r.x, y: r.y, id: "2", label: "Right wing gun" }
+    ] };
+  }
+
+  function drawFighterChrome(g, pal) {
+    const p = Object.assign({}, pal, { glow: "#d0e8f8", core: "#ffffff", accent: "#8ad8ff" });
+    const chromeStops = [[0, "#ffffff"], [0.18, "#c8d8e8"], [0.4, "#6a7a88"], [0.62, "#e8f0f8"], [0.82, "#3a4450"], [1, "#101418"]];
+    const body = (gg) => {
+      gg.beginPath();
+      gg.moveTo(0, -80);
+      gg.bezierCurveTo(14, -60, 16, -8, 15, 24);
+      gg.lineTo(10, 50);
+      gg.lineTo(0, 56);
+      gg.lineTo(-10, 50);
+      gg.lineTo(-15, 24);
+      gg.bezierCurveTo(-16, -8, -14, -60, 0, -80);
+    };
+    const wingL = (gg) => {
+      gg.beginPath();
+      gg.moveTo(-10, -2);
+      gg.bezierCurveTo(-60, 8, -110, 16, -114, 24);
+      gg.lineTo(-96, 46);
+      gg.lineTo(-14, 30);
+      gg.closePath();
+    };
+    const wingR = (gg) => {
+      gg.beginPath();
+      gg.moveTo(10, -2);
+      gg.bezierCurveTo(60, 8, 110, 16, 114, 24);
+      gg.lineTo(96, 46);
+      gg.lineTo(14, 30);
+      gg.closePath();
+    };
+    const canopy = (gg) => {
+      gg.beginPath();
+      gg.moveTo(0, -40);
+      gg.bezierCurveTo(10, -32, 11, -4, 0, 12);
+      gg.bezierCurveTo(-11, -4, -10, -32, 0, -40);
+    };
+    shade(g, wingL, -10, 0, -114, 46, chromeStops, p.glow, 10);
+    shade(g, wingR, 10, 0, 114, 46, chromeStops, p.glow, 10);
+    outline(g, wingL, p.glow, 1.8, 8);
+    outline(g, wingR, p.glow, 1.8, 8);
+    shade(g, body, -16, -80, 16, 56, chromeStops, p.glow, 14);
+    outline(g, body, p.glow, 2.2, 10);
+    highlight(g, body, -4, -30, 18, 30, 0.75);
+    canopyGlass(g, canopy, p, 0, -16);
+    engine(g, -11, 52, 8, 24, p.accent, "#fff");
+    engine(g, 11, 52, 8, 24, p.accent, "#fff");
+    const l = barrel(g, -80, 10, 24, 3, p, 0);
+    const r = barrel(g, 80, 10, 24, 3, p, 0);
+    return { muzzles: [
+      { x: l.x, y: l.y, id: "1", label: "Left wing gun" },
+      { x: r.x, y: r.y, id: "2", label: "Right wing gun" }
+    ] };
+  }
+
+  function drawFighterAlien(g, pal) {
+    const p = Object.assign({}, pal, { glow: "#7cff9a", core: "#e8ffe0", accent: "#c06bff", metal: "#1a1420", metalHi: "#3a2850", metalDark: "#0a0810", ink: "#050308" });
+    const body = (gg) => {
+      gg.beginPath();
+      gg.moveTo(0, -70);
+      gg.bezierCurveTo(22, -50, 26, -8, 22, 24);
+      gg.bezierCurveTo(16, 44, 6, 52, 0, 50);
+      gg.bezierCurveTo(-6, 52, -16, 44, -22, 24);
+      gg.bezierCurveTo(-26, -8, -22, -50, 0, -70);
+    };
+    const wingL = (gg) => {
+      gg.beginPath();
+      gg.moveTo(-10, -6);
+      gg.bezierCurveTo(-40, 0, -100, 6, -120, 22);
+      gg.bezierCurveTo(-110, 40, -60, 36, -16, 26);
+      gg.closePath();
+    };
+    const wingR = (gg) => {
+      gg.beginPath();
+      gg.moveTo(10, -6);
+      gg.bezierCurveTo(40, 0, 100, 6, 120, 22);
+      gg.bezierCurveTo(110, 40, 60, 36, 16, 26);
+      gg.closePath();
+    };
+    const eye = (gg) => { gg.beginPath(); gg.ellipse(0, -18, 12, 16, 0, 0, Math.PI * 2); };
+    shade(g, wingL, -10, -6, -120, 36, [[0, "#3a2048"], [0.5, "#1a1028"], [1, "#0a0610"]], p.accent, 12);
+    shade(g, wingR, 10, -6, 120, 36, [[0, "#3a2048"], [0.5, "#1a1028"], [1, "#0a0610"]], p.accent, 12);
+    outline(g, wingL, p.glow, 2, 10);
+    outline(g, wingR, p.glow, 2, 10);
+    clip(g, wingL, () => {
+      g.strokeStyle = p.glow; g.lineWidth = 1.1; g.globalAlpha = 0.55;
+      g.beginPath(); g.moveTo(-20, 8); g.quadraticCurveTo(-70, 8, -100, 22); g.stroke();
+      g.beginPath(); g.moveTo(-24, 16); g.quadraticCurveTo(-60, 22, -90, 30); g.stroke();
+      g.globalAlpha = 1;
+    });
+    clip(g, wingR, () => {
+      g.strokeStyle = p.glow; g.lineWidth = 1.1; g.globalAlpha = 0.55;
+      g.beginPath(); g.moveTo(20, 8); g.quadraticCurveTo(70, 8, 100, 22); g.stroke();
+      g.beginPath(); g.moveTo(24, 16); g.quadraticCurveTo(60, 22, 90, 30); g.stroke();
+      g.globalAlpha = 1;
+    });
+    shade(g, body, 0, -70, 0, 50, [[0, "#6a4080"], [0.3, "#2a1838"], [1, "#0a0610"]], p.accent, 16);
+    outline(g, body, p.glow, 2.3, 12);
+    clip(g, body, () => {
+      g.strokeStyle = p.glow; g.lineWidth = 1; g.globalAlpha = 0.5;
+      g.beginPath(); g.moveTo(-8, -40); g.quadraticCurveTo(-16, 0, -10, 30); g.stroke();
+      g.beginPath(); g.moveTo(8, -40); g.quadraticCurveTo(16, 0, 10, 30); g.stroke();
+      g.globalAlpha = 1;
+    });
+    // eye canopy
+    shade(g, eye, 0, -28, 0, 0, [[0, "#f0ffe8"], [0.3, p.glow], [0.7, p.accent], [1, "#100818"]], p.glow, 12);
+    outline(g, eye, p.glow, 1.6, 8);
+    g.save(); g.fillStyle = "#050308"; g.beginPath(); g.ellipse(0, -18, 5, 8, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = p.core; g.beginPath(); g.arc(-2, -22, 2, 0, Math.PI * 2); g.fill(); g.restore();
+    engine(g, -10, 48, 8, 22, p.accent, p.glow);
+    engine(g, 10, 48, 8, 22, p.accent, p.glow);
+    // organic gun stalks
+    const stalk = (sx, sy, dir) => {
       g.save();
-      const cg = g.createRadialGradient(0, -4, 1, 0, -4, 10 + tier);
-      cg.addColorStop(0, "#fff");
-      cg.addColorStop(0.4, accent);
-      cg.addColorStop(1, "rgba(0,0,0,0)");
-      g.fillStyle = cg; g.globalAlpha = 0.85;
-      g.beginPath(); g.arc(0, -4, 8 + tier, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = p.glow; g.lineWidth = 5; g.shadowColor = p.glow; g.shadowBlur = 8;
+      g.beginPath(); g.moveTo(sx * 0.3, 6); g.quadraticCurveTo(sx * 0.7, 0, sx, sy); g.stroke();
       g.restore();
-    }
+      return barrel(g, sx, sy, 20, 3.4, p, 0);
+    };
+    const l = stalk(-88, 6);
+    const r = stalk(88, 6);
+    return { muzzles: [
+      { x: l.x, y: l.y, id: "1", label: "Left bio-cannon" },
+      { x: r.x, y: r.y, id: "2", label: "Right bio-cannon" }
+    ] };
+  }
 
-    // solid engine pods — 2, 3, or 4
-    const pods = tier >= 5 ? [-36, -14, 14, 36] : (tier >= 2 ? [-22, 0, 22] : [-12, 12]);
-    const fh = 28 + tier * 5;
-    pods.forEach((px) => {
-      const pod = () => { g.beginPath(); g.roundRect ? g.roundRect(px - 6, 36, 12, 12, 3) : (g.rect(px - 6, 36, 12, 12)); };
-      g.save();
-      g.fillStyle = mixHex(col, "#000000", 0.25);
-      g.shadowColor = col; g.shadowBlur = 8;
-      g.beginPath(); g.moveTo(px - 6, 34); g.lineTo(px + 6, 34); g.lineTo(px + 5, 46); g.lineTo(px - 5, 46); g.closePath(); g.fill();
-      g.restore();
-      flame(g, px, 44, px === 0 && tier >= 2 ? fh + 8 : fh, col);
+  function drawHeavyFighter(g, pal) {
+    const span = 128;
+    const body = (gg) => {
+      gg.beginPath();
+      gg.moveTo(0, -92);
+      gg.lineTo(11, -62);
+      gg.lineTo(17, -8);
+      gg.lineTo(22, 24);
+      gg.lineTo(16, 50);
+      gg.lineTo(0, 60);
+      gg.lineTo(-16, 50);
+      gg.lineTo(-22, 24);
+      gg.lineTo(-17, -8);
+      gg.lineTo(-11, -62);
+      gg.closePath();
+    };
+    const wingL = (gg) => {
+      gg.beginPath();
+      gg.moveTo(-14, -16);
+      gg.lineTo(-span, 10);
+      gg.lineTo(-span - 14, 32);
+      gg.lineTo(-span + 16, 56);
+      gg.lineTo(-20, 36);
+      gg.closePath();
+    };
+    const wingR = (gg) => {
+      gg.beginPath();
+      gg.moveTo(14, -16);
+      gg.lineTo(span, 10);
+      gg.lineTo(span + 14, 32);
+      gg.lineTo(span - 16, 56);
+      gg.lineTo(20, 36);
+      gg.closePath();
+    };
+    const canL = (gg) => { gg.beginPath(); gg.moveTo(-12, -40); gg.lineTo(-52, -58); gg.lineTo(-28, -22); gg.closePath(); };
+    const canR = (gg) => { gg.beginPath(); gg.moveTo(12, -40); gg.lineTo(52, -58); gg.lineTo(28, -22); gg.closePath(); };
+    const canopy = (gg) => {
+      gg.beginPath();
+      gg.moveTo(0, -50);
+      gg.bezierCurveTo(11, -42, 12, -8, 0, 10);
+      gg.bezierCurveTo(-12, -8, -11, -42, 0, -50);
+    };
+    const intakeL = (gg) => { gg.beginPath(); gg.moveTo(-16, 8); gg.lineTo(-30, 18); gg.lineTo(-26, 36); gg.lineTo(-16, 32); gg.closePath(); };
+    const intakeR = (gg) => { gg.beginPath(); gg.moveTo(16, 8); gg.lineTo(30, 18); gg.lineTo(26, 36); gg.lineTo(16, 32); gg.closePath(); };
+
+    shade(g, wingL, -14, -16, -span, 56, metalStops(pal), pal.glow, 12);
+    shade(g, wingR, 14, -16, span, 56, metalStops(pal), pal.glow, 12);
+    outline(g, wingL, pal.glow, 2.3, 10);
+    outline(g, wingR, pal.glow, 2.3, 10);
+    shade(g, canL, -12, -58, -52, -22, metalStops(pal), pal.glow, 6);
+    shade(g, canR, 12, -58, 52, -22, metalStops(pal), pal.glow, 6);
+    outline(g, canL, pal.glow, 1.6, 6);
+    outline(g, canR, pal.glow, 1.6, 6);
+
+    shade(g, body, 0, -92, 0, 60, [
+      [0, pal.metalHi], [0.2, blend(pal.metal, pal.glow, 0.2)], [0.65, pal.metal], [1, pal.ink]
+    ], pal.glow, 18);
+    outline(g, body, pal.glow, 2.6, 12);
+    clip(g, body, () => {
+      panel(g, -9, -64, -16, 20, pal.glow);
+      panel(g, 9, -64, 16, 20, pal.glow);
+      panel(g, -14, 8, 14, 8, pal.glow);
+      panel(g, -12, 28, 12, 28, pal.glow);
+    });
+    highlight(g, body, -6, -36, 16, 28, 0.42);
+    shade(g, intakeL, -16, 8, -30, 36, [[0, "#222"], [1, "#000"]], pal.glow, 4);
+    shade(g, intakeR, 16, 8, 30, 36, [[0, "#222"], [1, "#000"]], pal.glow, 4);
+    outline(g, intakeL, pal.glow, 1.2, 4);
+    outline(g, intakeR, pal.glow, 1.2, 4);
+    canopyGlass(g, canopy, pal, 0, -22);
+
+    engine(g, -16, 58, 9, 28, pal.glow, pal.core);
+    engine(g, 16, 58, 9, 28, pal.glow, pal.core);
+
+    const n = barrel(g, 0, -90, 28, 3.6, pal, 0);
+    const l = barrel(g, -92, 0, 28, 3.3, pal, 0);
+    const r = barrel(g, 92, 0, 28, 3.3, pal, 0);
+    return { muzzles: [
+      { x: n.x, y: n.y, id: "1", label: "Nose cannon" },
+      { x: l.x, y: l.y, id: "2", label: "Left wing gun" },
+      { x: r.x, y: r.y, id: "3", label: "Right wing gun" }
+    ] };
+  }
+
+  function drawGunship(g, pal) {
+    const span = 148;
+    const body = (gg) => {
+      gg.beginPath();
+      gg.moveTo(0, -88);
+      gg.lineTo(16, -58);
+      gg.lineTo(24, -8);
+      gg.lineTo(28, 28);
+      gg.lineTo(22, 58);
+      gg.lineTo(0, 68);
+      gg.lineTo(-22, 58);
+      gg.lineTo(-28, 28);
+      gg.lineTo(-24, -8);
+      gg.lineTo(-16, -58);
+      gg.closePath();
+    };
+    const wingL = (gg) => {
+      gg.beginPath();
+      gg.moveTo(-20, -8);
+      gg.lineTo(-span, 8);
+      gg.lineTo(-span - 10, 28);
+      gg.lineTo(-span + 8, 40);
+      gg.lineTo(-span + 20, 62);
+      gg.lineTo(-24, 44);
+      gg.closePath();
+    };
+    const wingR = (gg) => {
+      gg.beginPath();
+      gg.moveTo(20, -8);
+      gg.lineTo(span, 8);
+      gg.lineTo(span + 10, 28);
+      gg.lineTo(span - 8, 40);
+      gg.lineTo(span - 20, 62);
+      gg.lineTo(24, 44);
+      gg.closePath();
+    };
+    const armorL = (gg) => { gg.beginPath(); gg.moveTo(-18, -20); gg.lineTo(-36, -8); gg.lineTo(-34, 36); gg.lineTo(-20, 32); gg.closePath(); };
+    const armorR = (gg) => { gg.beginPath(); gg.moveTo(18, -20); gg.lineTo(36, -8); gg.lineTo(34, 36); gg.lineTo(20, 32); gg.closePath(); };
+    const canopy = (gg) => {
+      gg.beginPath();
+      gg.moveTo(0, -40);
+      gg.bezierCurveTo(12, -32, 13, 0, 0, 14);
+      gg.bezierCurveTo(-13, 0, -12, -32, 0, -40);
+    };
+
+    shade(g, wingL, -20, -8, -span, 62, metalStops(pal), pal.glow, 12);
+    shade(g, wingR, 20, -8, span, 62, metalStops(pal), pal.glow, 12);
+    outline(g, wingL, pal.glow, 2.4, 10);
+    outline(g, wingR, pal.glow, 2.4, 10);
+
+    shade(g, armorL, -18, -20, -36, 36, [[0, pal.core], [0.3, pal.metalHi], [1, pal.ink]], pal.glow, 6);
+    shade(g, armorR, 18, -20, 36, 36, [[0, pal.core], [0.3, pal.metalHi], [1, pal.ink]], pal.glow, 6);
+    outline(g, armorL, pal.glow, 1.8, 6);
+    outline(g, armorR, pal.glow, 1.8, 6);
+
+    shade(g, body, 0, -88, 0, 68, [
+      [0, "#f8fbff"], [0.15, pal.metalHi], [0.45, pal.metal], [1, pal.ink]
+    ], pal.glow, 16);
+    outline(g, body, pal.glow, 2.8, 12);
+    clip(g, body, () => {
+      panel(g, -12, -60, -20, 20, pal.accent);
+      panel(g, 12, -60, 20, 20, pal.accent);
+      panel(g, -16, 0, 16, 0, pal.accent);
+      panel(g, -18, 24, 18, 24, pal.accent);
+      panel(g, -14, 44, 14, 44, pal.accent);
+    });
+    highlight(g, body, -8, -30, 18, 30, 0.55);
+    canopyGlass(g, canopy, pal, 0, -14);
+
+    engine(g, -20, 66, 10, 30, pal.accent, pal.core);
+    engine(g, 0, 68, 11, 32, pal.accent, pal.core);
+    engine(g, 20, 66, 10, 30, pal.accent, pal.core);
+
+    // twin nose + two wing = 4
+    const n1 = barrel(g, -13, -86, 26, 3.3, pal, 0);
+    const n2 = barrel(g, 13, -86, 26, 3.3, pal, 0);
+    const l = barrel(g, -108, -2, 28, 3.5, pal, 0);
+    const r = barrel(g, 108, -2, 28, 3.5, pal, 0);
+    return { muzzles: [
+      { x: n1.x, y: n1.y, id: "1", label: "Left nose cannon" },
+      { x: n2.x, y: n2.y, id: "2", label: "Right nose cannon" },
+      { x: l.x, y: l.y, id: "3", label: "Left wing gun" },
+      { x: r.x, y: r.y, id: "4", label: "Right wing gun" }
+    ] };
+  }
+
+  function drawInterceptor(g, pal) {
+    const span = 160;
+    const body = (gg) => {
+      gg.beginPath();
+      gg.moveTo(0, -108);
+      gg.lineTo(10, -70);
+      gg.lineTo(16, -16);
+      gg.lineTo(20, 28);
+      gg.lineTo(14, 58);
+      gg.lineTo(0, 70);
+      gg.lineTo(-14, 58);
+      gg.lineTo(-20, 28);
+      gg.lineTo(-16, -16);
+      gg.lineTo(-10, -70);
+      gg.closePath();
+    };
+    const wingL = (gg) => {
+      gg.beginPath();
+      gg.moveTo(-12, -28);
+      gg.lineTo(-span + 10, -8);
+      gg.lineTo(-span - 16, 16);
+      gg.lineTo(-span + 8, 24);
+      gg.lineTo(-span, 50);
+      gg.lineTo(-20, 36);
+      gg.closePath();
+    };
+    const wingR = (gg) => {
+      gg.beginPath();
+      gg.moveTo(12, -28);
+      gg.lineTo(span - 10, -8);
+      gg.lineTo(span + 16, 16);
+      gg.lineTo(span - 8, 24);
+      gg.lineTo(span, 50);
+      gg.lineTo(20, 36);
+      gg.closePath();
+    };
+    const podL = (gg) => {
+      gg.beginPath();
+      gg.moveTo(-48, -8);
+      gg.lineTo(-66, 2);
+      gg.lineTo(-70, 28);
+      gg.lineTo(-62, 50);
+      gg.lineTo(-50, 46);
+      gg.lineTo(-44, 8);
+      gg.closePath();
+    };
+    const podR = (gg) => {
+      gg.beginPath();
+      gg.moveTo(48, -8);
+      gg.lineTo(66, 2);
+      gg.lineTo(70, 28);
+      gg.lineTo(62, 50);
+      gg.lineTo(50, 46);
+      gg.lineTo(44, 8);
+      gg.closePath();
+    };
+    const canopy = (gg) => {
+      gg.beginPath();
+      gg.moveTo(0, -56);
+      gg.bezierCurveTo(11, -48, 12, -10, 0, 8);
+      gg.bezierCurveTo(-12, -10, -11, -48, 0, -56);
+    };
+
+    shade(g, wingL, -12, -28, -span, 50, metalStops(pal), pal.glow, 12);
+    shade(g, wingR, 12, -28, span, 50, metalStops(pal), pal.glow, 12);
+    outline(g, wingL, pal.glow, 2.3, 10);
+    outline(g, wingR, pal.glow, 2.3, 10);
+    shade(g, podL, -48, -8, -70, 50, metalStops(pal), pal.glow, 8);
+    shade(g, podR, 48, -8, 70, 50, metalStops(pal), pal.glow, 8);
+    outline(g, podL, pal.glow, 1.6, 6);
+    outline(g, podR, pal.glow, 1.6, 6);
+
+    shade(g, body, 0, -108, 0, 70, [
+      [0, pal.core], [0.18, blend(pal.metalHi, pal.glow, 0.25)], [0.6, pal.metal], [1, pal.ink]
+    ], pal.glow, 16);
+    outline(g, body, pal.glow, 2.6, 12);
+    clip(g, body, () => {
+      panel(g, -8, -80, -14, 30, pal.glow);
+      panel(g, 8, -80, 14, 30, pal.glow);
+      panel(g, -12, 8, 12, 8, pal.glow);
+      panel(g, -10, 36, 10, 36, pal.glow);
+    });
+    highlight(g, body, -6, -40, 14, 32, 0.45);
+    canopyGlass(g, canopy, pal, 0, -24);
+
+    engine(g, -18, 66, 8, 26, pal.glow, pal.core);
+    engine(g, 0, 70, 10, 30, pal.glow, pal.core);
+    engine(g, 18, 66, 8, 26, pal.glow, pal.core);
+    engine(g, -56, 48, 8, 24, pal.glow, pal.core);
+    engine(g, 56, 48, 8, 24, pal.glow, pal.core);
+
+    const n = barrel(g, 0, -106, 30, 3.6, pal, 0);
+    const li = barrel(g, -58, -8, 24, 3.0, pal, 0);
+    const ri = barrel(g, 58, -8, 24, 3.0, pal, 0);
+    const lo = barrel(g, -118, -4, 26, 3.2, pal, 0);
+    const ro = barrel(g, 118, -4, 26, 3.2, pal, 0);
+    return { muzzles: [
+      { x: n.x, y: n.y, id: "1", label: "Nose cannon" },
+      { x: li.x, y: li.y, id: "2", label: "Left inner" },
+      { x: ri.x, y: ri.y, id: "3", label: "Right inner" },
+      { x: lo.x, y: lo.y, id: "4", label: "Left outer" },
+      { x: ro.x, y: ro.y, id: "5", label: "Right outer" }
+    ] };
+  }
+
+  function drawFlagship(g, pal) {
+    const span = 166;
+    const body = (gg) => {
+      gg.beginPath();
+      gg.moveTo(0, -100);
+      gg.lineTo(18, -64);
+      gg.lineTo(28, -12);
+      gg.lineTo(32, 28);
+      gg.lineTo(26, 62);
+      gg.lineTo(0, 78);
+      gg.lineTo(-26, 62);
+      gg.lineTo(-32, 28);
+      gg.lineTo(-28, -12);
+      gg.lineTo(-18, -64);
+      gg.closePath();
+    };
+    const wingL = (gg) => {
+      gg.beginPath();
+      gg.moveTo(-20, -24);
+      gg.lineTo(-span + 20, -16);
+      gg.lineTo(-span - 18, 8);
+      gg.lineTo(-span - 8, 28);
+      gg.lineTo(-span + 12, 36);
+      gg.lineTo(-span + 4, 64);
+      gg.lineTo(-26, 50);
+      gg.closePath();
+    };
+    const wingR = (gg) => {
+      gg.beginPath();
+      gg.moveTo(20, -24);
+      gg.lineTo(span - 20, -16);
+      gg.lineTo(span + 18, 8);
+      gg.lineTo(span + 8, 28);
+      gg.lineTo(span - 12, 36);
+      gg.lineTo(span - 4, 64);
+      gg.lineTo(26, 50);
+      gg.closePath();
+    };
+    const deck = (gg) => {
+      gg.beginPath();
+      gg.moveTo(0, -36);
+      gg.lineTo(16, -20);
+      gg.lineTo(14, 16);
+      gg.lineTo(0, 24);
+      gg.lineTo(-14, 16);
+      gg.lineTo(-16, -20);
+      gg.closePath();
+    };
+    const canopy = (gg) => {
+      gg.beginPath();
+      gg.moveTo(0, -28);
+      gg.bezierCurveTo(10, -22, 11, 2, 0, 14);
+      gg.bezierCurveTo(-11, 2, -10, -22, 0, -28);
+    };
+    const ramL = (gg) => { gg.beginPath(); gg.moveTo(-16, -70); gg.lineTo(-40, -40); gg.lineTo(-28, -16); gg.lineTo(-14, -50); gg.closePath(); };
+    const ramR = (gg) => { gg.beginPath(); gg.moveTo(16, -70); gg.lineTo(40, -40); gg.lineTo(28, -16); gg.lineTo(14, -50); gg.closePath(); };
+    const sponsonL = (gg) => { gg.beginPath(); gg.moveTo(-26, -6); gg.lineTo(-54, 8); gg.lineTo(-52, 52); gg.lineTo(-24, 58); gg.closePath(); };
+    const sponsonR = (gg) => { gg.beginPath(); gg.moveTo(26, -6); gg.lineTo(54, 8); gg.lineTo(52, 52); gg.lineTo(24, 58); gg.closePath(); };
+
+    shade(g, wingL, -20, -24, -span, 64, metalStops(pal), pal.glow, 14);
+    shade(g, wingR, 20, -24, span, 64, metalStops(pal), pal.glow, 14);
+    outline(g, wingL, pal.glow, 2.5, 12);
+    outline(g, wingR, pal.glow, 2.5, 12);
+    clip(g, wingL, () => {
+      panel(g, -40, -8, -150, 8, pal.glow);
+      panel(g, -36, 16, -140, 32, pal.glow);
+    });
+    clip(g, wingR, () => {
+      panel(g, 40, -8, 150, 8, pal.glow);
+      panel(g, 36, 16, 140, 32, pal.glow);
     });
 
-    // single soft halo at top tiers, not a stack of rings
-    if (tier >= 5) {
-      g.save();
-      g.strokeStyle = col; g.shadowColor = col; g.shadowBlur = 16;
-      g.globalAlpha = 0.45; g.lineWidth = 3;
-      g.beginPath(); g.ellipse(0, -6, 78, 46, 0, 0, Math.PI * 2); g.stroke();
-      g.globalAlpha = 0.7; g.lineWidth = 1.6; g.strokeStyle = mixHex(col, "#ffffff", 0.6);
-      g.beginPath(); g.ellipse(0, -6, 78, 46, 0, 0, Math.PI * 2); g.stroke();
-      g.restore();
-    }
+    shade(g, sponsonL, -26, -6, -54, 58, metalStops(pal), pal.glow, 8);
+    shade(g, sponsonR, 26, -6, 54, 58, metalStops(pal), pal.glow, 8);
+    outline(g, sponsonL, pal.glow, 1.8, 7);
+    outline(g, sponsonR, pal.glow, 1.8, 7);
 
-    // one light per wingtip
-    for (const sx of [-1, 1]) {
-      g.save(); g.fillStyle = accent; g.shadowColor = accent; g.shadowBlur = 10;
-      g.beginPath(); g.arc(sx * span, 46 + tier, 3.6, 0, Math.PI * 2); g.fill(); g.restore();
-    }
+    shade(g, ramL, -16, -70, -40, -16, metalStops(pal), pal.glow, 6);
+    shade(g, ramR, 16, -70, 40, -16, metalStops(pal), pal.glow, 6);
+    outline(g, ramL, pal.glow, 1.6, 6);
+    outline(g, ramR, pal.glow, 1.6, 6);
+
+    shade(g, body, 0, -100, 0, 78, [
+      [0, pal.core], [0.15, blend(pal.metalHi, pal.glow, 0.3)], [0.5, pal.metal], [1, pal.ink]
+    ], pal.glow, 18);
+    outline(g, body, pal.glow, 2.8, 14);
+    clip(g, body, () => {
+      panel(g, -14, -70, -24, 20, pal.glow);
+      panel(g, 14, -70, 24, 20, pal.glow);
+      panel(g, -20, 8, 20, 8, pal.glow);
+      panel(g, -22, 32, 22, 32, pal.glow);
+      panel(g, -16, 52, 16, 52, pal.glow);
+    });
+    highlight(g, body, -8, -36, 20, 34, 0.4);
+
+    shade(g, deck, 0, -36, 0, 24, [[0, pal.metalHi], [1, pal.ink]], pal.accent, 6);
+    outline(g, deck, pal.accent, 1.5, 6);
+    canopyGlass(g, canopy, pal, 0, -8);
+
+    engine(g, -32, 74, 11, 30, pal.glow, pal.core);
+    engine(g, -11, 80, 11, 32, pal.glow, pal.core);
+    engine(g, 11, 80, 11, 32, pal.glow, pal.core);
+    engine(g, 32, 74, 11, 30, pal.glow, pal.core);
+
+    const n = barrel(g, 0, -98, 32, 4.2, pal, 0);
+    const li = barrel(g, -64, -10, 26, 3.3, pal, 0);
+    const ri = barrel(g, 64, -10, 26, 3.3, pal, 0);
+    const lo = barrel(g, -132, -8, 28, 3.6, pal, 0);
+    const ro = barrel(g, 132, -8, 28, 3.6, pal, 0);
+    return { muzzles: [
+      { x: n.x, y: n.y, id: "1", label: "Spinal cannon" },
+      { x: li.x, y: li.y, id: "2", label: "Left inner" },
+      { x: ri.x, y: ri.y, id: "3", label: "Right inner" },
+      { x: lo.x, y: lo.y, id: "4", label: "Left outer" },
+      { x: ro.x, y: ro.y, id: "5", label: "Right outer" }
+    ] };
   }
+
+  function blend(a, b, t) {
+    const pa = hex(a), pb = hex(b);
+    const r = Math.round(pa[0] + (pb[0] - pa[0]) * t);
+    const g = Math.round(pa[1] + (pb[1] - pa[1]) * t);
+    const bl = Math.round(pa[2] + (pb[2] - pa[2]) * t);
+    return "rgb(" + r + "," + g + "," + bl + ")";
+  }
+  function hex(c) {
+    if (c[0] === "#") {
+      const n = c.length === 4
+        ? [c[1] + c[1], c[2] + c[2], c[3] + c[3]]
+        : [c.slice(1, 3), c.slice(3, 5), c.slice(5, 7)];
+      return n.map((x) => parseInt(x, 16));
+    }
+    const m = c.match(/\d+/g);
+    return m ? m.slice(0, 3).map(Number) : [0, 0, 0];
+  }
+
 
   function buildBossSprites() {
     sprite("boss-herald-body", 720, 520, g => {
@@ -2638,9 +3790,27 @@
     });
   }
 
+
+  function flame(g, x, y, h, col) {
+    g.save(); g.fillStyle = col; g.shadowColor = col; g.shadowBlur = 14;
+    g.beginPath(); g.moveTo(x - 6, y); g.lineTo(x + 6, y); g.lineTo(x + 2, y + h); g.lineTo(x - 2, y + h); g.closePath(); g.fill();
+    g.fillStyle = "#fff"; g.shadowBlur = 6;
+    g.beginPath(); g.moveTo(x - 2.5, y); g.lineTo(x + 2.5, y); g.lineTo(x + 1, y + h * 0.65); g.lineTo(x - 1, y + h * 0.65); g.closePath(); g.fill();
+    g.restore();
+  }
+  function plate(g, col, x, y, w, h) {
+    neonFill(g, col, () => { g.beginPath(); g.rect(x, y, w, h); }, 0.22);
+    neonStroke(g, col, 1.4, () => { g.beginPath(); g.rect(x, y, w, h); }, { bloom: 8 });
+  }
+
   function buildSprites() {
     sprite("player", 360, 320, g => drawPlayerTo(g, C.cyan, C.magenta, 0));
-    TIER.forEach((ti, i) => sprite("player-t" + i, 360, 320, g => drawPlayerTo(g, ti.color, ti.accent, i)));
+    const SHIP_SKINS = ["default", "stealth", "racer", "chrome", "alien"];
+    TIER.forEach((ti, i) => {
+      SHIP_SKINS.forEach((sk) => {
+        sprite("player-t" + i + "-" + sk, 500, 460, g => drawPrestigeShip(g, i, sk));
+      });
+    });
     sprite("pdef-base", 90, 70, g => {
       const pad = () => { g.beginPath(); g.moveTo(-28, 18); g.lineTo(-22, 8); g.lineTo(22, 8); g.lineTo(28, 18); g.lineTo(20, 24); g.lineTo(-20, 24); g.closePath(); };
       const house = () => { g.beginPath(); g.moveTo(-16, 10); g.lineTo(-14, -6); g.lineTo(14, -6); g.lineTo(16, 10); g.closePath(); };
@@ -2673,6 +3843,42 @@
     sprite("flame-0", 56, 72, g => flameBlob(g, C.orange));
     sprite("flame-1", 56, 72, g => flameBlob(g, C.magenta));
     sprite("flame-2", 56, 72, g => flameBlob(g, C.cyan));
+    sprite("nuke-flash", 320, 360, g => {
+      const glow = g.createRadialGradient(0, 40, 8, 0, 40, 150);
+      glow.addColorStop(0, "rgba(255,255,230,0.95)");
+      glow.addColorStop(0.2, "rgba(255,200,80,0.75)");
+      glow.addColorStop(0.45, "rgba(255,60,200,0.45)");
+      glow.addColorStop(0.75, "rgba(0,246,255,0.22)");
+      glow.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = glow;
+      g.beginPath(); g.arc(0, 40, 150, 0, Math.PI * 2); g.fill();
+      const stem = g.createLinearGradient(0, -10, 0, 130);
+      stem.addColorStop(0, "rgba(255,255,230,0.95)");
+      stem.addColorStop(0.35, "rgba(255,140,220,0.85)");
+      stem.addColorStop(1, "rgba(0,180,255,0.15)");
+      g.fillStyle = stem;
+      g.shadowColor = "#ff4ad0"; g.shadowBlur = 18;
+      g.beginPath(); g.moveTo(-14, -8); g.lineTo(14, -8); g.lineTo(32, 128); g.lineTo(-32, 128); g.closePath(); g.fill();
+      const cap = g.createRadialGradient(0, -36, 8, 0, -20, 110);
+      cap.addColorStop(0, "rgba(255,255,255,1)");
+      cap.addColorStop(0.22, "rgba(255,230,120,0.95)");
+      cap.addColorStop(0.5, "rgba(255,70,200,0.9)");
+      cap.addColorStop(0.82, "rgba(80,200,255,0.45)");
+      cap.addColorStop(1, "rgba(0,0,40,0)");
+      g.fillStyle = cap;
+      g.shadowColor = "#ff2bd6"; g.shadowBlur = 24;
+      g.beginPath(); g.ellipse(0, -24, 112, 52, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "rgba(255,255,255,0.7)"; g.shadowBlur = 12;
+      g.beginPath(); g.ellipse(0, -40, 54, 18, 0, 0, Math.PI * 2); g.fill();
+    });
+    sprite("nuke-ring", 260, 260, g => {
+      g.strokeStyle = C.cyan; g.shadowColor = C.cyan; g.shadowBlur = 16; g.lineWidth = 6;
+      g.beginPath(); g.arc(0, 0, 100, 0, Math.PI * 2); g.stroke();
+      g.strokeStyle = C.magenta; g.shadowColor = C.magenta; g.shadowBlur = 10; g.lineWidth = 3;
+      g.beginPath(); g.arc(0, 0, 88, 0, Math.PI * 2); g.stroke();
+      g.strokeStyle = "#fff"; g.shadowBlur = 6; g.lineWidth = 1.5;
+      g.beginPath(); g.arc(0, 0, 108, 0, Math.PI * 2); g.stroke();
+    });
     sprite("pylon", 70, 110, g => {
       const base = () => { g.beginPath(); g.moveTo(-22, 28); g.lineTo(-16, 14); g.lineTo(16, 14); g.lineTo(22, 28); g.lineTo(14, 36); g.lineTo(-14, 36); g.closePath(); };
       const coil = () => { g.beginPath(); g.moveTo(-7, 16); g.lineTo(-9, -28); g.lineTo(0, -38); g.lineTo(9, -28); g.lineTo(7, 16); g.closePath(); };
@@ -2684,15 +3890,26 @@
       g.beginPath(); g.arc(0, -36, 6, 0, Math.PI * 2); g.fill();
       g.restore();
     });
-    sprite("mine", 40, 40, g => {
-      g.save(); g.fillStyle = C.orange; g.shadowColor = C.orange; g.shadowBlur = 12;
-      g.beginPath(); g.arc(0, 0, 10, 0, Math.PI * 2); g.fill();
-      g.fillStyle = "#fff"; g.beginPath(); g.arc(0, 0, 3, 0, Math.PI * 2); g.fill();
-      g.strokeStyle = C.yellow; g.lineWidth = 2;
-      for (let i = 0; i < 4; i++) {
-        const a = i * Math.PI / 2 + 0.4;
-        g.beginPath(); g.moveTo(Math.cos(a) * 8, Math.sin(a) * 8); g.lineTo(Math.cos(a) * 14, Math.sin(a) * 14); g.stroke();
+    sprite("mine", 72, 72, g => {
+      g.save();
+      g.strokeStyle = "rgba(255,229,0,0.55)"; g.shadowColor = C.orange; g.shadowBlur = 10; g.lineWidth = 2;
+      g.beginPath(); g.arc(0, 0, 22, 0, Math.PI * 2); g.stroke();
+      g.fillStyle = "#3a1400"; g.shadowBlur = 0;
+      g.beginPath(); g.arc(0, 0, 14, 0, Math.PI * 2); g.fill();
+      g.fillStyle = C.orange; g.shadowColor = C.orange; g.shadowBlur = 16;
+      g.beginPath(); g.arc(0, 0, 11, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = C.yellow; g.lineWidth = 3; g.lineCap = "round";
+      for (let i = 0; i < 6; i++) {
+        const a = i * Math.PI / 3 + 0.2;
+        g.beginPath();
+        g.moveTo(Math.cos(a) * 10, Math.sin(a) * 10);
+        g.lineTo(Math.cos(a) * 20, Math.sin(a) * 20);
+        g.stroke();
+        g.fillStyle = C.yellow; g.shadowBlur = 8;
+        g.beginPath(); g.arc(Math.cos(a) * 20, Math.sin(a) * 20, 2.4, 0, Math.PI * 2); g.fill();
       }
+      g.fillStyle = "#fff"; g.shadowColor = "#fff"; g.shadowBlur = 8;
+      g.beginPath(); g.arc(0, 0, 4, 0, Math.PI * 2); g.fill();
       g.restore();
     });
     sprite("engine", 40, 70, g => {
@@ -3081,6 +4298,85 @@
   }
 
 
+
+  function drawShieldArcAt(g, x, y, power, col, core, state) {
+    const A = (typeof shieldArcGeom === "function") ? shieldArcGeom() : { cx: 0, cy: 28, r: 152, thick: 24, half: 0.98 };
+    const cx = x, cy = y + 28;
+    const r = 152;
+    const a0 = -Math.PI / 2 - 0.98, a1 = -Math.PI / 2 + 0.98;
+    g.save();
+    g.lineCap = "round";
+    g.globalAlpha = Math.max(0.15, Math.min(1, power || 1));
+    if (state === "broken") {
+      const shards = [[-0.95, -0.7], [-0.55, -0.32], [-0.12, 0.14], [0.28, 0.5], [0.62, 0.95]];
+      shards.forEach((sg, i) => {
+        g.strokeStyle = col; g.shadowColor = col; g.shadowBlur = 16;
+        g.globalAlpha = (0.45 + 0.5 * (power || 0.7)) * (0.75 + 0.25 * (i % 2));
+        g.lineWidth = 5.5;
+        g.beginPath();
+        g.arc(cx, cy, r + (i % 2) * 5, -Math.PI / 2 + sg[0], -Math.PI / 2 + sg[1]);
+        g.stroke();
+        g.strokeStyle = core || "#fff"; g.lineWidth = 1.8; g.shadowBlur = 6;
+        g.beginPath();
+        g.arc(cx, cy, r + (i % 2) * 5, -Math.PI / 2 + sg[0], -Math.PI / 2 + sg[1]);
+        g.stroke();
+      });
+      g.restore();
+      return;
+    }
+    const segs = state === "cracked"
+      ? [[a0, a0 + 0.28], [a0 + 0.4, a0 + 0.7], [a0 + 0.88, a0 + 1.2], [a0 + 1.36, a1]]
+      : [[a0, a1]];
+    const stroke = (w, alpha, blur, style) => {
+      g.strokeStyle = style; g.globalAlpha = alpha * Math.max(0.2, power || 1);
+      g.lineWidth = w; g.shadowColor = style; g.shadowBlur = blur;
+      segs.forEach(sg => { g.beginPath(); g.arc(cx, cy, r, sg[0], sg[1]); g.stroke(); });
+    };
+    stroke(14, 0.22, 18, col);
+    stroke(6, 0.9, 10, col);
+    stroke(2, 0.95, 6, core || "#fff");
+    g.restore();
+  }
+  function drawVoidBeam(g, beam, t) {
+    const pts = beam.pts;
+    if (!pts || pts.length < 2) return;
+    g.save();
+    g.lineCap = "round"; g.lineJoin = "round";
+    g.globalCompositeOperation = "lighter";
+    const col = TIER[5].color, core = TIER[5].core, acc = TIER[5].accent;
+    const stroke = (w, alpha, blur, style) => {
+      g.strokeStyle = style; g.globalAlpha = alpha; g.lineWidth = w; g.shadowColor = style; g.shadowBlur = blur;
+      g.beginPath();
+      g.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length; i++) g.lineTo(pts[i].x, pts[i].y);
+      g.stroke();
+    };
+    stroke(16, 0.22, 22, col);
+    stroke(7, 0.8, 12, acc);
+    stroke(2.4, 0.95, 6, core);
+    // traveling pulse
+    const u = (t * 1.6) % 1;
+    const i = Math.min(pts.length - 1, (u * (pts.length - 1)) | 0);
+    blitGlow(g, "spark", pts[i].x, pts[i].y, 1.4);
+    g.restore();
+    g.globalAlpha = 1;
+  }
+  function drawNukeFx(g, fx) {
+    const u = Math.max(0, Math.min(1, fx.t / fx.life));
+    const grow = 0.35 + u * 1.35;
+    g.save();
+    g.globalCompositeOperation = "lighter";
+    if (fx.kind === "nuke") {
+      g.globalAlpha = 1 - u * 0.75;
+      blit(g, "nuke-flash", fx.x, fx.y - 36 * u, grow * 1.05);
+    }
+    g.globalAlpha = Math.max(0, 0.9 - u);
+    const ringS = (fx.r || 200) / 100 * (0.35 + u * 1.1);
+    blit(g, "nuke-ring", fx.x, fx.y, ringS);
+    g.restore();
+    g.globalAlpha = 1;
+  }
+
   function drawTierShowcase(g, t) {
     const ids = [0, 2, 5];
     const labels = ["Mk I  CYAN", "Mk III  PLASMA", "Mk VI  VOID"];
@@ -3098,10 +4394,10 @@
       g.fillStyle = ti.color;
       g.font = "700 24px Orbitron, sans-serif";
       g.fillText(labels[n], x, 180);
-      g.globalAlpha = 0.35;
-      blit(g, "shield-t" + i, x, y, 0.82);
-      g.globalAlpha = 1;
-      blit(g, "player-t" + i, x, y, 0.92 + i * 0.04);
+      g.save();
+      drawShieldArcAt(g, x, y, 1, ti.color, ti.core, "full");
+      g.restore();
+      blit(g, "player-t" + i + "-default", x, y, 1);
       blit(g, "drone-t" + i, x - 160 - i * 8, y - 24, 0.85 + i * 0.05);
       blit(g, "drone-t" + i, x + 160 + i * 8, y - 24, 0.85 + i * 0.05);
       const boltScale = i >= 5 ? 1.35 : (i >= 3 ? 1.2 : 1.05);
@@ -3186,7 +4482,7 @@
 
     if (mode === "title") {
       const t = performance.now() / 1000;
-      blit(g, "player-t0", SHIP_X, 1120, 1.25);
+      blit(g, "player-t0-default", SHIP_X, 1120, 1.15);
       blit(g, "engine", SHIP_X - 11, 1120 + 44, 1.1);
       blit(g, "engine", SHIP_X + 11, 1120 + 44, 1.1);
       if (titleShots.length === 0 || titleShots[titleShots.length - 1].y < 980) titleShots.push({ x: 540, y: 1040 });
@@ -3199,7 +4495,7 @@
       if (titleShots.length && titleShots[0].y <= 580) titleShots.shift();
     } else if (mode === "over") {
       const overTier = (save && save.prest && save.prest.ship) || 0;
-      blit(g, "player-t" + overTier, 900, Math.min(H - 200, 1310), 0.58);
+      blit(g, "player-t" + overTier + "-default", 900, Math.min(H - 200, 1310), 0.7);
     } else if (run) {
       const t = run.time;
       const st = playerStats(run);
@@ -3303,25 +4599,33 @@
         }
         blit(g, dkey, p.x, p.y, 0.8 + dTier * 0.06);
       }
-      if (st.maxShield > 0 && run.shield > 0) {
-        g.save(); g.globalAlpha = 0.22 + 0.2 * (run.shield / st.maxShield);
-        blit(g, "shield-t" + (st.tierShield || 0), SHIP_X, SHIP_Y, 0.82);
-        g.restore();
+      // Forward energy arc (full / cracked / broken / powering up)
+      if (st.maxShield > 0) {
+        const ratio = run.shield / Math.max(1, st.maxShield);
+        let state = "hidden";
+        if (run.shield > 0) {
+          if (ratio > 0.55) state = "full";
+          else state = "cracked";
+        } else if ((run.shieldBreakT || 0) > 0) state = "broken";
+        else if (run.shieldWait <= 0 && run.shield < st.maxShield) state = "regen";
+        if (state !== "hidden") {
+          const ti = TIER[st.tierShield || 0];
+          const power = state === "regen" ? Math.min(1, 0.15 + ratio * 3) : (state === "broken" ? (run.shieldBreakT || 0) / 0.85 : 0.45 + 0.55 * ratio);
+          drawShieldArcAt(g, SHIP_X, SHIP_Y, power, ti.color, ti.core, state === "regen" ? "full" : state);
+        }
+      }
+      if (run.voidBeam && run.voidBeam.pts && run.voidBeam.pts.length > 1) {
+        drawVoidBeam(g, run.voidBeam, t);
       }
       const blink = run.invuln > 0 && Math.sin(t * 30) > 0;
       if (!blink) {
         const shipT = st.tierShip || 0;
+        const skin = (run.shop && run.shop.skin) || "default";
+        const skey = "player-t" + shipT + "-" + (skin && skin !== "default" ? skin : "default");
         g.save();
         g.translate(SHIP_X, SHIP_Y);
         g.rotate((run.hullAng || -Math.PI / 2) + Math.PI / 2);
-        blit(g, "player-t" + shipT, 0, 0, 0.95 + shipT * 0.04);
-        const skin = (run.shop && run.shop.skin) || "default";
-        if (skin && skin !== "default") {
-          const col = skin === "crimson" ? C.red : (skin === "gold" ? C.yellow : C.ice);
-          g.globalAlpha = 0.32; g.fillStyle = col; g.shadowColor = col; g.shadowBlur = 16;
-          g.beginPath(); g.ellipse(0, -4, 34, 48, 0, 0, Math.PI * 2); g.fill();
-          g.globalAlpha = 1;
-        }
+        blit(g, skey, 0, 0, 1);
         g.restore();
       }
       if (run.mines) {
@@ -3331,47 +4635,8 @@
         const px = SHIP_X - 175, py = RAIL_Y;
         blit(g, "pylon", px, py, 1.1);
       }
-      if (shopLv && shopLv(run, "flame") > 0) {
-        const lvFl = shopLv(run, "flame");
-        const range = 300 + lvFl * 18;
-        const half = 0.46 + lvFl * 0.015;
-        const aim = run.hullAng || -Math.PI / 2;
-        const mx = SHIP_X, my = SHIP_Y - 58;
-        g.save();
-        g.globalCompositeOperation = "lighter";
-        g.translate(mx, my);
-        g.rotate(aim + Math.PI / 2);
-        const reach = range * 0.92;
-        const grd = g.createLinearGradient(0, 0, 0, -reach);
-        grd.addColorStop(0, "rgba(255,90,220,0.55)");
-        grd.addColorStop(0.25, "rgba(0,246,255,0.38)");
-        grd.addColorStop(0.7, "rgba(255,140,40,0.18)");
-        grd.addColorStop(1, "rgba(255,140,40,0)");
-        g.fillStyle = grd;
-        g.beginPath();
-        g.moveTo(-14, 8);
-        g.lineTo(-Math.tan(half) * reach, -reach);
-        g.lineTo(Math.tan(half) * reach, -reach);
-        g.lineTo(14, 8);
-        g.closePath();
-        g.fill();
-        g.restore();
-      }
-      if (run.flames && run.flames.length) {
-        g.save();
-        g.globalCompositeOperation = "lighter";
-        for (let i = 0; i < run.flames.length; i++) {
-          const f = run.flames[i];
-          const a = Math.max(0, 1 - f.t / f.life);
-          g.globalAlpha = a * 0.95;
-          g.save();
-          g.translate(f.x, f.y);
-          g.rotate(f.rot || 0);
-          blit(g, "flame-" + (f.spr || 0), 0, 0, (f.sc || 1) * (0.7 + 0.5 * a));
-          g.restore();
-        }
-        g.restore();
-        g.globalAlpha = 1;
+      if (run.nukeFx && run.nukeFx.length) {
+        for (let i = 0; i < run.nukeFx.length; i++) drawNukeFx(g, run.nukeFx[i]);
       }
       if (st.pdefLv > 0) {
         const n = st.pdefTurrets || 1;
@@ -3585,13 +4850,13 @@
     refreshGemDisplays();
     let html = "";
     if (shopTab === "weapons") {
-      html += '<div class="shop-note">Unlock a weapon with gems, then equip it (up to 2). Level it with coins in the Upgrades overlay.</div>';
+      html += '<div class="shop-note">Unlock a weapon with gems, equip it (up to 2), and upgrade it here with gems only.</div>';
       SHOP.weapons.forEach(item => { html += shopWeaponCard(item, "weapons"); });
     } else if (shopTab === "addons") {
-      html += '<div class="shop-note">Unlock an add-on with gems, then equip it (up to 2). Level it with coins in the Upgrades overlay.</div>';
+      html += '<div class="shop-note">Unlock an add-on with gems, equip it (up to 2), and upgrade it here with gems only.</div>';
       SHOP.addons.forEach(item => { html += shopWeaponCard(item, "addons"); });
     } else if (shopTab === "cosmo") {
-      html += '<div class="shop-note">Looks only. These change the ship or bullet style, not combat power.</div>';
+      html += '<div class="shop-note">Looks change the ship design and paint, on top of your current Mk hull and gun layout. Trails change bullets only.</div>';
       SHOP.cosmo.forEach(item => {
         const owned = !!(sh.unlocked && sh.unlocked[item.id]);
         const on = (item.kind === "skin" && sh.skin === item.value) || (item.kind === "trail" && sh.trail === item.value);
@@ -3624,9 +4889,20 @@
     const owned = !!(sh.unlocked && sh.unlocked[item.id]);
     const list = listKey === "addons" ? (sh.addons || []) : (sh.weapons || []);
     const on = list.indexOf(item.id) >= 0;
-    let html = '<div class="shop-card' + (owned ? " owned" : "") + '"><div><h3>' + item.name + '</h3><p>' + item.blurb + '</p></div><div>';
+    const def = UP_BY_ID[item.id];
+    const lv = owned ? Math.max(1, (sh.levels && sh.levels[item.id]) | 0 || 1) : 0;
+    const max = def ? def.max : 10;
+    let html = '<div class="shop-card' + (owned ? " owned" : "") + '"><div><h3>' + item.name + '</h3><p>' + item.blurb + '</p>';
+    if (owned) html += '<p class="shop-lv">Lv. ' + lv + (lv >= max ? "  ·  MAX" : "") + '</p>';
+    html += '</div><div>';
     if (!owned) html += '<button class="shop-buy" data-buy="' + item.id + '">' + item.cost + ' ◆</button>';
-    else html += '<button class="shop-equip' + (on ? " shop-on" : "") + '" data-equip="' + item.id + '">' + (on ? "EQUIPPED" : "EQUIP") + '</button>';
+    else {
+      html += '<button class="shop-equip' + (on ? " shop-on" : "") + '" data-equip="' + item.id + '">' + (on ? "EQUIPPED" : "EQUIP") + '</button>';
+      if (lv < max) {
+        const c = shopUpgradeCost(item.id, lv);
+        html += '<button class="shop-buy" data-upg="' + item.id + '">UPGRADE ' + c + ' ◆</button>';
+      } else html += '<button class="shop-on" disabled>MAX</button>';
+    }
     return html + '</div></div>';
   }
   function allShopItems() {
@@ -3644,6 +4920,25 @@
       shopToast("TEST +50 GEMS (not a purchase)");
       return;
     }
+    if (btn.dataset.upg) {
+      const id = btn.dataset.upg;
+      if (!save.shop) save.shop = defaultShop();
+      if (!save.shop.levels) save.shop.levels = {};
+      const def = UP_BY_ID[id];
+      const lv = Math.max(1, save.shop.levels[id] | 0 || 1);
+      if (def && lv >= def.max) { shopToast("Maxed"); return; }
+      const cost = shopUpgradeCost(id, lv);
+      if ((save.gems | 0) < cost) { audio.deny(); shopToast("Not enough gems"); return; }
+      save.gems -= cost;
+      save.shop.levels[id] = lv + 1;
+      if (!demo) writeSave(save);
+      if (run) { run.shop = save.shop; run._st = null; }
+      audio.buy();
+      buildShop(shopTab);
+      refreshGemDisplays();
+      consoleDirty = true;
+      return;
+    }
     if (btn.dataset.buy) {
       const item = allShopItems().find(x => x.id === btn.dataset.buy);
       if (!item) return;
@@ -3651,8 +4946,11 @@
       save.gems -= item.cost;
       if (!save.shop) save.shop = defaultShop();
       save.shop.unlocked[item.id] = 1;
-      if (item.id === "autoPrest") save.shop.autoPrestige = true;
       if (item.id === "speed3") save.shop.speed3 = true;
+      if (SHOP_IDS && SHOP_IDS.indexOf(item.id) >= 0) {
+        if (!save.shop.levels) save.shop.levels = {};
+        if (!save.shop.levels[item.id]) save.shop.levels[item.id] = 1;
+      }
       if (item.kind === "skin" && !save.shop.skin || save.shop.skin === "default") {
         if (item.value) save.shop.skin = item.value;
       }
@@ -3734,16 +5032,18 @@
     });
   }
 
-  function tryAutoPrestige() {
-    if (!run || !save.shop || !save.shop.autoPrestige) return;
-    for (let i = 0; i < PRESTIGE_IDS.length; i++) tryPrestige(run, PRESTIGE_IDS[i]);
-  }
+  function tryAutoPrestige() { /* removed in v9 */ }
   function onBuyMid(id) {
     if (!run || mode !== "play") return;
     const upOpen = el("upgrades") && el("upgrades").classList.contains("show");
     if (paused && !upOpen) return;
     audio.unlock();
     const def = UP_BY_ID[id];
+    if (def && def.shop) {
+      shopToast("Upgrade in the Gem Shop");
+      audio.deny();
+      return;
+    }
     let ok = false;
     if (def && def.prestige && (run.up[id] || 0) >= 10) ok = tryPrestige(run, id);
     else ok = tryBuy(run, id);
@@ -3760,7 +5060,7 @@
   function refreshConsole(force) {
     if (!run) return;
     const st = playerStats(run);
-    const key = consoleTab + "|" + (run.wave|0) + "|" + (run.coins|0) + "|" + (save.gems|0) + "|" + JSON.stringify(run.up) + "|" + JSON.stringify(run.prest || {});
+    const key = consoleTab + "|" + (run.wave|0) + "|" + (run.coins|0) + "|" + (save.gems|0) + "|" + JSON.stringify(run.up) + "|" + JSON.stringify(run.prest || {}) + "|" + JSON.stringify((run.shop && run.shop.levels) || {});
     if (!force && !consoleDirty && key === lastConsoleKey) return;
     lastConsoleKey = key; consoleDirty = false;
     const armed = [];
@@ -3773,7 +5073,7 @@
     if (shopLv(run, "rail")) armed.push("RAILGUN");
     if (shopLv(run, "tesla")) armed.push("TESLA");
     if (shopLv(run, "flak")) armed.push("FLAK");
-    if (shopLv(run, "flame")) armed.push("FLAME");
+    if (shopLv(run, "nuke")) armed.push("NUKE");
     if (shopLv(run, "pylon")) armed.push("PYLON");
     const sub = el("console-sub");
     if (sub) sub.textContent = armed.length ? "WEAPONS ONLINE" : "TRAINING FIRE  ·  SINGLE BLASTER";
@@ -3782,6 +5082,17 @@
       const btn = buttons[i];
       const id = btn.dataset.id;
       const def = UP_BY_ID[id];
+      const nameEl = btn.querySelector(".name"), lvlEl = btn.querySelector(".lvl"), costEl = btn.querySelector(".cost");
+      if (def.shop) {
+        const owned = shopLv(run, id) > 0;
+        const slv = owned ? shopLv(run, id) : 0;
+        if (nameEl.textContent !== def.name) nameEl.textContent = def.name;
+        if (lvlEl.textContent !== (owned ? ("Lv. " + slv + "  ·  GEM SHOP") : "GEM SHOP")) lvlEl.textContent = owned ? ("Lv. " + slv + "  ·  GEM SHOP") : "GEM SHOP";
+        if (costEl.textContent !== "Upgrade in Gem Shop") costEl.textContent = "Upgrade in Gem Shop";
+        const cls = "up-btn dim" + (owned ? "" : " locked");
+        if (btn.className !== cls) btn.className = cls;
+        continue;
+      }
       const lv = run.up[id] || 0;
       const unlocked = isUnlocked(id, run.wave, run.up, Math.max(run.bestWave || 0, save.bestWave || 0), save.shop || run.shop);
       const tier = (run.prest && run.prest[id]) || 0;
@@ -3790,7 +5101,6 @@
       const pcost = atPrest ? prestigeCost(id, tier) : null;
       const cost = maxed ? 0 : (atPrest ? pcost.coins : midCost(id, lv));
       const can = unlocked && !maxed && (atPrest ? (run.coins >= pcost.coins) : run.coins >= cost);
-      const nameEl = btn.querySelector(".name"), lvlEl = btn.querySelector(".lvl"), costEl = btn.querySelector(".cost");
       const star = tier > 0 ? " " + "★".repeat(Math.min(5, tier)) : "";
       if (nameEl.textContent !== def.name + star) nameEl.textContent = def.name + star;
       let lvlTxt;
@@ -4162,7 +5472,7 @@
     const body = el("info-body");
     if (!body) return;
     document.querySelectorAll(".info-tab").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
-    const how = "<div class=\"info-how\"><h3>HOW PRESTIGE WORKS</h3><p>Bullets, Laser, Missiles, Drones, Armor, Shield and the Ship cap at level 10. The button then becomes <b>PRESTIGE</b>. Paying the coin cost resets that item to level 1 at the next tier: it keeps a bank of the previous 10 levels, gains a <b>1.55x power multiplier per tier</b>, and changes its shape and color (Mk I cyan, Mk II gold, Mk III plasma, Mk IV white-hot, Mk V lime, Mk VI void). Tiers stay with you when you die, just like other console upgrades. Prestige is coins only, so free players can always progress. Gems are rare and buy shop weapons, add-ons and looks.</p><p>First prestige costs <b>" + prestigeCost("dmg", 0).coins + "¢</b>. Each further tier costs more. Secondaries such as Fire Rate, Crit and Pierce keep high caps and do not prestige.</p></div>";
+    const how = "<div class=\"info-how\"><h3>HOW PRESTIGE WORKS</h3><p>Bullets, Laser, Missiles, Drones, Armor, Shield and the Ship cap at level 10. The button then becomes <b>PRESTIGE</b>. Paying the coin cost resets that item to level 1 at the next tier: it keeps a bank of the previous 10 levels, gains a <b>1.55x power multiplier per tier</b>, and changes its shape and color (Mk I cyan, Mk II gold, Mk III plasma, Mk IV white-hot, Mk V lime, Mk VI void). Tiers stay with you when you die, just like other console upgrades. Prestige is coins only, so free players can always progress. Gems are rare and buy shop weapons, add-ons, looks, and all upgrades for those shop items (no coin upgrades).</p><p>First prestige costs <b>" + prestigeCost("dmg", 0).coins + "¢</b>. Each further tier costs more. Secondaries such as Fire Rate, Crit and Pierce keep high caps and do not prestige.</p></div>";
     let html = "";
     if (tab === "prestige") html = how;
     else if (tab === "perma") {
@@ -4232,20 +5542,23 @@
     }
     if (name === "weapons" || name === "flame") {
       save.shop = defaultShop();
-      save.shop.unlocked.flame = 1; save.shop.unlocked.pylon = 1; save.shop.unlocked.rail = 1;
-      save.shop.weapons = ["flame"]; save.shop.addons = ["pylon"];
+      save.shop.unlocked.nuke = 1; save.shop.unlocked.pylon = 1; save.shop.unlocked.rail = 1;
+      save.shop.levels = { nuke: 5, pylon: 3, rail: 2 };
+      save.shop.weapons = ["nuke"]; save.shop.addons = ["pylon"];
       startRun();
       run.shop = save.shop;
       run.wave = 0; beginWave(run, 8);
       run.phase = "combat"; run.phaseT = 0; run.banner = null; run.pending = [];
-      run.up = Object.assign(defaultMid(), { dmg: 4, rate: 2, hp: 6, ship: 4, flame: 5, pylon: 3, pdef: 1 });
+      run.up = Object.assign(defaultMid(), { dmg: 4, rate: 2, hp: 6, ship: 4, pylon: 3, pdef: 1, shield: 2 });
+      run.prest = Object.assign(defaultPrest(), { ship: 2 });
       run.coins = 200; run._st = null;
       const stw = playerStats(run); run.hp = stw.maxHp; run.shield = stw.maxShield;
       run.invuln = 8;
       run.enemies = [];
       const low = SHIP_Y;
-      [["spark",low-240, 300],["spark",low-200, 540],["drifter",low-280, 420],["shellback",low-260, 700],["razor",low-180, 800],["spark",low-220, 200]]
-        .forEach(p => { const e = spawnEnemy(run, p[0], { x: p[2], y: p[1] }); if (e) { e.hp = e.maxHp = Math.max(e.hp, 90); e.vy = 20; } });
+      [["spark",low-240, 300],["spark",low-200, 540],["drifter",low-280, 420],["shellback",low-260, 700],["razor",low-180, 800],["spark",low-220, 200],["spark",low-230, 480],["drifter",low-250, 620]]
+        .forEach(row => { const e = spawnEnemy(run, row[0], { x: row[2], y: row[1] }); if (e) { e.hp = e.maxHp = Math.max(e.hp, 90); e.vy = 12; e._onField = true; } });
+      run.nukeCd = 0.15;
       hudDirty = true; consoleDirty = true; refreshHud(true); refreshConsole(true);
       setPlayDock(true);
       if (root.LastOutpost) root.LastOutpost._run = run;
@@ -4378,6 +5691,137 @@
       if (root.LastOutpost) root.LastOutpost._run = run;
       return;
     }
+
+    function v9Play(opts) {
+      opts = opts || {};
+      startRun();
+      if (opts.shop) run.shop = save.shop = Object.assign(defaultShop(), opts.shop);
+      run.wave = 0; beginWave(run, opts.wave || 8);
+      run.phase = "combat"; run.phaseT = 0; run.banner = null; run.pending = [];
+      if (opts.up) run.up = Object.assign(defaultMid(), opts.up);
+      if (opts.prest) run.prest = Object.assign(defaultPrest(), opts.prest);
+      run.coins = opts.coins != null ? opts.coins : 300;
+      run._st = null;
+      const st = playerStats(run);
+      run.hp = Math.round(st.maxHp * (opts.hpFrac != null ? opts.hpFrac : 1));
+      if (opts.shield === "full") run.shield = st.maxShield;
+      else if (opts.shield === "broken") { run.shield = 0; run.shieldWait = 8; run.shieldBreakT = 0.8; }
+      else if (opts.shield === "cracked") run.shield = Math.round(st.maxShield * 0.32);
+      else run.shield = st.maxShield;
+      run.invuln = opts.invuln != null ? opts.invuln : 0;
+      run.enemies = [];
+      (opts.enemies || []).forEach(row => {
+        const e = spawnEnemy(run, row[0], { x: row[1], y: row[2] });
+        if (e) {
+          e._onField = true;
+          if (row[3]) { e.hp = e.maxHp = row[3]; }
+        }
+      });
+      if (opts.mines) {
+        save.shop.unlocked.mines = 1; save.shop.addons = ["mines"];
+        save.shop.levels = Object.assign({}, save.shop.levels, { mines: opts.mineLv || 4 });
+        run.shop = save.shop;
+        placeWaveMines(run);
+      }
+      hudDirty = true; consoleDirty = true; refreshHud(true); refreshConsole(true);
+      setPlayDock(true);
+      if (root.LastOutpost) root.LastOutpost._run = run;
+    }
+    if (name === "mki") {
+      v9Play({ wave: 4, prest: { ship: 0 }, up: { dmg: 2, rate: 2, hp: 2, ship: 3, shield: 2, spread: 1 }, shield: "full",
+        enemies: [["spark",300,400],["spark",760,360],["drifter",540,520]] });
+      return;
+    }
+    if (name === "mkiii") {
+      v9Play({ wave: 12, prest: { ship: 2, dmg: 1 }, up: { dmg: 6, rate: 5, hp: 4, ship: 8, shield: 4, spread: 3, pdef: 2 }, shield: "full",
+        enemies: [["spark",260,380],["razor",800,420],["drifter",500,560],["shellback",700,640]] });
+      return;
+    }
+    if (name === "mkvi") {
+      v9Play({ wave: 24, prest: { ship: 5, dmg: 2, shield: 2 }, up: { dmg: 8, rate: 5, hp: 6, ship: 10, shield: 6, spread: 3, multi: 1, pdef: 4 }, shield: "full",
+        enemies: [["spark",200,300],["spark",500,260],["spark",800,320],["coil",300,500],["coil",760,540],["brood",540,700]] });
+      return;
+    }
+    if (name === "skin") {
+      save.shop = defaultShop();
+      save.shop.unlocked.skin_racer = 1;
+      save.shop.skin = "racer";
+      v9Play({ wave: 10, prest: { ship: 1 }, up: { dmg: 4, rate: 2, hp: 3, ship: 6, shield: 3, spread: 1 }, shield: "full",
+        shop: save.shop,
+        enemies: [["spark",300,400],["drifter",800,460]] });
+      return;
+    }
+    if (name === "shield-full") {
+      v9Play({ wave: 10, prest: { ship: 2, shield: 2 }, up: { dmg: 4, rate: 3, hp: 4, ship: 6, shield: 8, shRegen: 4 }, shield: "full",
+        enemies: [["shooter",300,420],["shooter",760,400]] });
+      return;
+    }
+    if (name === "shield-broken") {
+      v9Play({ wave: 10, prest: { ship: 2, shield: 2 }, up: { dmg: 4, rate: 3, hp: 4, ship: 6, shield: 8 }, shield: "broken",
+        enemies: [["shooter",300,420],["shooter",760,400]] });
+      return;
+    }
+    if (name === "nuke") {
+      save.shop = defaultShop();
+      save.shop.unlocked.nuke = 1;
+      save.shop.levels = { nuke: 5 };
+      save.shop.weapons = ["nuke"];
+      v9Play({ wave: 8, prest: { ship: 2 }, up: { dmg: 4, rate: 2, hp: 6, ship: 4, shield: 2 }, shield: "full",
+        shop: save.shop, coins: 212,
+        enemies: [
+          ["shellback", 500, 720, 80],
+          ["spark", 430, 680, 40],
+          ["spark", 580, 700, 40],
+          ["drifter", 540, 800, 60],
+          ["razor", 620, 760, 50],
+          ["spark", 460, 780, 40]
+        ] });
+      run.nukeCd = 99;
+      return;
+    }
+    if (name === "mines") {
+      save.shop = defaultShop();
+      v9Play({ wave: 11, prest: { ship: 2 }, up: { dmg: 5, rate: 3, hp: 4, ship: 6, shield: 3, spread: 1 }, shield: "full", mines: true, mineLv: 6,
+        shop: save.shop,
+        enemies: [["spark",240,360],["drifter",820,400],["razor",960,520]] });
+      const mst = playerStats(run);
+      const mdmg = mst.dmg * (2.4 + 0.38 * 6);
+      run.mines = [
+        { x: 220, y: 620, r: 18, t: 9999, dmg: mdmg, planted: true },
+        { x: 400, y: 880, r: 18, t: 9999, dmg: mdmg, planted: true },
+        { x: 540, y: 700, r: 18, t: 9999, dmg: mdmg, planted: true },
+        { x: 720, y: 980, r: 18, t: 9999, dmg: mdmg, planted: true },
+        { x: 860, y: 740, r: 18, t: 9999, dmg: mdmg, planted: true },
+        { x: 300, y: 1100, r: 18, t: 9999, dmg: mdmg, planted: true }
+      ];
+      return;
+    }
+    if (name === "swarm") {
+      v9Play({ wave: 33, prest: { ship: 4, dmg: 3, shield: 2, armor: 2 }, up: { dmg: 10, rate: 12, hp: 8, ship: 10, shield: 6, spread: 5, multi: 3, knock: 12, pdef: 6, pierce: 3 }, shield: "full",
+        enemies: [] });
+      // pack a visible mid-field swarm
+      run.enemies = [];
+      const kinds = ["spark","spark","drifter","razor","needle","coil","shooter","shellback","splitter","brood"];
+      for (let i = 0; i < 36; i++) {
+        const typ = kinds[i % kinds.length];
+        const e = spawnEnemy(run, typ, { x: 80 + (i * 97) % 920, y: 420 + (i * 41) % 700 });
+        if (e) { e._onField = true; e.hp = Math.max(e.hp, 40); }
+      }
+      hudDirty = true; refreshHud(true);
+      if (root.LastOutpost) root.LastOutpost._run = run;
+      return;
+    }
+    if (name === "shop-upg") {
+      save.gems = 420;
+      save.shop = defaultShop();
+      save.shop.unlocked.nuke = 1; save.shop.unlocked.rail = 1; save.shop.unlocked.tesla = 1;
+      save.shop.levels = { nuke: 3, rail: 2, tesla: 1 };
+      save.shop.weapons = ["nuke"];
+      showTitle();
+      openShop("weapons");
+      return;
+    }
+
     startRun();
     if (name === "early") {
       run.wave = 0; beginWave(run, 3);
