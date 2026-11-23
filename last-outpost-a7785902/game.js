@@ -78,13 +78,13 @@
     { id: "thorns",   name: "THORNS",     tab: "def",  base: 100, grow: 1.48, max: 12, unlock: 9 },
     { id: "knock",    name: "KNOCKBACK",  tab: "def",  base: 80,  grow: 1.45, max: 12, unlock: 8 },
     { id: "freeze",   name: "FREEZE",     tab: "def",  base: 130, grow: 1.50, max: 12, unlock: 12 },
+    { id: "pdef",     name: "POINT DEF",  tab: "def",  base: 90,  grow: 1.46, max: 15, unlock: 4 },
     { id: "drone",    name: "DRONE",      tab: "util", base: 190, grow: 1.50, max: 10, unlock: 7, prestige: true },
     { id: "dcount",   name: "DRONE #",    tab: "util", base: 230, grow: 1.52, max: 6,  unlock: 10 },
     { id: "dmgDrone", name: "DRONE DMG",  tab: "util", base: 160, grow: 1.48, max: 15, unlock: 9 },
     { id: "laserW",   name: "LASER W",    tab: "util", base: 140, grow: 1.48, max: 12, unlock: 8 },
     { id: "mcount",   name: "MISSILE #",  tab: "util", base: 210, grow: 1.52, max: 8,  unlock: 11 },
     { id: "ricochet", name: "RICOCHET",   tab: "util", base: 170, grow: 1.52, max: 8,  unlock: 13 },
-    { id: "magnet",   name: "MAGNET",     tab: "util", base: 55,  grow: 1.40, max: 15, unlock: 2 },
     { id: "coinVal",  name: "COIN VALUE", tab: "util", base: 65,  grow: 1.42, max: 15, unlock: 3 },
     { id: "interest", name: "INTEREST",   tab: "util", base: 95,  grow: 1.45, max: 12, unlock: 5 },
     { id: "skip",     name: "WAVE SKIP",  tab: "util", base: 180, grow: 1.55, max: 8,  unlock: 14 },
@@ -116,6 +116,7 @@
       { id: "armor", name: "Armor", max: 12, base: 45, grow: 1.48 },
       { id: "regen", name: "Hull Regen", max: 12, base: 55, grow: 1.48 },
       { id: "shRegen", name: "Shield Regen", max: 12, base: 60, grow: 1.48 },
+      { id: "pdef", name: "Point Defense", max: 10, base: 50, grow: 1.42 },
       { id: "thorns", name: "Thorns", max: 10, base: 70, grow: 1.5 },
       { id: "wind", name: "Second Wind", max: 1, base: 200, grow: 1 }
     ],
@@ -124,7 +125,6 @@
       { id: "coinValue", name: "Coin Value", max: 15, base: 40, grow: 1.45 },
       { id: "gemBonus", name: "Gem Bonus", max: 12, base: 80, grow: 1.52 },
       { id: "interest", name: "Interest", max: 12, base: 90, grow: 1.48 },
-      { id: "magnet", name: "Coin Magnet", max: 10, base: 40, grow: 1.42 },
       { id: "skip", name: "Wave Skip", max: 8, base: 110, grow: 1.52 }
     ]
   };
@@ -142,11 +142,11 @@
   };
 
   const BOSS = {
-    10: { name: "THE HERALD",     kind: "herald",     hp: 2800,  r: 78,  coins: 70 },
-    20: { name: "TWIN SPIRE",     kind: "twin",       hp: 7200,  r: 88,  coins: 110 },
-    30: { name: "THE LATTICE",    kind: "lattice",    hp: 15000, r: 98,  coins: 150 },
-    40: { name: "THE HARBINGER",  kind: "harbinger",  hp: 28000, r: 118, coins: 200 },
-    50: { name: "ECLIPSE ENGINE", kind: "eclipse",    hp: 48000, r: 110, coins: 260 }
+    10: { name: "THE HERALD",     kind: "herald",     hp: 5200,  r: 155, coins: 70 },
+    20: { name: "TWIN SPIRE",     kind: "twin",       hp: 11000, r: 170, coins: 110 },
+    30: { name: "THE LATTICE",    kind: "lattice",    hp: 23000, r: 180, coins: 150 },
+    40: { name: "THE HARBINGER",  kind: "harbinger",  hp: 44000, r: 200, coins: 200 },
+    50: { name: "ECLIPSE ENGINE", kind: "eclipse",    hp: 74000, r: 190, coins: 260 }
   };
 
   function bossInfo(wave) {
@@ -173,23 +173,23 @@
   function defaultPerma() {
     return {
       dmg: 0, rate: 0, crit: 0, critDmg: 0, pierce: 0, multi: 0, slot: 0,
-      hp: 0, shield: 0, armor: 0, regen: 0, shRegen: 0, thorns: 0, wind: 0,
-      startCoins: 0, coinValue: 0, gemBonus: 0, interest: 0, magnet: 0, skip: 0
+      hp: 0, shield: 0, armor: 0, regen: 0, shRegen: 0, pdef: 0, thorns: 0, wind: 0,
+      startCoins: 0, coinValue: 0, gemBonus: 0, interest: 0, skip: 0
     };
   }
   function defaultMid() {
     return {
       dmg: 0, rate: 0, spread: 0, crit: 0, critDmg: 0, pierce: 0, multi: 0, bspd: 0, burn: 0, chain: 0, laser: 0, missile: 0,
-      ship: 0, hp: 0, shield: 0, shRegen: 0, armor: 0, regen: 0, thorns: 0, knock: 0, freeze: 0,
+      ship: 0, hp: 0, shield: 0, shRegen: 0, armor: 0, regen: 0, thorns: 0, knock: 0, freeze: 0, pdef: 0,
       drone: 0, dcount: 0, dmgDrone: 0, laserW: 0, mcount: 0, ricochet: 0,
-      magnet: 0, coinVal: 0, interest: 0, skip: 0, orbit: 0, emp: 0
+      coinVal: 0, interest: 0, skip: 0, orbit: 0, emp: 0
     };
   }
   function defaultPrest() {
     return { dmg: 0, laser: 0, missile: 0, drone: 0, armor: 0, shield: 0, ship: 0 };
   }
   function defaultSave() {
-    return { bestWave: 0, gems: 0, perma: defaultPerma(), mid: defaultMid(), prest: defaultPrest(), carryCoins: 0, mute: false, ver: 4 };
+    return { bestWave: 0, gems: 0, perma: defaultPerma(), mid: defaultMid(), prest: defaultPrest(), carryCoins: 0, mute: false, ver: 5 };
   }
 
   function convertOverflowToPrestige(mid, prest) {
@@ -204,6 +204,13 @@
     }
   }
 
+  function refundSpent(base, grow, lv) {
+    let s = 0;
+    const n = lv | 0;
+    for (let i = 0; i < n; i++) s += Math.floor(base * Math.pow(grow, i));
+    return s;
+  }
+
   function migrateSave(s) {
     const d = defaultSave();
     if (!s || typeof s !== "object") return d;
@@ -215,7 +222,20 @@
     d.mid = Object.assign(defaultMid(), s.mid || {});
     d.prest = Object.assign(defaultPrest(), s.prest || {});
     if (!s.prest) convertOverflowToPrestige(d.mid, d.prest);
-    d.ver = 4;
+    const prevVer = s.ver | 0;
+    if (prevVer < 5) {
+      const midMag = (s.mid && s.mid.magnet) | 0;
+      const perMag = (s.perma && s.perma.magnet) | 0;
+      if (midMag > 0) d.carryCoins += refundSpent(55, 1.40, midMag);
+      if (perMag > 0) d.gems += refundSpent(40, 1.42, perMag);
+      d.mid.magnet = 0;
+      d.perma.magnet = 0;
+      if (!d.mid.pdef) d.mid.pdef = 0;
+      if (!d.perma.pdef) d.perma.pdef = 0;
+    }
+    delete d.mid.magnet;
+    delete d.perma.magnet;
+    d.ver = 5;
     return d;
   }
 
@@ -312,7 +332,13 @@
     st.burn = (u.burn || 0) * 0.22;
     st.chain = u.chain || 0;
     st.ricochet = u.ricochet || 0;
-    st.magnet = 0 + u.magnet * 70 + (p.magnet || 0) * 55;
+    st.magnet = 80;
+    const pdefLv = (u.pdef || 0) + (p.pdef || 0) * 0.8;
+    st.pdefLv = pdefLv;
+    st.pdefRange = pdefLv > 0 ? 130 + pdefLv * 16 : 0;
+    st.pdefInterval = pdefLv > 0 ? Math.max(0.22, 0.85 * Math.pow(0.92, Math.max(0, pdefLv - 1))) : 1;
+    st.pdefTurrets = pdefLv >= 10 ? 2 : 1;
+    st.pdefDeflect = pdefLv >= 6 ? Math.min(0.35, 0.06 + (pdefLv - 6) * 0.035) : 0;
     st.laserW = 12 + (u.laserW || 0) * 5 + (pr.laser || 0) * 3;
     st.mcount = 1 + (u.mcount || 0);
     st.drones = Math.min(6, (u.drone > 0 ? 1 : 0) + (u.dcount || 0));
@@ -352,7 +378,7 @@
 
 
   const INFO = {
-    dmg: "Your main blaster. Each level raises bullet damage. This is a core item: at level 10 you can Prestige it for a new look and a big power bonus.",
+    dmg: "Your main blaster. Each level raises bullet damage. This is a core item: at level 10 you can Prestige it for a new shape, a new color, and a big power bonus.",
     rate: "Shortens the time between blaster volleys. Higher fire rate means more shots per second. Caps high and does not prestige.",
     spread: "Adds extra bullets that fan around your aim. Level 1 gives a 3-shot fan; higher levels add more shots in a wider cone.",
     crit: "Chance for a shot to crit and use your Crit Damage multiplier. Shown as a white, heavier bolt when it procs.",
@@ -362,24 +388,24 @@
     bspd: "Makes your shots fly faster so lead aiming lands more cleanly and they cross the screen sooner.",
     burn: "Hits set enemies on fire, dealing damage over time after the shot.",
     chain: "On hit, lightning jumps to a nearby enemy for a fraction of the damage. Higher levels jump farther and more times.",
-    laser: "Fires a piercing beam at the closest threats. Core item: Prestige at level 10 for a stronger, recolored beam.",
-    missile: "Launches homing missiles at the closest threats. Core item: Prestige at level 10 for heavier, recolored missiles.",
-    ship: "The hull itself. Raises max health and slightly toughens the outpost. Core item: Prestige at level 10 to restyle the ship and multiply its hull.",
+    laser: "Fires a piercing beam at the closest threats. Core item: Prestige at level 10 for a thicker, cooler beam (split and spiral at the top tiers) and more power.",
+    missile: "Launches homing missiles at the closest threats. Core item: Prestige at level 10 for bigger frames, brighter exhaust, heavier blasts, and a new look.",
+    ship: "The hull itself. Raises max health and slightly toughens the outpost. Core item: Prestige at level 10 to grow the ship — extra wings, engines, armor and glow — and multiply its hull.",
     hp: "Buys more max health and instantly repairs a chunk of hull. A mid-run survival purchase; the Ship is the prestige path for the hull look.",
-    shield: "A rechargeable energy bubble in front of the hull. Core item: Prestige at level 10 for a stronger, recolored shield.",
+    shield: "A rechargeable energy bubble in front of the hull. Core item: Prestige at level 10 for a new shield shape (ring, hex lattice, then a double dome) and more strength.",
     shRegen: "The shield refills faster after you stop taking hits.",
-    armor: "Cuts incoming damage by a percent (capped). Core item: Prestige at level 10 for a larger cut and a tougher plate look.",
+    armor: "Cuts incoming damage by a percent (capped). Core item: Prestige at level 10 for a larger cut and heavier visible hull plating.",
     regen: "Slowly repairs hull over time, even between hits.",
     thorns: "When something rams the rail or the ship, a portion of that damage is reflected back.",
     knock: "Hits shove enemies back up the screen, buying you a little space. Bosses barely flinch.",
     freeze: "Hits slow enemies for a short time. Stacks a little with more levels, and is capped so they never freeze solid.",
-    drone: "A wingman that hovers near the ship and fires on the closest threat. Core item: Prestige at level 10 for a new drone shape and more punch.",
+    drone: "A wingman that hovers near the ship and fires on the closest threat. Core item: Prestige at level 10 for a new, spikier drone shape, orbit trails, and more punch.",
     dcount: "Adds extra drones, up to a small squad.",
     dmgDrone: "Raises the damage of every drone shot.",
     laserW: "Widens the laser beam so it is easier to clip enemies.",
     mcount: "Adds extra missiles to each volley.",
     ricochet: "After a hit, a bullet can bounce toward another nearby target. Each level is another bounce.",
-    magnet: "Coin pickups start flying to the counter sooner and from farther away. None are left stuck on the field.",
+    pdef: "Point Defense. Small turret pods near the hull that shoot down incoming enemy bullets and missiles. Higher levels fire faster, reach farther, and add a second turret at level 10. From level 6 some shots are deflected back at enemies instead of destroyed. Boss volleys can be thinned, not erased.",
     coinVal: "Increases coins dropped by every kill. Stacks with the permanent Coin Value node.",
     interest: "At the start of each new wave, grants bonus coins based on this level (plus any permanent Interest).",
     skip: "When a non-boss wave is built, automatically cashes out and removes a few of the weakest upcoming spawns.",
@@ -405,7 +431,7 @@
     coinValue: "A permanent bonus to coins from kills.",
     gemBonus: "A permanent bonus to gems earned at the end of a run. Gems are never cut when you die.",
     interest: "Permanent bonus coins at the start of each wave.",
-    magnet: "Permanent bonus to coin magnet range.",
+    pdef: "Permanent Point Defense ranks. Your intercept turrets start online every run and scale with mid-run Point Def.",
     skip: "Permanent wave-skip charges, stacking with the mid-run upgrade."
   };
 
@@ -448,7 +474,13 @@
     if (id === "laserW") return "Beam width " + (12 + lv * 5);
     if (id === "mcount") return (1 + lv) + " missile" + (lv ? "s" : "") + " per volley";
     if (id === "ricochet") return lv ? (lv + " bounce" + (lv > 1 ? "s" : "")) : "No bounce";
-    if (id === "magnet") return "Magnet +" + (lv * 70) + " range";
+    if (id === "pdef") {
+      if (!lv) return "No interceptors";
+      const range = Math.round(130 + lv * 16);
+      const iv = Math.max(0.22, 0.85 * Math.pow(0.92, Math.max(0, lv - 1)));
+      const defl = lv >= 6 ? Math.round(Math.min(0.35, 0.06 + (lv - 6) * 0.035) * 100) : 0;
+      return "Range " + range + "  ·  " + (1 / iv).toFixed(1) + " intercepts/sec" + (defl ? ("  ·  " + defl + "% deflect") : "") + (lv >= 10 ? "  ·  dual turrets" : "");
+    }
     if (id === "coinVal") return "Kill coins +" + Math.round(lv * 10) + "%";
     if (id === "interest") return lv ? (BAL.interestPerWave * lv) + " coins each wave" : "No interest";
     if (id === "skip") return lv ? ("Cash out " + lv + " spawn" + (lv > 1 ? "s" : "") + " per trash wave") : "No skip";
@@ -470,7 +502,7 @@
       phase: "break", phaseT: 0, pending: [], spawnCd: 0,
       enemies: [], bullets: [], pickups: [], floaters: [], particles: [], lasers: [],
       fireCd: 0, missileCd: 0, laserCd: 0, droneFire: [0, 0, 0, 0, 0, 0],
-      empCd: 0, orbitT: 0, hullAng: -Math.PI / 2, aimAng: -Math.PI / 2, prestFx: null, bossBeams: [],
+      empCd: 0, pdefCd: 0, pdefBeams: [], orbitT: 0, hullAng: -Math.PI / 2, aimAng: -Math.PI / 2, prestFx: null, bossBeams: [],
       shake: 0, flash: 0, banner: null,
       rng: makeRng(opts.seed || (Date.now() & 0x7fffffff)),
       bestWave: opts.bestWave || 0,
@@ -770,21 +802,40 @@
     }
   }
   function floater(run, x, y, text, color, kind) {
-    if (kind === "dmg" && run.floaters.length >= 10) {
-      // drop oldest damage number so they stay crisp and don't stack into a blur
+    kind = kind || "dmg";
+    if (kind === "dmg") {
+      const add = parseInt(text, 10) || 0;
       for (let i = 0; i < run.floaters.length; i++) {
-        if (run.floaters[i].kind === "dmg") { give("floaters", popAt(run.floaters, i)); break; }
+        const f = run.floaters[i];
+        if (f.kind === "dmg" && f.t < 0.28 && Math.abs(f.x - x) < 50 && Math.abs(f.y - y) < 44) {
+          f.amt = (f.amt || parseInt(f.text, 10) || 0) + add;
+          f.text = String(f.amt);
+          f.t = Math.min(f.t, 0.06);
+          f.life = 0.72;
+          f.color = color;
+          return;
+        }
       }
+      let dmgCount = 0, oldest = -1, oldestT = -1;
+      for (let i = 0; i < run.floaters.length; i++) {
+        if (run.floaters[i].kind === "dmg") {
+          dmgCount++;
+          if (run.floaters[i].t > oldestT) { oldestT = run.floaters[i].t; oldest = i; }
+        }
+      }
+      if (dmgCount >= 8 && oldest >= 0) give("floaters", popAt(run.floaters, oldest));
     } else if (run.floaters.length >= MAX_FLOATERS) {
       give("floaters", popAt(run.floaters, 0));
     }
     let ox = 0, oy = 0;
     for (let i = 0; i < run.floaters.length; i++) {
       const f = run.floaters[i];
-      if (Math.abs(f.x - (x + ox)) < 28 && Math.abs(f.y - (y + oy)) < 22) { oy -= 22; ox += (oy % 44 === 0 ? 16 : 0); }
+      if (Math.abs(f.x - (x + ox)) < 36 && Math.abs(f.y - (y + oy)) < 26) { oy -= 28; ox += (oy % 56 === 0 ? 20 : -10); }
     }
     const f = take("floaters");
-    f.x = x + ox; f.y = y + oy; f.text = text; f.color = color; f.kind = kind || "dmg"; f.t = 0; f.life = 0.62; f.vy = -70;
+    f.x = Math.round(x + ox); f.y = Math.round(y + oy);
+    f.text = text; f.color = color; f.kind = kind; f.t = 0; f.life = kind === "dmg" ? 0.72 : 0.62; f.vy = -64;
+    f.amt = kind === "dmg" ? (parseInt(text, 10) || 0) : 0;
     run.floaters.push(f);
   }
 
@@ -875,10 +926,64 @@
     return Math.max(1, Math.round(raw * st.gemMul));
   }
 
+
+  function pdefTurretPos(i, n) {
+    if (n <= 1) return { x: SHIP_X + 78, y: SHIP_Y - 28 };
+    return i === 0 ? { x: SHIP_X - 86, y: SHIP_Y - 24 } : { x: SHIP_X + 86, y: SHIP_Y - 24 };
+  }
+
+  function updatePointDef(run, dt, st) {
+    if (!run.pdefBeams) run.pdefBeams = [];
+    for (let i = run.pdefBeams.length - 1; i >= 0; i--) {
+      run.pdefBeams[i].t -= dt;
+      if (run.pdefBeams[i].t <= 0) run.pdefBeams.splice(i, 1);
+    }
+    if (!st.pdefLv || st.pdefLv <= 0) return;
+    run.pdefCd = (run.pdefCd || 0) - dt;
+    if (run.pdefCd > 0) return;
+    const range = st.pdefRange;
+    const turrets = st.pdefTurrets || 1;
+    let shots = 0;
+    for (let t = 0; t < turrets; t++) {
+      let best = -1, bestScore = 1e9;
+      for (let i = 0; i < run.bullets.length; i++) {
+        const b = run.bullets[i];
+        if (!b || b.friendly) continue;
+        const d = Math.hypot(b.x - SHIP_X, b.y - SHIP_Y);
+        if (d > range) continue;
+        const score = d + (b.y < SHIP_Y - 400 ? 80 : 0) - (b.vy > 0 ? 50 : 0);
+        if (score < bestScore) { bestScore = score; best = i; }
+      }
+      if (best < 0) break;
+      const b = run.bullets[best];
+      const tp = pdefTurretPos(t, turrets);
+      if (run.pdefBeams.length < 10) {
+        run.pdefBeams.push({ x0: tp.x, y0: tp.y, x1: b.x, y1: b.y, t: 0.16, deflect: false });
+      }
+      if (st.pdefDeflect > 0 && run.rng() < st.pdefDeflect) {
+        b.friendly = true;
+        b.kind = "deflect";
+        b.color = C.lime;
+        b.life = Math.max(b.life, 1.2);
+        const tgt = closestEnemy(run, b.x, b.y);
+        const ang = tgt ? Math.atan2(tgt.y - b.y, tgt.x - b.x) : -Math.PI / 2;
+        const spd = Math.max(420, Math.hypot(b.vx, b.vy));
+        b.vx = Math.cos(ang) * spd; b.vy = Math.sin(ang) * spd;
+        b.dmg = (b.dmg || 8) * 0.9;
+        if (run.pdefBeams.length) run.pdefBeams[run.pdefBeams.length - 1].deflect = true;
+      } else {
+        burst(run, b.x, b.y, C.lime, 5);
+        give("bullets", popAt(run.bullets, best));
+      }
+      shots++;
+    }
+    if (shots > 0) run.pdefCd = st.pdefInterval;
+  }
+
   function updatePickups(run, dt) {
     const st = playerStats(run);
     const tx = 980, ty = 58;
-    const wait = Math.max(0.04, 0.12 - (run.up.magnet || 0) * 0.012);
+    const wait = 0.10;
     for (let i = run.pickups.length - 1; i >= 0; i--) {
       const p = run.pickups[i];
       p.t += dt;
@@ -1190,7 +1295,7 @@
       e.flash = 0.4;
       run.flash = Math.max(run.flash, 0.25);
     }
-    const targetY = e.bossKind === "harbinger" ? 540 : (e.bossKind === "lattice" ? 400 : 470);
+    const targetY = e.bossKind === "harbinger" ? 430 : (e.bossKind === "lattice" ? 400 : (e.bossKind === "eclipse" ? 420 : (e.bossKind === "twin" ? 420 : 420)));
     const spdN = e.enraged ? 1.7 : 1.25;
     e.y += (targetY - e.y) * Math.min(1, 1.15 * dt);
     if (e.y < 80) e.y += 200 * dt;
@@ -1213,7 +1318,7 @@
       const y1 = e.y + Math.sin(ang) * 1800;
       e.beamX1 = x1; e.beamY1 = y1;
       if (e.sweepHot > 0) {
-        if (distToSegment(SHIP_X, SHIP_Y, e.x, e.y + 20, x1, y1) < 28 + (e.enraged ? 8 : 0)) {
+        if (distToSegment(SHIP_X, SHIP_Y, e.x, e.y + 80, x1, y1) < 28 + (e.enraged ? 8 : 0)) {
           hurt(run, 16 * scD);
         }
       }
@@ -1227,7 +1332,7 @@
         const spread = e.enraged ? 0.22 : 0.26;
         for (let i = 0; i < n; i++) {
           const a = aim + (i - (n - 1) / 2) * spread;
-          bossShot(run, e.x, e.y + 28, a, 240, shotDmg, C.orange, 7);
+          bossShot(run, e.x, e.y + 90, a, 240, shotDmg, C.orange, 7);
         }
         if (e.pattern % 3 === 0) {
           e.sweepAng = aim;
@@ -1239,7 +1344,7 @@
           const ax = Math.atan2(SHIP_Y - e.y, SHIP_X - (e.x + sx));
           const n = e.enraged ? 4 : 3;
           for (let i = 0; i < n; i++) {
-            bossShot(run, e.x + sx, e.y + 20, ax + (i - (n - 1) / 2) * 0.18, 250, shotDmg, C.violet, 7);
+            bossShot(run, e.x + sx, e.y + 80, ax + (i - (n - 1) / 2) * 0.18, 250, shotDmg, C.violet, 7);
           }
         }
         if (e.spawnCd <= 0 && run.enemies.length < BAL.countMax + 4) {
@@ -1252,7 +1357,7 @@
         // aimed volley plus a sweeping laser
         for (let i = 0; i < (e.enraged ? 9 : 6); i++) {
           const a = Math.PI * 0.5 + (i - 3) * 0.16;
-          bossShot(run, e.x, e.y + 30, a, 220, shotDmg, C.cyan, 6);
+          bossShot(run, e.x, e.y + 100, a, 220, shotDmg, C.cyan, 6);
         }
         e.sweepAng = aim;
         e.tele = 0.45; e.pendingSweep = true;
@@ -1261,10 +1366,10 @@
         const n = e.enraged ? 8 : 6;
         for (let i = 0; i < n; i++) {
           const a = aim + (i - (n - 1) / 2) * 0.2;
-          bossShot(run, e.x, e.y + 30, a, 230, shotDmg * 1.1, C.magenta, 8);
+          bossShot(run, e.x, e.y + 110, a, 230, shotDmg * 1.1, C.magenta, 8);
         }
         for (const sx of [-180, 180]) {
-          bossShot(run, e.x + sx * (e.r / 110), e.y + 40, Math.PI / 2, 280, shotDmg, C.pink, 6);
+          bossShot(run, e.x + sx * (e.r / 160), e.y + 100, Math.PI / 2, 280, shotDmg, C.pink, 6);
         }
         if (e.spawnCd <= 0 && run.enemies.length < BAL.countMax + 5) {
           spawnEnemy(run, "coil", { x: e.x, y: e.y + 50 });
@@ -1278,10 +1383,10 @@
         const n = e.enraged ? 9 : 7;
         for (let i = 0; i < n; i++) {
           const a = aim + (i - (n - 1) / 2) * 0.18;
-          bossShot(run, e.x, e.y + 28, a, 250, shotDmg * 1.15, C.magenta, 8);
+          bossShot(run, e.x, e.y + 110, a, 250, shotDmg * 1.15, C.magenta, 8);
         }
         for (const sx of [-160, 0, 160]) {
-          bossShot(run, e.x + sx, e.y + 36, Math.PI / 2, 300, shotDmg, C.pink, 6);
+          bossShot(run, e.x + sx, e.y + 100, Math.PI / 2, 300, shotDmg, C.pink, 6);
         }
         if (e.spawnCd <= 0 && run.enemies.length < BAL.countMax + 6) {
           spawnEnemy(run, e.enraged ? "coil" : "spark", { x: e.x - 60, y: e.y + 40 });
@@ -1416,11 +1521,11 @@
     if (hpFrac < 0.35) order.push("hp", "ship", "regen", "shield");
     if ((run.up.rate || 0) < (run.up.dmg || 0)) order.push("rate", "dmg"); else order.push("dmg", "rate");
     order.push("ship");
-    order.push("spread", "bspd", "magnet", "coinVal");
-    if (hpFrac < 0.6) order.push("hp", "armor", "shield");
+    order.push("spread", "bspd", "coinVal");
+    if (hpFrac < 0.6) order.push("hp", "armor", "shield", "pdef");
     order.push("pierce", "multi", "crit", "critDmg", "burn");
     order.push("drone", "laser", "missile", "interest");
-    order.push("shRegen", "regen", "knock", "freeze", "thorns");
+    order.push("shRegen", "regen", "knock", "pdef", "freeze", "thorns");
     order.push("dcount", "dmgDrone", "laserW", "mcount", "chain", "ricochet");
     order.push("skip", "orbit", "emp", "hp");
     for (let i = 0; i < order.length; i++) { if (tryBuy(run, order[i])) return true; }
@@ -1452,7 +1557,7 @@
   }
 
   function autoBuyPerma(perma, gems) {
-    const order = ["dmg", "hp", "startCoins", "rate", "coinValue", "armor", "shield", "crit", "critDmg", "regen", "interest", "magnet", "pierce", "shRegen", "multi", "slot", "gemBonus", "thorns", "skip", "wind"];
+    const order = ["dmg", "hp", "startCoins", "rate", "coinValue", "armor", "shield", "crit", "critDmg", "regen", "interest", "pdef", "pierce", "shRegen", "multi", "slot", "gemBonus", "thorns", "skip", "wind"];
     let changed = true;
     while (changed) {
       changed = false;
@@ -1627,7 +1732,6 @@
   const sprites = {};
   const glows = {};
   function sprite(key, w, h, draw) {
-    if (sprites[key]) return sprites[key];
     const pad = 28;
     const c = document.createElement("canvas");
     c.width = w + pad * 2; c.height = h + pad * 2;
@@ -1678,26 +1782,312 @@
   function pathRWing(g) { g.beginPath(); g.moveTo(8, -6); g.lineTo(82, 34); g.lineTo(94, 44); g.lineTo(88, 56); g.lineTo(70, 50); g.lineTo(14, 26); g.closePath(); }
   function pathCanopy(g) { g.beginPath(); g.moveTo(0, -40); g.lineTo(7, -14); g.lineTo(0, 8); g.lineTo(-7, -14); g.closePath(); }
 
-  function drawPlayerTo(g, col, accent) {
+  function wingPair(g, span, y, drop, tip) {
+    g.beginPath();
+    g.moveTo(-12, y); g.lineTo(-span, y + drop); g.lineTo(-span - 14, y + drop + tip); g.lineTo(-span + 10, y + drop + tip + 8); g.lineTo(-16, y + 18); g.closePath();
+  }
+  function wingPairR(g, span, y, drop, tip) {
+    g.beginPath();
+    g.moveTo(12, y); g.lineTo(span, y + drop); g.lineTo(span + 14, y + drop + tip); g.lineTo(span - 10, y + drop + tip + 8); g.lineTo(16, y + 18); g.closePath();
+  }
+  function flame(g, x, y, h, col) {
+    g.save(); g.fillStyle = col; g.shadowColor = col; g.shadowBlur = 14;
+    g.beginPath(); g.moveTo(x - 6, y); g.lineTo(x + 6, y); g.lineTo(x + 2, y + h); g.lineTo(x - 2, y + h); g.closePath(); g.fill();
+    g.fillStyle = "#fff"; g.shadowBlur = 6;
+    g.beginPath(); g.moveTo(x - 2.5, y); g.lineTo(x + 2.5, y); g.lineTo(x + 1, y + h * 0.65); g.lineTo(x - 1, y + h * 0.65); g.closePath(); g.fill();
+    g.restore();
+  }
+  function plate(g, col, x, y, w, h) {
+    neonFill(g, col, () => { g.beginPath(); g.rect(x, y, w, h); }, 0.22);
+    neonStroke(g, col, 1.4, () => { g.beginPath(); g.rect(x, y, w, h); }, { bloom: 8 });
+  }
+
+  function drawPlayerTo(g, col, accent, tier) {
     col = col || C.cyan; accent = accent || C.magenta;
-    neonFill(g, col, () => pathLWing(g), 0.1);
-    neonFill(g, col, () => pathRWing(g), 0.1);
-    neonFill(g, col, () => pathPlayer(g), 0.14);
-    neonStroke(g, col, 2.2, () => pathLWing(g), { bloom: 16 });
-    neonStroke(g, col, 2.2, () => pathRWing(g), { bloom: 16 });
-    neonStroke(g, col, 2.4, () => pathPlayer(g), { bloom: 16 });
-    neonFill(g, accent, () => pathCanopy(g), 0.35);
-    neonStroke(g, accent, 1.8, () => pathCanopy(g), { bloom: 12 });
-    neonStroke(g, col, 2, () => { g.beginPath(); g.moveTo(0, -86); g.lineTo(0, -60); }, { bloom: 10 });
-    for (const p of [[-88, 48], [88, 48]]) {
+    tier = tier | 0;
+    // hull grows and gains parts with each prestige
+    if (tier <= 0) {
+      neonFill(g, col, () => pathLWing(g), 0.1);
+      neonFill(g, col, () => pathRWing(g), 0.1);
+      neonFill(g, col, () => pathPlayer(g), 0.14);
+      neonStroke(g, col, 2.2, () => pathLWing(g), { bloom: 16 });
+      neonStroke(g, col, 2.2, () => pathRWing(g), { bloom: 16 });
+      neonStroke(g, col, 2.4, () => pathPlayer(g), { bloom: 16 });
+      neonFill(g, accent, () => pathCanopy(g), 0.35);
+      neonStroke(g, accent, 1.8, () => pathCanopy(g), { bloom: 12 });
+      neonStroke(g, col, 2, () => { g.beginPath(); g.moveTo(0, -86); g.lineTo(0, -60); }, { bloom: 10 });
+      flame(g, -11, 36, 40, col); flame(g, 11, 36, 40, col);
+      return;
+    }
+    const span = 94 + tier * 22;
+    const nose = -78 - tier * 10;
+    // extra upper fins / canards from Mk II
+    if (tier >= 1) {
+      neonFill(g, col, () => { g.beginPath(); g.moveTo(-10, -20); g.lineTo(-58 - tier * 8, -48); g.lineTo(-48, -18); g.closePath(); }, 0.12);
+      neonFill(g, col, () => { g.beginPath(); g.moveTo(10, -20); g.lineTo(58 + tier * 8, -48); g.lineTo(48, -18); g.closePath(); }, 0.12);
+      neonStroke(g, col, 1.8, () => { g.beginPath(); g.moveTo(-10, -20); g.lineTo(-58 - tier * 8, -48); g.lineTo(-48, -18); g.closePath(); }, { bloom: 10 });
+      neonStroke(g, col, 1.8, () => { g.beginPath(); g.moveTo(10, -20); g.lineTo(58 + tier * 8, -48); g.lineTo(48, -18); g.closePath(); }, { bloom: 10 });
+    }
+    // main wings
+    neonFill(g, col, () => wingPair(g, span, -8, 40, 16), 0.1);
+    neonFill(g, col, () => wingPairR(g, span, -8, 40, 16), 0.1);
+    neonStroke(g, col, 2.2 + tier * 0.15, () => wingPair(g, span, -8, 40, 16), { bloom: 16 });
+    neonStroke(g, col, 2.2 + tier * 0.15, () => wingPairR(g, span, -8, 40, 16), { bloom: 16 });
+    // second wing pair Mk III+
+    if (tier >= 2) {
+      neonFill(g, col, () => wingPair(g, span * 0.72, 18, 28, 12), 0.1);
+      neonFill(g, col, () => wingPairR(g, span * 0.72, 18, 28, 12), 0.1);
+      neonStroke(g, col, 2, () => wingPair(g, span * 0.72, 18, 28, 12), { bloom: 12 });
+      neonStroke(g, col, 2, () => wingPairR(g, span * 0.72, 18, 28, 12), { bloom: 12 });
+    }
+    // body
+    const body = () => {
+      g.beginPath();
+      g.moveTo(0, nose);
+      g.lineTo(8 + tier, nose + 30);
+      g.lineTo(12 + tier, 8);
+      g.lineTo(20 + tier * 2, 36);
+      g.lineTo(8, 44);
+      g.lineTo(0, 48);
+      g.lineTo(-8, 44);
+      g.lineTo(-20 - tier * 2, 36);
+      g.lineTo(-12 - tier, 8);
+      g.lineTo(-8 - tier, nose + 30);
+      g.closePath();
+    };
+    neonFill(g, col, body, 0.16);
+    neonStroke(g, col, 2.5, body, { bloom: 16 });
+    // armor plates Mk II+
+    if (tier >= 1) {
+      plate(g, col, -18 - tier, -8, 8, 28 + tier * 2);
+      plate(g, col, 10 + tier, -8, 8, 28 + tier * 2);
+    }
+    if (tier >= 3) {
+      plate(g, accent, -28, 8, 10, 22);
+      plate(g, accent, 18, 8, 10, 22);
+    }
+    // canopy / glowing core
+    const coreR = 8 + tier * 2;
+    neonFill(g, accent, () => { g.beginPath(); g.moveTo(0, nose + 30); g.lineTo(coreR, -4); g.lineTo(0, 16); g.lineTo(-coreR, -4); g.closePath(); }, 0.4);
+    neonStroke(g, accent, 1.8, () => { g.beginPath(); g.moveTo(0, nose + 30); g.lineTo(coreR, -4); g.lineTo(0, 16); g.lineTo(-coreR, -4); g.closePath(); }, { bloom: 12 });
+    if (tier >= 3) {
+      g.save(); g.globalAlpha = 0.55; g.fillStyle = "#fff"; g.shadowColor = col; g.shadowBlur = 18;
+      g.beginPath(); g.arc(0, -6, 5 + tier, 0, Math.PI * 2); g.fill(); g.restore();
+    }
+    // nose spike
+    neonStroke(g, col, 2, () => { g.beginPath(); g.moveTo(0, nose - 12); g.lineTo(0, nose + 8); }, { bloom: 10 });
+    // engine pods
+    const pods = tier >= 5 ? [-48, -22, 0, 22, 48] : (tier >= 3 ? [-36, -14, 14, 36] : (tier >= 1 ? [-22, 0, 22] : [-11, 11]));
+    const fh = 36 + tier * 8;
+    pods.forEach((px) => flame(g, px, 40, px === 0 && tier >= 3 ? fh + 12 : fh, px === 0 ? "#fff" : col));
+    // energy halo Mk V+
+    if (tier >= 4) {
+      neonStroke(g, col, 2, () => { g.beginPath(); g.ellipse(0, -10, 70 + tier * 8, 40 + tier * 4, 0, 0, Math.PI * 2); }, { bloom: 14 });
+    }
+    if (tier >= 5) {
+      neonStroke(g, accent, 1.6, () => { g.beginPath(); g.ellipse(0, -10, 88, 52, 0, 0, Math.PI * 2); }, { bloom: 12 });
+      // crown spikes
+      neonStroke(g, col, 2, () => {
+        g.beginPath();
+        for (const sx of [-30, -12, 0, 12, 30]) { g.moveTo(sx - 5, nose + 8); g.lineTo(sx, nose - 22); g.lineTo(sx + 5, nose + 8); }
+      }, { bloom: 10 });
+    }
+    // wingtip lights
+    const tips = [[-span, 48], [span, 48]];
+    if (tier >= 2) { tips.push([-span * 0.72, 70]); tips.push([span * 0.72, 70]); }
+    for (const pt of tips) {
       g.save(); g.fillStyle = accent; g.shadowColor = accent; g.shadowBlur = 12;
-      g.beginPath(); g.arc(p[0], p[1], 3.2, 0, Math.PI * 2); g.fill(); g.restore();
+      g.beginPath(); g.arc(pt[0], pt[1], 3.4 + tier * 0.3, 0, Math.PI * 2); g.fill(); g.restore();
     }
   }
 
+
+  function buildBossSprites() {
+    // Herald — one-eyed cephalopod bell
+    sprite("boss-herald-body", 720, 520, g => {
+      const col = C.orange;
+      neonFill(g, col, () => { g.beginPath(); g.ellipse(0, -40, 260, 180, 0, 0, Math.PI * 2); }, 0.18);
+      neonStroke(g, col, 4, () => { g.beginPath(); g.ellipse(0, -40, 260, 180, 0, 0, Math.PI * 2); }, { bloom: 18 });
+      neonStroke(g, C.yellow, 2.4, () => { g.beginPath(); g.ellipse(0, -50, 180, 120, 0, 0, Math.PI * 2); }, { bloom: 12 });
+      // ridges
+      neonStroke(g, col, 2, () => {
+        g.beginPath();
+        for (const a of [-0.7, -0.35, 0, 0.35, 0.7]) { g.moveTo(Math.sin(a) * 40, -180); g.quadraticCurveTo(Math.sin(a) * 200, -20, Math.sin(a) * 220, 80); }
+      }, { bloom: 8 });
+    });
+    sprite("boss-herald-eye", 160, 160, g => {
+      g.save(); g.fillStyle = C.yellow; g.shadowColor = C.yellow; g.shadowBlur = 20;
+      g.beginPath(); g.arc(0, 0, 54, 0, Math.PI * 2); g.fill();
+      g.fillStyle = C.orange; g.beginPath(); g.arc(0, 4, 28, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#1a0008"; g.beginPath(); g.arc(0, 6, 14, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#fff"; g.beginPath(); g.arc(-8, -8, 6, 0, Math.PI * 2); g.fill();
+      g.restore();
+      neonStroke(g, C.yellow, 2.4, () => { g.beginPath(); g.arc(0, 0, 58, 0, Math.PI * 2); }, { bloom: 12 });
+    });
+    sprite("boss-herald-eyeShut", 160, 160, g => {
+      neonStroke(g, C.yellow, 4, () => { g.beginPath(); g.ellipse(0, 0, 54, 8, 0, 0, Math.PI * 2); }, { bloom: 10 });
+    });
+    sprite("boss-herald-jaw", 280, 160, g => {
+      neonFill(g, C.orange, () => { g.beginPath(); g.moveTo(-90, -10); g.lineTo(-70, 40); g.lineTo(0, 58); g.lineTo(70, 40); g.lineTo(90, -10); g.lineTo(40, 8); g.lineTo(0, 4); g.lineTo(-40, 8); g.closePath(); }, 0.2);
+      neonStroke(g, C.orange, 2.6, () => { g.beginPath(); g.moveTo(-90, -10); g.lineTo(-70, 40); g.lineTo(0, 58); g.lineTo(70, 40); g.lineTo(90, -10); }, { bloom: 10 });
+      neonStroke(g, C.yellow, 2, () => {
+        g.beginPath();
+        for (const x of [-50, -25, 0, 25, 50]) { g.moveTo(x, 8); g.lineTo(x - 4, 36); g.lineTo(x + 4, 36); g.closePath(); }
+      }, { bloom: 8 });
+    });
+    sprite("boss-herald-jawOpen", 280, 200, g => {
+      neonFill(g, C.red, () => { g.beginPath(); g.moveTo(-100, -10); g.lineTo(-80, 70); g.lineTo(0, 96); g.lineTo(80, 70); g.lineTo(100, -10); g.lineTo(0, 20); g.closePath(); }, 0.25);
+      neonStroke(g, C.orange, 2.8, () => { g.beginPath(); g.moveTo(-100, -10); g.lineTo(-80, 70); g.lineTo(0, 96); g.lineTo(80, 70); g.lineTo(100, -10); }, { bloom: 10 });
+      neonStroke(g, C.yellow, 2.2, () => {
+        g.beginPath();
+        for (const x of [-60, -30, 0, 30, 60]) { g.moveTo(x, 16); g.lineTo(x - 6, 70); g.lineTo(x + 6, 70); g.closePath(); }
+      }, { bloom: 8 });
+    });
+
+    // Twin Spire — two-headed serpent
+    sprite("boss-twin-body", 820, 520, g => {
+      neonFill(g, C.violet, () => { g.beginPath(); g.ellipse(0, 30, 160, 110, 0, 0, Math.PI * 2); }, 0.16);
+      neonStroke(g, C.violet, 3.4, () => { g.beginPath(); g.ellipse(0, 30, 160, 110, 0, 0, Math.PI * 2); }, { bloom: 14 });
+      // two necks
+      for (const sx of [-1, 1]) {
+        neonFill(g, C.violet, () => { g.beginPath(); g.moveTo(sx * 40, 0); g.lineTo(sx * 200, -140); g.lineTo(sx * 160, -40); g.lineTo(sx * 80, 40); g.closePath(); }, 0.16);
+        neonStroke(g, C.violet, 3, () => { g.beginPath(); g.moveTo(sx * 40, 20); g.lineTo(sx * 190, -150); g.lineTo(sx * 230, -110); g.lineTo(sx * 90, 50); }, { bloom: 12 });
+      }
+    });
+    sprite("boss-twin-head", 240, 240, g => {
+      neonFill(g, C.violet, () => { g.beginPath(); g.ellipse(0, 0, 80, 70, 0, 0, Math.PI * 2); }, 0.2);
+      neonStroke(g, C.violet, 3, () => { g.beginPath(); g.ellipse(0, 0, 80, 70, 0, 0, Math.PI * 2); }, { bloom: 12 });
+      // horn
+      neonStroke(g, C.magenta, 2.4, () => { g.beginPath(); g.moveTo(-16, -60); g.lineTo(0, -110); g.lineTo(16, -60); }, { bloom: 10 });
+    });
+    sprite("boss-twin-eye", 70, 70, g => {
+      g.save(); g.fillStyle = C.cyan; g.shadowColor = C.cyan; g.shadowBlur = 14;
+      g.beginPath(); g.arc(0, 0, 16, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#041018"; g.beginPath(); g.arc(2, 2, 7, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#fff"; g.beginPath(); g.arc(-4, -4, 3, 0, Math.PI * 2); g.fill(); g.restore();
+    });
+    sprite("boss-twin-eyeShut", 70, 70, g => {
+      neonStroke(g, C.cyan, 3, () => { g.beginPath(); g.ellipse(0, 0, 16, 3, 0, 0, Math.PI * 2); }, { bloom: 8 });
+    });
+    sprite("boss-twin-jaw", 180, 120, g => {
+      neonStroke(g, C.magenta, 2.6, () => { g.beginPath(); g.moveTo(-50, 0); g.lineTo(-30, 36); g.lineTo(0, 44); g.lineTo(30, 36); g.lineTo(50, 0); }, { bloom: 8 });
+    });
+    sprite("boss-twin-jawOpen", 180, 160, g => {
+      neonFill(g, C.red, () => { g.beginPath(); g.moveTo(-60, -4); g.lineTo(-40, 58); g.lineTo(0, 72); g.lineTo(40, 58); g.lineTo(60, -4); g.closePath(); }, 0.3);
+      neonStroke(g, C.magenta, 2.8, () => { g.beginPath(); g.moveTo(-60, -4); g.lineTo(-40, 58); g.lineTo(0, 72); g.lineTo(40, 58); g.lineTo(60, -4); }, { bloom: 10 });
+      neonStroke(g, C.cyan, 2, () => { g.beginPath(); g.moveTo(-28, 8); g.lineTo(-22, 48); g.moveTo(0, 10); g.lineTo(0, 56); g.moveTo(28, 8); g.lineTo(22, 48); }, { bloom: 8 });
+    });
+
+    // Lattice — insect / coral hydra
+    sprite("boss-lattice-body", 800, 560, g => {
+      const col = C.cyan;
+      neonFill(g, col, () => {
+        g.beginPath();
+        g.moveTo(0, -200); g.lineTo(220, -80); g.lineTo(260, 80); g.lineTo(120, 180); g.lineTo(0, 140); g.lineTo(-120, 180); g.lineTo(-260, 80); g.lineTo(-220, -80); g.closePath();
+      }, 0.14);
+      neonStroke(g, col, 3.4, () => {
+        g.beginPath();
+        g.moveTo(0, -200); g.lineTo(220, -80); g.lineTo(260, 80); g.lineTo(120, 180); g.lineTo(0, 140); g.lineTo(-120, 180); g.lineTo(-260, 80); g.lineTo(-220, -80); g.closePath();
+      }, { bloom: 16 });
+      neonStroke(g, col, 1.8, () => {
+        g.beginPath();
+        g.moveTo(-200, -60); g.lineTo(200, -60); g.moveTo(-230, 20); g.lineTo(230, 20); g.moveTo(-180, 100); g.lineTo(180, 100);
+        g.moveTo(-120, -140); g.lineTo(-140, 160); g.moveTo(0, -200); g.lineTo(0, 140); g.moveTo(120, -140); g.lineTo(140, 160);
+      }, { bloom: 8 });
+    });
+    sprite("boss-lattice-eye", 56, 56, g => {
+      g.save(); g.fillStyle = C.lime; g.shadowColor = C.lime; g.shadowBlur = 12;
+      g.beginPath(); g.arc(0, 0, 12, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#02100a"; g.beginPath(); g.arc(2, 2, 5, 0, Math.PI * 2); g.fill(); g.restore();
+    });
+    sprite("boss-lattice-eyeShut", 56, 56, g => {
+      neonStroke(g, C.lime, 2.4, () => { g.beginPath(); g.ellipse(0, 0, 12, 2.5, 0, 0, Math.PI * 2); }, { bloom: 6 });
+    });
+    sprite("boss-lattice-pincer", 200, 200, g => {
+      neonStroke(g, C.cyan, 3, () => { g.beginPath(); g.moveTo(0, 0); g.lineTo(70, 90); g.lineTo(20, 70); g.moveTo(0, 0); g.lineTo(80, 40); g.lineTo(40, 80); }, { bloom: 10 });
+    });
+
+    // Harbinger — kaiju
+    sprite("boss-harbinger-body", 900, 640, g => {
+      const col = C.magenta;
+      const leftArm = () => { g.beginPath(); g.moveTo(-80, 20); g.lineTo(-280, 80); g.lineTo(-340, 160); g.lineTo(-280, 200); g.lineTo(-200, 140); g.lineTo(-90, 80); g.closePath(); };
+      const rightArm = () => { g.beginPath(); g.moveTo(80, 20); g.lineTo(280, 80); g.lineTo(340, 160); g.lineTo(280, 200); g.lineTo(200, 140); g.lineTo(90, 80); g.closePath(); };
+      neonFill(g, col, leftArm, 0.12); neonFill(g, col, rightArm, 0.12);
+      neonStroke(g, col, 3, leftArm, { bloom: 14 }); neonStroke(g, col, 3, rightArm, { bloom: 14 });
+      neonFill(g, col, () => { g.beginPath(); g.moveTo(0, -160); g.lineTo(120, -40); g.lineTo(140, 80); g.lineTo(60, 200); g.lineTo(0, 160); g.lineTo(-60, 200); g.lineTo(-140, 80); g.lineTo(-120, -40); g.closePath(); }, 0.16);
+      neonStroke(g, col, 3.4, () => { g.beginPath(); g.moveTo(0, -160); g.lineTo(120, -40); g.lineTo(140, 80); g.lineTo(60, 200); g.lineTo(0, 160); g.lineTo(-60, 200); g.lineTo(-140, 80); g.lineTo(-120, -40); g.closePath(); }, { bloom: 16 });
+      // horns
+      neonStroke(g, C.cyan, 3, () => { g.beginPath(); g.moveTo(-70, -120); g.lineTo(-130, -260); g.lineTo(-40, -140); g.moveTo(70, -120); g.lineTo(130, -260); g.lineTo(40, -140); }, { bloom: 12 });
+    });
+    sprite("boss-harbinger-eye", 80, 80, g => {
+      g.save(); g.fillStyle = C.cyan; g.shadowColor = C.cyan; g.shadowBlur = 16;
+      g.beginPath(); g.ellipse(0, 0, 22, 14, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#080010"; g.beginPath(); g.arc(4, 0, 7, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#fff"; g.beginPath(); g.arc(-6, -4, 3, 0, Math.PI * 2); g.fill(); g.restore();
+    });
+    sprite("boss-harbinger-eyeShut", 80, 80, g => {
+      neonStroke(g, C.cyan, 3, () => { g.beginPath(); g.ellipse(0, 0, 22, 3, 0, 0, Math.PI * 2); }, { bloom: 8 });
+    });
+    sprite("boss-harbinger-jaw", 320, 180, g => {
+      neonStroke(g, C.magenta, 3, () => { g.beginPath(); g.moveTo(-110, 0); g.lineTo(-80, 50); g.lineTo(0, 70); g.lineTo(80, 50); g.lineTo(110, 0); }, { bloom: 10 });
+    });
+    sprite("boss-harbinger-jawOpen", 360, 240, g => {
+      neonFill(g, C.red, () => { g.beginPath(); g.moveTo(-130, -10); g.lineTo(-90, 90); g.lineTo(0, 120); g.lineTo(90, 90); g.lineTo(130, -10); g.closePath(); }, 0.28);
+      neonStroke(g, C.magenta, 3.2, () => { g.beginPath(); g.moveTo(-130, -10); g.lineTo(-90, 90); g.lineTo(0, 120); g.lineTo(90, 90); g.lineTo(130, -10); }, { bloom: 12 });
+      neonStroke(g, C.white, 2, () => {
+        g.beginPath();
+        for (const x of [-80, -40, 0, 40, 80]) { g.moveTo(x, 10); g.lineTo(x - 8, 80); g.lineTo(x + 8, 80); g.closePath(); }
+      }, { bloom: 8 });
+    });
+
+    // Eclipse — void leviathan ring-maw
+    sprite("boss-eclipse-body", 860, 620, g => {
+      neonStroke(g, C.magenta, 8, () => { g.beginPath(); g.arc(0, 0, 230, 0, Math.PI * 2); }, { bloom: 18 });
+      neonStroke(g, C.violet, 4, () => { g.beginPath(); g.arc(0, 0, 180, 0, Math.PI * 2); }, { bloom: 14 });
+      neonFill(g, "#090014", () => { g.beginPath(); g.arc(0, 0, 150, 0, Math.PI * 2); }, 0.85);
+      neonStroke(g, C.pink, 2.4, () => {
+        g.beginPath();
+        for (let k = 0; k < 16; k++) {
+          const a = k * Math.PI / 8;
+          g.moveTo(Math.cos(a) * 150, Math.sin(a) * 150);
+          g.lineTo(Math.cos(a) * 125, Math.sin(a) * 125);
+        }
+      }, { bloom: 10 });
+      neonStroke(g, C.magenta, 3, () => { g.beginPath(); g.arc(0, 0, 260, 0, Math.PI * 2); }, { bloom: 12 });
+    });
+    sprite("boss-eclipse-eye", 64, 64, g => {
+      g.save(); g.fillStyle = C.pink; g.shadowColor = C.pink; g.shadowBlur = 14;
+      g.beginPath(); g.arc(0, 0, 14, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#1a0010"; g.beginPath(); g.arc(3, 2, 6, 0, Math.PI * 2); g.fill(); g.restore();
+    });
+    sprite("boss-eclipse-eyeShut", 64, 64, g => {
+      neonStroke(g, C.pink, 2.6, () => { g.beginPath(); g.ellipse(0, 0, 14, 3, 0, 0, Math.PI * 2); }, { bloom: 6 });
+    });
+
+    sprite("boss-membrane", 700, 560, g => {
+      g.globalAlpha = 0.18; g.fillStyle = C.violet; g.shadowColor = C.violet; g.shadowBlur = 28;
+      g.beginPath(); g.ellipse(0, 0, 280, 230, 0, 0, Math.PI * 2); g.fill();
+      g.globalAlpha = 1;
+      neonStroke(g, C.violet, 3, () => { g.beginPath(); g.ellipse(0, 0, 280, 230, 0, 0, Math.PI * 2); }, { bloom: 16 });
+      neonStroke(g, C.cyan, 1.6, () => { g.beginPath(); g.ellipse(0, 0, 240, 196, 0, 0, Math.PI * 2); }, { bloom: 8 });
+    });
+  }
+
   function buildSprites() {
-    sprite("player", 220, 200, g => drawPlayerTo(g, C.cyan, C.magenta));
-    TIER.forEach((ti, i) => sprite("player-t" + i, 220, 200, g => drawPlayerTo(g, ti.color, ti.accent)));
+    sprite("player", 360, 320, g => drawPlayerTo(g, C.cyan, C.magenta, 0));
+    TIER.forEach((ti, i) => sprite("player-t" + i, 360, 320, g => drawPlayerTo(g, ti.color, ti.accent, i)));
+    sprite("pdef-turret", 48, 48, g => {
+      neonFill(g, C.lime, () => { g.beginPath(); g.moveTo(0, -16); g.lineTo(12, 8); g.lineTo(0, 14); g.lineTo(-12, 8); g.closePath(); }, 0.2);
+      neonStroke(g, C.lime, 1.8, () => { g.beginPath(); g.moveTo(0, -16); g.lineTo(12, 8); g.lineTo(0, 14); g.lineTo(-12, 8); g.closePath(); }, { bloom: 10 });
+      g.save(); g.fillStyle = "#fff"; g.shadowColor = C.lime; g.shadowBlur = 8;
+      g.beginPath(); g.arc(0, 0, 3, 0, Math.PI * 2); g.fill(); g.restore();
+    });
+    sprite("engine", 40, 70, g => {
+      g.fillStyle = C.cyan; g.shadowColor = C.cyan; g.shadowBlur = 18;
+      g.beginPath(); g.moveTo(-7, 0); g.lineTo(7, 0); g.lineTo(2, 48); g.lineTo(-2, 48); g.closePath(); g.fill();
+      g.fillStyle = "#fff"; g.shadowBlur = 8;
+      g.beginPath(); g.moveTo(-3, 0); g.lineTo(3, 0); g.lineTo(1, 32); g.lineTo(-1, 32); g.closePath(); g.fill();
+    });
     sprite("spark", 50, 50, g => {
       const p = () => { g.beginPath(); g.moveTo(0, -16); g.lineTo(10, 0); g.lineTo(0, 16); g.lineTo(-10, 0); g.closePath(); };
       neonFill(g, C.magenta, p, 0.22); neonStroke(g, C.magenta, 1.8, p, { bloom: 12 });
@@ -1743,51 +2133,114 @@
       neonFill(g, C.violet, p, 0.14); neonStroke(g, C.violet, 2.1, p, { bloom: 12 });
       neonStroke(g, C.magenta, 1.5, () => { g.beginPath(); g.rect(-22, -4, 16, 12); g.rect(6, -4, 16, 12); }, { bloom: 8 });
     });
-    sprite("drone", 50, 50, g => {
-      const body = () => { g.beginPath(); g.moveTo(0, -28); g.lineTo(18, 0); g.lineTo(0, 18); g.lineTo(-18, 0); g.closePath(); };
-      neonFill(g, C.lime, body, 0.16); neonStroke(g, C.lime, 2, body, { bloom: 12 });
-    });
     TIER.forEach((ti, i) => {
-      sprite("drone-t" + i, 56, 56, g => {
-        const body = i >= 2
-          ? () => { g.beginPath(); g.moveTo(0, -26); g.lineTo(16, -6); g.lineTo(10, 16); g.lineTo(0, 22); g.lineTo(-10, 16); g.lineTo(-16, -6); g.closePath(); }
-          : () => { g.beginPath(); g.moveTo(0, -28); g.lineTo(18, 0); g.lineTo(0, 18); g.lineTo(-18, 0); g.closePath(); };
+      sprite("drone-t" + i, 72, 72, g => {
+        const body = () => {
+          g.beginPath();
+          if (i <= 0) { g.moveTo(0, -28); g.lineTo(18, 0); g.lineTo(0, 18); g.lineTo(-18, 0); g.closePath(); }
+          else if (i === 1) { g.moveTo(0, -30); g.lineTo(16, -4); g.lineTo(10, 18); g.lineTo(0, 10); g.lineTo(-10, 18); g.lineTo(-16, -4); g.closePath(); }
+          else if (i === 2) { for (let k = 0; k < 6; k++) { const a = -Math.PI / 2 + k * Math.PI / 3; g[k ? "lineTo" : "moveTo"](Math.cos(a) * 24, Math.sin(a) * 24); } g.closePath(); }
+          else if (i === 3) { for (let k = 0; k < 8; k++) { const r = k % 2 ? 28 : 16; const a = -Math.PI / 2 + k * Math.PI / 4; g[k ? "lineTo" : "moveTo"](Math.cos(a) * r, Math.sin(a) * r); } g.closePath(); }
+          else if (i === 4) { g.moveTo(0, -32); g.lineTo(10, -8); g.lineTo(26, -4); g.lineTo(8, 6); g.lineTo(12, 24); g.lineTo(0, 12); g.lineTo(-12, 24); g.lineTo(-8, 6); g.lineTo(-26, -4); g.lineTo(-10, -8); g.closePath(); }
+          else { for (let k = 0; k < 8; k++) { const r = k % 2 ? 30 : 14; const a = -Math.PI / 2 + k * Math.PI / 4; g[k ? "lineTo" : "moveTo"](Math.cos(a) * r, Math.sin(a) * r); } g.closePath(); }
+        };
         neonFill(g, ti.color, body, 0.16); neonStroke(g, ti.color, 2, body, { bloom: 12 });
+        if (i >= 2) {
+          g.save(); g.fillStyle = ti.core; g.shadowColor = ti.color; g.shadowBlur = 10;
+          g.beginPath(); g.arc(0, 0, 4, 0, Math.PI * 2); g.fill(); g.restore();
+        }
       });
-      sprite("shield-t" + i, 280, 240, g => {
-        g.globalAlpha = 0.16; g.fillStyle = ti.color; g.shadowColor = ti.color; g.shadowBlur = 24;
-        g.beginPath(); g.ellipse(0, 0, 128, 110, 0, 0, Math.PI * 2); g.fill();
+      sprite("shield-t" + i, 320, 280, g => {
+        g.globalAlpha = 0.14; g.fillStyle = ti.color; g.shadowColor = ti.color; g.shadowBlur = 24;
+        if (i <= 1) { g.beginPath(); g.ellipse(0, 0, 128, 110, 0, 0, Math.PI * 2); g.fill(); }
+        else if (i === 2 || i === 3) {
+          g.beginPath();
+          for (let k = 0; k < 6; k++) { const a = Math.PI / 6 + k * Math.PI / 3; g[k ? "lineTo" : "moveTo"](Math.cos(a) * 130, Math.sin(a) * 112); }
+          g.closePath(); g.fill();
+        } else { g.beginPath(); g.ellipse(0, 0, 136, 118, 0, 0, Math.PI * 2); g.fill(); }
         g.globalAlpha = 1;
-        neonStroke(g, ti.color, 2.2, () => { g.beginPath(); g.ellipse(0, 0, 128, 110, 0, 0, Math.PI * 2); }, { bloom: 14 });
+        neonStroke(g, ti.color, i >= 4 ? 2.8 : 2.2, () => {
+          g.beginPath();
+          if (i <= 1) g.ellipse(0, 0, 128, 110, 0, 0, Math.PI * 2);
+          else if (i === 2 || i === 3) {
+            for (let k = 0; k < 6; k++) { const a = Math.PI / 6 + k * Math.PI / 3; g[k ? "lineTo" : "moveTo"](Math.cos(a) * 130, Math.sin(a) * 112); }
+            g.closePath();
+          } else g.ellipse(0, 0, 136, 118, 0, 0, Math.PI * 2);
+        }, { bloom: 14 });
+        if (i === 1 || i >= 4) {
+          neonStroke(g, ti.core, 1.6, () => { g.beginPath(); g.ellipse(0, 0, 96, 80, 0, 0, Math.PI * 2); }, { bloom: 8 });
+        }
+        if (i === 3) {
+          neonStroke(g, ti.core, 1.5, () => {
+            g.beginPath();
+            for (let k = 0; k < 6; k++) { const a = Math.PI / 6 + k * Math.PI / 3; g[k ? "lineTo" : "moveTo"](Math.cos(a) * 80, Math.sin(a) * 68); }
+            g.closePath();
+          }, { bloom: 8 });
+        }
+        if (i >= 2 && i <= 3) {
+          neonStroke(g, ti.color, 1.2, () => {
+            g.beginPath();
+            for (let k = 0; k < 6; k++) { const a = Math.PI / 6 + k * Math.PI / 3; g.moveTo(0, 0); g.lineTo(Math.cos(a) * 130, Math.sin(a) * 112); }
+          }, { bloom: 6 });
+        }
+        if (i >= 5) {
+          neonStroke(g, ti.accent, 1.6, () => { g.beginPath(); g.ellipse(0, 0, 150, 130, 0, 0, Math.PI * 2); }, { bloom: 10 });
+          neonStroke(g, ti.color, 1.4, () => {
+            g.beginPath();
+            for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; g.moveTo(Math.cos(a) * 136, Math.sin(a) * 118); g.lineTo(Math.cos(a) * 156, Math.sin(a) * 136); }
+          }, { bloom: 8 });
+        }
       });
-      sprite("streak-t" + i, 52, 18, g => {
-        g.shadowColor = ti.color; g.shadowBlur = 12; g.strokeStyle = ti.color; g.lineWidth = 4; g.lineCap = "round";
-        g.beginPath(); g.moveTo(-16, 0); g.lineTo(16, 0); g.stroke();
-        g.shadowBlur = 4; g.strokeStyle = ti.core; g.lineWidth = 1.8;
-        g.beginPath(); g.moveTo(-12, 0); g.lineTo(14, 0); g.stroke();
+      sprite("armor-t" + i, 200, 180, g => {
+        const col = ti.color;
+        plate(g, col, -40, -18, 14, 40 + i * 3);
+        plate(g, col, 26, -18, 14, 40 + i * 3);
+        if (i >= 2) { plate(g, ti.accent, -54, 6, 12, 24); plate(g, ti.accent, 42, 6, 12, 24); }
+        if (i >= 4) { plate(g, col, -20, 22, 40, 10); }
       });
-      sprite("missile-t" + i, 36, 16, g => {
-        g.shadowColor = ti.color; g.shadowBlur = 12;
+      sprite("streak-t" + i, 140, 48, g => {
+        g.lineCap = "round";
+        const drawBolt = (oy, len, w) => {
+          g.shadowColor = ti.color; g.shadowBlur = 12; g.strokeStyle = ti.color; g.lineWidth = w;
+          g.beginPath(); g.moveTo(-len, oy); g.lineTo(len, oy); g.stroke();
+          g.shadowBlur = 4; g.strokeStyle = ti.core; g.lineWidth = Math.max(1.2, w * 0.4);
+          g.beginPath(); g.moveTo(-len + 6, oy); g.lineTo(len - 2, oy); g.stroke();
+        };
+        if (i <= 0) drawBolt(0, 16, 4);
+        else if (i === 1) drawBolt(0, 20, 5.5);
+        else if (i === 2) { drawBolt(-5, 20, 3.6); drawBolt(5, 20, 3.6); }
+        else if (i === 3) { drawBolt(-8, 22, 3.4); drawBolt(0, 24, 5); drawBolt(8, 22, 3.4); }
+        else if (i === 4) {
+          g.shadowColor = ti.color; g.shadowBlur = 16; g.fillStyle = ti.color;
+          g.beginPath(); g.moveTo(-40, 0); g.lineTo(36, -7); g.lineTo(44, 0); g.lineTo(36, 7); g.closePath(); g.fill();
+          g.shadowBlur = 6; g.fillStyle = ti.core;
+          g.beginPath(); g.moveTo(-28, 0); g.lineTo(30, -3); g.lineTo(36, 0); g.lineTo(30, 3); g.closePath(); g.fill();
+        } else {
+          g.shadowColor = ti.color; g.shadowBlur = 18; g.fillStyle = ti.color;
+          g.beginPath(); g.moveTo(-48, 0); g.lineTo(30, -10); g.lineTo(50, 0); g.lineTo(30, 10); g.closePath(); g.fill();
+          g.fillStyle = ti.accent; g.beginPath(); g.moveTo(-20, 0); g.lineTo(24, -5); g.lineTo(40, 0); g.lineTo(24, 5); g.closePath(); g.fill();
+          g.shadowBlur = 6; g.fillStyle = "#fff";
+          g.beginPath(); g.moveTo(-16, 0); g.lineTo(28, -2); g.lineTo(36, 0); g.lineTo(28, 2); g.closePath(); g.fill();
+        }
+      });
+      sprite("missile-t" + i, 64, 28, g => {
+        const L = 16 + i * 3, h = 6 + i * 1.2;
+        g.shadowColor = ti.color; g.shadowBlur = 12 + i;
         g.fillStyle = ti.color;
-        g.beginPath(); g.moveTo(16, 0); g.lineTo(-10, -6); g.lineTo(-6, 0); g.lineTo(-10, 6); g.closePath(); g.fill();
-        g.fillStyle = ti.core; g.beginPath(); g.moveTo(12, 0); g.lineTo(-4, -3); g.lineTo(-4, 3); g.closePath(); g.fill();
+        g.beginPath(); g.moveTo(L, 0); g.lineTo(-L + 4, -h); g.lineTo(-L + 8, 0); g.lineTo(-L + 4, h); g.closePath(); g.fill();
+        g.fillStyle = ti.core; g.beginPath(); g.moveTo(L - 4, 0); g.lineTo(-6, -h * 0.45); g.lineTo(-6, h * 0.45); g.closePath(); g.fill();
+        if (i >= 2) {
+          g.fillStyle = ti.accent;
+          g.beginPath(); g.moveTo(-4, -h); g.lineTo(-L + 2, -h - 4); g.lineTo(-2, 0); g.closePath(); g.fill();
+          g.beginPath(); g.moveTo(-4, h); g.lineTo(-L + 2, h + 4); g.lineTo(-2, 0); g.closePath(); g.fill();
+        }
+        // exhaust
+        g.shadowColor = ti.color; g.shadowBlur = 14;
+        g.fillStyle = i >= 4 ? "#fff" : ti.core;
+        g.beginPath(); g.moveTo(-L + 8, 0); g.lineTo(-L - 6 - i * 2, -3); g.lineTo(-L - 10 - i * 3, 0); g.lineTo(-L - 6 - i * 2, 3); g.closePath(); g.fill();
       });
     });
-    sprite("engine", 40, 70, g => {
-      g.fillStyle = C.cyan; g.shadowColor = C.cyan; g.shadowBlur = 18;
-      g.beginPath(); g.moveTo(-7, 0); g.lineTo(7, 0); g.lineTo(2, 48); g.lineTo(-2, 48); g.closePath(); g.fill();
-      g.fillStyle = "#fff"; g.shadowBlur = 8;
-      g.beginPath(); g.moveTo(-3, 0); g.lineTo(3, 0); g.lineTo(1, 32); g.lineTo(-1, 32); g.closePath(); g.fill();
-    });
-    sprite("shield", 280, 240, g => {
-      g.globalAlpha = 0.16; g.fillStyle = C.cyan; g.shadowColor = C.cyan; g.shadowBlur = 24;
-      g.beginPath(); g.ellipse(0, 0, 128, 110, 0, 0, Math.PI * 2); g.fill();
-      g.globalAlpha = 1;
-      neonStroke(g, C.cyan, 2.2, () => { g.beginPath(); g.ellipse(0, 0, 128, 110, 0, 0, Math.PI * 2); }, { bloom: 14 });
-    });
-    ["herald", "twin", "lattice", "harbinger", "eclipse"].forEach(kind => {
-      sprite("boss-" + kind, 700, 420, g => { drawHarbinger(g, 0, 0, 1, kind === "eclipse" ? "harbinger" : kind); });
-    });
+    buildBossSprites();
     makeGlow("bolt", C.cyan, 5, 14);
     makeGlow("boltW", C.white, 6, 14);
     makeGlow("boltO", C.orange, 7, 16);
@@ -1800,42 +2253,109 @@
   }
 
 
-  function drawHarbinger(g, x, y, s, kind) {
-    g.save(); g.translate(x, y); g.scale(s, s);
-    const col = kind === "herald" ? C.orange : (kind === "lattice" ? C.cyan : C.magenta);
-    const leftWing = () => { g.beginPath(); g.moveTo(-40, -20); g.lineTo(-260, 10); g.lineTo(-300, 40); g.lineTo(-280, 90); g.lineTo(-200, 80); g.lineTo(-70, 50); g.closePath(); };
-    const rightWing = () => { g.beginPath(); g.moveTo(40, -20); g.lineTo(260, 10); g.lineTo(300, 40); g.lineTo(280, 90); g.lineTo(200, 80); g.lineTo(70, 50); g.closePath(); };
-    const body = () => { g.beginPath(); g.moveTo(0, -90); g.lineTo(48, -30); g.lineTo(56, 30); g.lineTo(30, 110); g.lineTo(0, 90); g.lineTo(-30, 110); g.lineTo(-56, 30); g.lineTo(-48, -30); g.closePath(); };
+  function strokeTentacle(g, x0, y0, ang, len, wobble, color, width) {
+    const x1 = x0 + Math.cos(ang) * len * 0.45 + Math.cos(ang + 1.2) * wobble;
+    const y1 = y0 + Math.sin(ang) * len * 0.45 + Math.sin(ang + 1.2) * wobble;
+    const x2 = x0 + Math.cos(ang) * len;
+    const y2 = y0 + Math.sin(ang) * len;
+    g.strokeStyle = color; g.lineWidth = width; g.lineCap = "round";
+    g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo(x1, y1, x2, y2); g.stroke();
+    g.strokeStyle = "rgba(255,255,255,0.55)"; g.lineWidth = Math.max(1, width * 0.3);
+    g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo(x1, y1, x2, y2); g.stroke();
+  }
+
+  function drawBossMonster(g, e, t) {
+    const kind = e.bossKind || "herald";
+    const rage = !!e.enraged;
+    const shielded = (e.shield || 0) > 0;
+    const firing = (e.sweepHot > 0) || ((e.tele || 0) > 0) || ((e.fireCd || 1) < 0.22);
+    const blink = ((t * 0.65 + (e.phase || 0)) % 3.6) > 3.32;
+    g.save();
+    g.translate(e.x, e.y);
+    if (rage) {
+      g.save();
+      g.globalAlpha = 0.22 + 0.08 * Math.sin(t * 8);
+      g.fillStyle = C.red;
+      g.beginPath(); g.ellipse(0, 0, e.r * 1.8, e.r * 1.45, 0, 0, Math.PI * 2); g.fill();
+      g.restore();
+    }
+    if (shielded) {
+      g.save();
+      g.globalAlpha = 0.35 + 0.1 * Math.sin(t * 4);
+      blit(g, "boss-membrane", 0, 0, kind === "eclipse" ? 1.15 : 1.05);
+      g.restore();
+    }
+    const tentCol = rage ? C.red : (kind === "herald" ? C.orange : (kind === "lattice" ? C.cyan : C.magenta));
     if (kind === "herald") {
-      neonFill(g, col, () => { g.beginPath(); g.ellipse(0, 10, 90, 40, 0, 0, Math.PI * 2); }, 0.16);
-      neonStroke(g, col, 3, () => { g.beginPath(); g.ellipse(0, 16, 120, 36, 0, 0, Math.PI * 2); }, { bloom: 16 });
-      neonStroke(g, C.yellow, 2, () => { g.beginPath(); g.ellipse(0, 0, 50, 50, 0, 0, Math.PI * 2); }, { bloom: 12 });
-    } else if (kind === "twin") {
-      for (const sx of [-70, 70]) {
-        neonFill(g, C.violet, () => { g.beginPath(); g.arc(sx, 0, 50, 0, Math.PI * 2); }, 0.16);
-        neonStroke(g, C.violet, 2.4, () => { g.beginPath(); g.arc(sx, 0, 50, 0, Math.PI * 2); }, { bloom: 14 });
-        neonStroke(g, C.cyan, 2, () => { g.beginPath(); g.arc(sx, 0, 22, 0, Math.PI * 2); }, { bloom: 10 });
+      const n = 8;
+      for (let i = 0; i < n; i++) {
+        const base = Math.PI * 0.25 + i * (Math.PI * 0.65 / (n - 1));
+        const wob = Math.sin(t * (rage ? 5 : 2.4) + i * 0.9) * (rage ? 38 : 24);
+        strokeTentacle(g, Math.sin(base - Math.PI / 2) * 90, 40, base, 210 + (i % 3) * 30, wob, tentCol, 7 - (i % 3));
       }
-      neonStroke(g, C.magenta, 2.2, () => { g.beginPath(); g.moveTo(-20, 0); g.lineTo(20, 0); }, { bloom: 10 });
+      blit(g, "boss-herald-body", 0, 0, 1);
+      blit(g, blink ? "boss-herald-eyeShut" : "boss-herald-eye", 0, -30, rage ? 1.15 : 1);
+      blit(g, firing ? "boss-herald-jawOpen" : "boss-herald-jaw", 0, 70, 1);
+    } else if (kind === "twin") {
+      for (const sx of [-1, 1]) {
+        for (let i = 0; i < 3; i++) {
+          const ang = Math.PI * 0.45 + sx * (0.4 + i * 0.15);
+          const wob = Math.sin(t * 3 + i + sx) * 22;
+          strokeTentacle(g, sx * 70, 60, ang, 180 + i * 20, wob, tentCol, 6);
+        }
+      }
+      blit(g, "boss-twin-body", 0, 40, 1.1);
+      for (const sx of [-1, 1]) {
+        const hx = sx * 210, hy = -80 + Math.sin(t * 2.2 + sx) * 8;
+        g.save(); g.translate(hx, hy); g.rotate(sx * 0.2 + Math.sin(t * 1.4) * 0.06 * sx);
+        blit(g, "boss-twin-head", 0, 0, 1.35);
+        blit(g, blink ? "boss-twin-eyeShut" : "boss-twin-eye", sx * -18, -14, 1.3);
+        blit(g, firing ? "boss-twin-jawOpen" : "boss-twin-jaw", 0, 50, 1.25);
+        g.restore();
+        // claw
+        g.save(); g.translate(sx * 150, 90); g.rotate(sx * 0.6 + Math.sin(t * 2 + sx) * 0.2);
+        g.strokeStyle = tentCol; g.lineWidth = 5; g.lineCap = "round";
+        g.beginPath(); g.moveTo(0, 0); g.lineTo(sx * 40, 70); g.lineTo(sx * 10, 80); g.moveTo(0, 0); g.lineTo(sx * 70, 50); g.stroke();
+        g.restore();
+      }
     } else if (kind === "lattice") {
-      neonStroke(g, C.cyan, 2.4, () => {
-        g.beginPath(); g.rect(-160, -60, 320, 140);
-        for (let i = 0; i < 5; i++) { g.moveTo(-160 + i * 80, -60); g.lineTo(-160 + i * 80, 80); }
-        for (let j = 0; j < 3; j++) { g.moveTo(-160, -60 + j * 70); g.lineTo(160, -60 + j * 70); }
-      }, { bloom: 14 });
-      neonFill(g, C.cyan, () => { g.beginPath(); g.arc(0, 10, 24, 0, Math.PI * 2); }, 0.3);
+      blit(g, "boss-lattice-body", 0, 0, 1);
+      const eyes = [[-90, -40], [0, -70], [90, -40], [-140, 30], [140, 30], [-60, 70], [60, 70], [0, 10]];
+      for (let i = 0; i < eyes.length; i++) {
+        const shut = blink && (i % 3 === (t * 2 | 0) % 3);
+        blit(g, shut ? "boss-lattice-eyeShut" : "boss-lattice-eye", eyes[i][0], eyes[i][1], 1);
+      }
+      for (const sx of [-1, 1]) {
+        g.save(); g.translate(sx * 200, 80); g.rotate(sx * (0.4 + Math.sin(t * (firing ? 6 : 2.2)) * 0.25));
+        g.scale(sx, 1);
+        blit(g, "boss-lattice-pincer", 0, 0, 1);
+        g.restore();
+      }
+      for (let i = 0; i < 5; i++) {
+        const ang = Math.PI * 0.35 + i * 0.2;
+        strokeTentacle(g, (i - 2) * 50, 140, ang, 150, Math.sin(t * 2.8 + i) * 20, tentCol, 5);
+      }
+    } else if (kind === "harbinger") {
+      for (let i = 0; i < 6; i++) {
+        const ang = Math.PI * 0.3 + i * 0.18;
+        strokeTentacle(g, (i - 2.5) * 40, 140, ang, 200 + i * 8, Math.sin(t * (rage ? 5 : 2.2) + i) * 28, tentCol, 8);
+      }
+      blit(g, "boss-harbinger-body", 0, 0, 1);
+      blit(g, blink ? "boss-harbinger-eyeShut" : "boss-harbinger-eye", -48, -40, rage ? 1.2 : 1);
+      blit(g, blink ? "boss-harbinger-eyeShut" : "boss-harbinger-eye", 48, -40, rage ? 1.2 : 1);
+      blit(g, firing ? "boss-harbinger-jawOpen" : "boss-harbinger-jaw", 0, 70, 1);
     } else {
-      neonFill(g, col, leftWing, 0.1); neonFill(g, col, rightWing, 0.1); neonFill(g, col, body, 0.12);
-      neonStroke(g, col, 2.4, leftWing, { bloom: 14 }); neonStroke(g, col, 2.4, rightWing, { bloom: 14 }); neonStroke(g, col, 2.6, body, { bloom: 16 });
-      const spikes = [-70, -42, -18, 0, 18, 42, 70], heights = [40, 70, 95, 130, 95, 70, 40];
-      neonStroke(g, C.cyan, 2.2, () => { g.beginPath(); spikes.forEach((sx, i) => { g.moveTo(sx - 8, -70); g.lineTo(sx, -70 - heights[i]); g.lineTo(sx + 8, -70); }); }, { bloom: 12 });
-      g.save(); g.globalAlpha = 0.35; g.fillStyle = C.magenta; g.shadowColor = C.magenta; g.shadowBlur = 28;
-      g.beginPath(); g.arc(0, 8, 44, 0, Math.PI * 2); g.fill();
-      g.globalAlpha = 0.85; g.fillStyle = "#ffb0ee"; g.beginPath(); g.arc(0, 8, 18, 0, Math.PI * 2); g.fill();
-      g.fillStyle = "#fff"; g.beginPath(); g.arc(0, 8, 7, 0, Math.PI * 2); g.fill(); g.restore();
-      neonStroke(g, C.magenta, 2.4, () => { g.beginPath(); g.arc(0, 8, 36, 0, Math.PI * 2); }, { bloom: 14 });
-      for (const tx of [-210, 210]) {
-        neonStroke(g, C.cyan, 2, () => { g.beginPath(); g.ellipse(tx, 52, 28, 20, 0, 0, Math.PI * 2); }, { bloom: 10 });
+      // eclipse leviathan
+      for (let i = 0; i < 10; i++) {
+        const ang = i * Math.PI / 5 + 0.2;
+        const wob = Math.sin(t * (rage ? 4.5 : 2) + i) * 30;
+        strokeTentacle(g, Math.cos(ang) * 230, Math.sin(ang) * 230, ang, 170, wob, tentCol, 6);
+      }
+      blit(g, "boss-eclipse-body", 0, 0, 1);
+      for (let i = 0; i < 8; i++) {
+        const a = i * Math.PI / 4 + t * 0.15;
+        const shut = blink && (i % 2 === 0);
+        blit(g, shut ? "boss-eclipse-eyeShut" : "boss-eclipse-eye", Math.cos(a) * 205, Math.sin(a) * 205, 1);
       }
     }
     g.restore();
@@ -1913,46 +2433,98 @@
 
 
   function drawTierShowcase(g, t) {
-    const labels = ["Mk I  CYAN", "Mk II  GOLD", "Mk III  PLASMA"];
+    const ids = [0, 2, 5];
+    const labels = ["Mk I  CYAN", "Mk III  PLASMA", "Mk VI  VOID"];
     const xs = [200, 540, 880];
     g.fillStyle = "rgba(0,0,0,0.35)";
     g.fillRect(0, 0, W, H);
     g.textAlign = "center";
     g.font = "700 26px Tomorrow, sans-serif";
     g.fillStyle = "#eaffff";
-    g.fillText("PRESTIGE LOOKS", W / 2, 120);
-    g.font = "600 20px Tomorrow, sans-serif";
-    g.fillText("Ship  ·  Bullets  ·  Shield  ·  Drones", W / 2, 158);
-    for (let i = 0; i < 3; i++) {
-      const x = xs[i], y = SHIP_Y, ti = TIER[i];
+    g.fillText("PRESTIGE LOOKS", W / 2, 100);
+    g.font = "600 18px Tomorrow, sans-serif";
+    g.fillText("Ship  ·  Bullets  ·  Laser  ·  Missiles  ·  Drones  ·  Shield", W / 2, 136);
+    for (let n = 0; n < 3; n++) {
+      const i = ids[n], x = xs[n], y = SHIP_Y, ti = TIER[i];
       g.fillStyle = ti.color;
       g.font = "700 24px Orbitron, sans-serif";
-      g.fillText(labels[i], x, 200);
-      g.globalAlpha = 0.8;
-      blit(g, "shield-t" + i, x, y, 0.95);
+      g.fillText(labels[n], x, 180);
+      g.globalAlpha = 0.85;
+      blit(g, "shield-t" + i, x, y, 0.95 + i * 0.04);
       g.globalAlpha = 1;
-      blit(g, "player-t" + i, x, y, 1.05);
-      blit(g, "engine", x - 11, y + 44, 1);
-      blit(g, "engine", x + 11, y + 44, 1);
-      blit(g, "drone-t" + i, x - 150, y - 20, 0.9);
-      blit(g, "drone-t" + i, x + 150, y - 20, 0.9);
-      // streaks going up
-      for (let k = 0; k < 8; k++) {
-        const yy = y - 130 - k * 110 - ((t * 280 + i * 30) % 110);
+      blit(g, "player-t" + i, x, y, 0.92 + i * 0.05);
+      if (i >= 1) blit(g, "armor-t" + i, x, y, 0.95);
+      blit(g, "drone-t" + i, x - 160 - i * 8, y - 24, 0.85 + i * 0.05);
+      blit(g, "drone-t" + i, x + 160 + i * 8, y - 24, 0.85 + i * 0.05);
+      const boltScale = i >= 5 ? 1.35 : (i >= 3 ? 1.2 : 1.05);
+      for (let k = 0; k < 7; k++) {
+        const yy = y - 140 - k * 120 - ((t * 280 + n * 30) % 120);
         g.save(); g.translate(x, yy); g.rotate(-Math.PI / 2);
-        blit(g, "streak-t" + i, 0, 0, 1.15);
+        blit(g, "streak-t" + i, 0, 0, boltScale);
         g.restore();
       }
-      g.save(); g.translate(x + 50, y - 220); g.rotate(-Math.PI / 2 + 0.15);
-      blit(g, "missile-t" + i, 0, 0, 1.2);
+      g.save(); g.translate(x + 54, y - 250); g.rotate(-Math.PI / 2 + 0.12);
+      blit(g, "missile-t" + i, 0, 0, 1.15 + i * 0.12);
       g.restore();
-      // short laser, kept below the Mk labels
-      g.strokeStyle = ti.color; g.globalAlpha = 0.4; g.lineWidth = 12;
-      g.beginPath(); g.moveTo(x - 24, y - 80); g.lineTo(x - 70, 280); g.stroke();
-      g.globalAlpha = 0.95; g.lineWidth = 2.4; g.strokeStyle = ti.core;
-      g.beginPath(); g.moveTo(x - 24, y - 80); g.lineTo(x - 70, 280); g.stroke();
-      g.globalAlpha = 1;
+      // laser: thickness and style follow the tier
+      drawLaserLook(g, x - 30, y - 80, x - 90, 220, i, 1);
     }
+  }
+
+  function drawLaserLook(g, x0, y0, x1, y1, tier, alpha) {
+    const ti = TIER[Math.max(0, Math.min(5, tier | 0))];
+    const a = alpha == null ? 1 : alpha;
+    const w = 5 + tier * 2.4;
+    g.save();
+    if (tier >= 5) {
+      // spiral / helix around a fat core
+      const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy) || 1;
+      const ux = dx / len, uy = dy / len, px = -uy, py = ux;
+      g.strokeStyle = ti.color; g.globalAlpha = 0.35 * a; g.lineWidth = w * 2.2;
+      g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+      g.globalAlpha = 0.8 * a; g.lineWidth = 2; g.strokeStyle = ti.accent;
+      g.beginPath();
+      for (let s = 0; s <= 18; s++) {
+        const u = s / 18, ang = u * 8, r = 10 + 6 * Math.sin(u * 12);
+        const x = x0 + ux * len * u + px * Math.sin(ang) * r;
+        const y = y0 + uy * len * u + py * Math.sin(ang) * r;
+        if (s === 0) g.moveTo(x, y); else g.lineTo(x, y);
+      }
+      g.stroke();
+      g.globalAlpha = a; g.lineWidth = 3; g.strokeStyle = "#fff";
+      g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+    } else if (tier >= 4) {
+      // split beam
+      const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy) || 1;
+      const px = -dy / len * 10, py = dx / len * 10;
+      g.strokeStyle = ti.color; g.globalAlpha = 0.4 * a; g.lineWidth = w;
+      g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1 + px, y1 + py); g.stroke();
+      g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1 - px, y1 - py); g.stroke();
+      g.globalAlpha = a; g.lineWidth = 2.4; g.strokeStyle = ti.core;
+      g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+    } else if (tier >= 2) {
+      g.strokeStyle = ti.color; g.globalAlpha = 0.4 * a; g.lineWidth = w + 6;
+      g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+      // crackle
+      const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy) || 1;
+      const ux = dx / len, uy = dy / len, px = -uy, py = ux;
+      g.globalAlpha = 0.7 * a; g.lineWidth = 1.6; g.strokeStyle = ti.accent;
+      g.beginPath();
+      for (let s = 0; s <= 10; s++) {
+        const u = s / 10, jag = ((s % 2) ? 1 : -1) * 7;
+        const x = x0 + ux * len * u + px * jag, y = y0 + uy * len * u + py * jag;
+        if (s === 0) g.moveTo(x, y); else g.lineTo(x, y);
+      }
+      g.stroke();
+      g.globalAlpha = a; g.lineWidth = 2.4; g.strokeStyle = "#fff";
+      g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+    } else {
+      g.strokeStyle = ti.color; g.globalAlpha = 0.35 * a; g.lineWidth = w + 4;
+      g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+      g.globalAlpha = a; g.lineWidth = 2.2; g.strokeStyle = ti.core;
+      g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+    }
+    g.restore();
   }
 
   let titleShots = [];
@@ -1992,9 +2564,7 @@
       for (let i = 0; i < run.enemies.length; i++) {
         const e = run.enemies[i];
         if (e.type === "boss") {
-          const sc = e.bossKind === "harbinger" || e.bossKind === "eclipse" ? 1.05 : (e.bossKind === "lattice" ? 0.95 : 0.85);
-          const key = "boss-" + (e.bossKind === "eclipse" ? "harbinger" : e.bossKind);
-          blit(g, key, e.x, e.y, sc);
+          drawBossMonster(g, e, t);
         } else {
           blit(g, e.type, e.x, e.y, 1);
           if (e.shield > 0) {
@@ -2008,22 +2578,18 @@
       for (let i = 0; i < run.lasers.length; i++) {
         const L = run.lasers[i];
         const a = Math.max(0, L.t / 0.18);
-        const lc = L.color || C.lime;
-        g.strokeStyle = lc; g.globalAlpha = 0.35 * a; g.lineWidth = (L.w || 12) * 0.5;
-        g.beginPath(); g.moveTo(L.x0, L.y0); g.lineTo(L.x1, L.y1); g.stroke();
-        g.globalAlpha = a; g.lineWidth = 2.2; g.strokeStyle = (L.tier >= 3 ? "#fff" : "#f5ffd8");
-        g.beginPath(); g.moveTo(L.x0, L.y0); g.lineTo(L.x1, L.y1); g.stroke();
+        drawLaserLook(g, L.x0, L.y0, L.x1, L.y1, L.tier || 0, a);
       }
       for (let i = 0; i < run.bullets.length; i++) {
         const b = run.bullets[i];
         const a = Math.atan2(b.vy, b.vx);
         if (b.kind === "missile") {
           g.save(); g.translate(b.x, b.y); g.rotate(a);
-          blit(g, "missile-t" + (b.tier || 0), 0, 0, 1.15);
+          blit(g, "missile-t" + (b.tier || 0), 0, 0, 1.1 + (b.tier || 0) * 0.18);
           g.restore();
         } else if (b.friendly) {
           g.save(); g.translate(b.x, b.y); g.rotate(a);
-          blit(g, "streak-t" + (b.tier || 0), 0, 0, b.crit ? 1.25 : 1);
+          blit(g, "streak-t" + (b.tier || 0), 0, 0, (b.crit ? 1.2 : 1) * (1 + (b.tier || 0) * 0.06));
           g.restore();
         } else {
           const key = b.color === C.pink ? "boltP" : (b.color === C.orange ? "boltO" : "boltM");
@@ -2049,9 +2615,14 @@
 
       const drones = st.drones;
       const dkey = "drone-t" + (st.tierDrone || 0);
+      const dTier = st.tierDrone || 0;
       for (let i = 0; i < drones; i++) {
         const p = dronePos(i, t, drones);
-        blit(g, dkey, p.x, p.y, 0.85);
+        if (dTier >= 2) {
+          g.save(); g.globalAlpha = 0.28; g.strokeStyle = TIER[dTier].color; g.lineWidth = 2;
+          g.beginPath(); g.arc(p.x, p.y, 22 + dTier * 3, t * 3 + i, t * 3 + i + 1.8); g.stroke(); g.restore();
+        }
+        blit(g, dkey, p.x, p.y, 0.8 + dTier * 0.06);
       }
       if (st.maxShield > 0 && run.shield > 0) {
         g.save(); g.globalAlpha = 0.55 + 0.45 * (run.shield / st.maxShield);
@@ -2060,13 +2631,37 @@
       }
       const blink = run.invuln > 0 && Math.sin(t * 30) > 0;
       if (!blink) {
+        const shipT = st.tierShip || 0;
         g.save();
         g.translate(SHIP_X, SHIP_Y);
         g.rotate((run.hullAng || -Math.PI / 2) + Math.PI / 2);
-        blit(g, "player-t" + (st.tierShip || 0), 0, 0, 1.05);
-        blit(g, "engine", -11, 44, 1);
-        blit(g, "engine", 11, 44, 1);
+        blit(g, "player-t" + shipT, 0, 0, 0.95 + shipT * 0.05);
+        if ((run.up.armor || 0) > 0 || (st.tierArmor || 0) > 0) {
+          blit(g, "armor-t" + Math.max(st.tierArmor || 0, Math.min(5, run.up.armor || 0)), 0, 0, 0.95 + shipT * 0.04);
+        }
         g.restore();
+      }
+      if (st.pdefLv > 0) {
+        const n = st.pdefTurrets || 1;
+        for (let i = 0; i < n; i++) {
+          const tp = pdefTurretPos(i, n);
+          blit(g, "pdef-turret", tp.x, tp.y, 1.45);
+        }
+      }
+      if (run.pdefBeams && run.pdefBeams.length) {
+        g.save();
+        for (let i = 0; i < run.pdefBeams.length; i++) {
+          const z = run.pdefBeams[i];
+          const a = Math.max(0, z.t / 0.16);
+          g.globalAlpha = a;
+          g.strokeStyle = z.deflect ? C.yellow : C.lime;
+          g.lineWidth = z.deflect ? 5 : 4;
+          g.beginPath(); g.moveTo(z.x0, z.y0); g.lineTo(z.x1, z.y1); g.stroke();
+          g.strokeStyle = "#fff"; g.lineWidth = 1;
+          g.beginPath(); g.moveTo(z.x0, z.y0); g.lineTo(z.x1, z.y1); g.stroke();
+        }
+        g.restore();
+        g.globalAlpha = 1;
       }
 
       // boss telegraph / sweep
@@ -2078,22 +2673,25 @@
         g.globalAlpha = hot ? 0.85 : 0.35;
         g.strokeStyle = hot ? C.magenta : C.cyan;
         g.lineWidth = hot ? 7 : 3;
-        g.beginPath(); g.moveTo(e.x, e.y + 20); g.lineTo(e.beamX1, e.beamY1); g.stroke();
-        if (hot) { g.strokeStyle = "#fff"; g.lineWidth = 2; g.beginPath(); g.moveTo(e.x, e.y + 20); g.lineTo(e.beamX1, e.beamY1); g.stroke(); }
+        g.beginPath(); g.moveTo(e.x, e.y + 80); g.lineTo(e.beamX1, e.beamY1); g.stroke();
+        if (hot) { g.strokeStyle = "#fff"; g.lineWidth = 2; g.beginPath(); g.moveTo(e.x, e.y + 80); g.lineTo(e.beamX1, e.beamY1); g.stroke(); }
         g.restore();
       }
 
-      g.font = "700 26px Orbitron, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
-      g.lineJoin = "round";
+      g.font = "800 28px Tomorrow, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
+      g.lineJoin = "round"; g.lineCap = "round";
+      g.imageSmoothingEnabled = false;
       for (let i = 0; i < run.floaters.length; i++) {
         const f = run.floaters[i];
         const a = 1 - f.t / f.life;
-        g.globalAlpha = a;
-        g.lineWidth = 4; g.strokeStyle = "rgba(0,0,0,0.85)";
-        g.strokeText(f.text, f.x, f.y);
+        const fx = Math.round(f.x), fy = Math.round(f.y);
+        g.globalAlpha = Math.max(0, a);
+        g.lineWidth = 3; g.strokeStyle = "rgba(0,0,0,0.92)";
+        g.strokeText(f.text, fx, fy);
         g.fillStyle = f.color;
-        g.fillText(f.text, f.x, f.y);
+        g.fillText(f.text, fx, fy);
       }
+      g.imageSmoothingEnabled = true;
       g.globalAlpha = 1;
       if (run.prestFx) {
         const fx = run.prestFx;
@@ -2509,7 +3107,7 @@
     const body = el("info-body");
     if (!body) return;
     document.querySelectorAll(".info-tab").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
-    const how = "<div class=\"info-how\"><h3>HOW PRESTIGE WORKS</h3><p>Bullets, Laser, Missiles, Drones, Armor, Shield and the Ship cap at level 10. The button then becomes <b>PRESTIGE</b>. Paying the coin + gem cost resets that item to level 1 at the next tier: it keeps a bank of the previous 10 levels, gains a <b>1.55x power multiplier per tier</b>, and changes color and look (Mk I cyan, Mk II gold, Mk III plasma, Mk IV white-hot, Mk V lime, Mk VI void). Tiers stay with you when you die, just like other console upgrades. Gems spent are gone; gems you earn on a run are never cut by death.</p><p>First prestige costs <b>" + prestigeCost("dmg", 0).coins + "c + " + prestigeCost("dmg", 0).gems + " gems</b>. Each further tier costs more. Secondaries such as Fire Rate, Crit, Pierce and Magnet keep high caps and do not prestige.</p></div>";
+    const how = "<div class=\"info-how\"><h3>HOW PRESTIGE WORKS</h3><p>Bullets, Laser, Missiles, Drones, Armor, Shield and the Ship cap at level 10. The button then becomes <b>PRESTIGE</b>. Paying the coin + gem cost resets that item to level 1 at the next tier: it keeps a bank of the previous 10 levels, gains a <b>1.55x power multiplier per tier</b>, and changes its shape and color (Mk I cyan, Mk II gold, Mk III plasma, Mk IV white-hot, Mk V lime, Mk VI void). Tiers stay with you when you die, just like other console upgrades. Gems spent are gone; gems you earn on a run are never cut by death.</p><p>First prestige costs <b>" + prestigeCost("dmg", 0).coins + "c + " + prestigeCost("dmg", 0).gems + " gems</b>. Each further tier costs more. Secondaries such as Fire Rate, Crit, Pierce and Magnet keep high caps and do not prestige.</p></div>";
     let html = "";
     if (tab === "prestige") html = how;
     else if (tab === "perma") {
@@ -2551,10 +3149,10 @@
     save.bestWave = 47; save.gems = 860;
     if (name === "title") { showTitle(); return; }
     if (name === "over") {
-      save.perma = { dmg: 5, rate: 3, crit: 2, critDmg: 1, pierce: 1, multi: 0, slot: 1, hp: 6, shield: 2, armor: 3, regen: 1, shRegen: 1, thorns: 0, wind: 0, startCoins: 4, coinValue: 2, gemBonus: 1, interest: 1, magnet: 2, skip: 0 };
+      save.perma = { dmg: 5, rate: 3, crit: 2, critDmg: 1, pierce: 1, multi: 0, slot: 1, hp: 6, shield: 2, armor: 3, regen: 1, shRegen: 1, thorns: 0, wind: 0, startCoins: 4, coinValue: 2, gemBonus: 1, interest: 1, pdef: 2, skip: 0 };
       run = createRun(save.perma, { bestWave: 47, persist: false, seed: 23 });
       run.wave = 23; run.kills = 80; run.bossesBeaten = 2; run.dead = true;
-      run.up = Object.assign(defaultMid(), { dmg: 8, rate: 6, hp: 5, shield: 2, spread: 3, laser: 2, missile: 1, drone: 1, crit: 2, magnet: 2, coinVal: 2 });
+      run.up = Object.assign(defaultMid(), { dmg: 8, rate: 6, hp: 5, shield: 2, spread: 3, laser: 2, missile: 1, drone: 1, crit: 2, pdef: 2, coinVal: 2 });
       run.coins = 48;
       mode = "over";
       el("title").classList.add("hidden");
@@ -2632,13 +3230,58 @@
       startRun();
       run.wave = 0; beginWave(run, 16);
       run.phase = "combat"; run.phaseT = 0; run.banner = null; run.pending = [];
-      run.up = Object.assign(defaultMid(), { dmg: 6, rate: 5, hp: 4, shield: 2, spread: 3, laser: 2, missile: 1, drone: 1, crit: 2, critDmg: 1, pierce: 1, bspd: 2, magnet: 2, coinVal: 2, armor: 1 });
+      run.up = Object.assign(defaultMid(), { dmg: 6, rate: 5, hp: 4, shield: 2, spread: 3, laser: 2, missile: 1, drone: 1, crit: 2, critDmg: 1, pierce: 1, bspd: 2, pdef: 3, coinVal: 2, armor: 1 });
       run.coins = 420; run._st = null;
       const st = playerStats(run); run.hp = Math.round(st.maxHp * 0.8); run.shield = st.maxShield;
       run.enemies = [];
       [["spark",200,400],["drifter",700,360],["razor",400,500],["shellback",900,480]].forEach(p => spawnEnemy(run, p[0], { x: p[1], y: p[2] }));
       setTab("atk");
       hudDirty = true; consoleDirty = true; refreshHud(true); refreshConsole(true);
+      return;
+    }
+    if (name === "pdef") {
+      startRun();
+      run.wave = 0; beginWave(run, 8);
+      run.phase = "combat"; run.phaseT = 0; run.banner = null; run.pending = [];
+      run.up = Object.assign(defaultMid(), { dmg: 4, rate: 4, hp: 3, ship: 3, shield: 2, armor: 2, pdef: 8, spread: 1 });
+      run.coins = 200; run._st = null;
+      const st = playerStats(run); run.hp = st.maxHp; run.shield = st.maxShield;
+      run.enemies = [];
+      [["shooter",200,360],["shooter",540,280],["shooter",860,360],["shooter",360,480],["shooter",720,500]]
+        .forEach(p => spawnEnemy(run, p[0], { x: p[1], y: p[2] }));
+      for (let i = 0; i < 8; i++) {
+        const e = run.enemies[i % run.enemies.length];
+        if (e) { e.fireCd = 0; shootEnemyAtPlayer(run, e); }
+      }
+      for (let i = 0; i < 9; i++) {
+        bossShot(run, 180 + i * 90, 980 + (i % 3) * 30, Math.PI / 2 + (i - 4) * 0.04, 260, 8, C.magenta, 8);
+      }
+      run.pdefCd = 0;
+      setTab("def");
+      hudDirty = true; consoleDirty = true; refreshHud(true); refreshConsole(true);
+      if (root.LastOutpost) root.LastOutpost._run = run;
+      return;
+    }
+    if (name === "boss2") {
+      startRun();
+      run.wave = 0; beginWave(run, 20);
+      run.phase = "combat"; run.phaseT = 0; run.banner = null; run.pending = [];
+      run.up = Object.assign(defaultMid(), { dmg: 8, rate: 6, hp: 5, ship: 4, shield: 3, spread: 3, laser: 2, missile: 2, drone: 1, armor: 3, pdef: 5, crit: 2, bspd: 2 });
+      run.prest = Object.assign(defaultPrest(), { dmg: 1, ship: 1 });
+      run.coins = 400; run._st = null;
+      const st2 = playerStats(run); run.hp = Math.round(st2.maxHp * 0.7); run.shield = st2.maxShield * 0.8;
+      run.enemies = [];
+      const b2 = spawnEnemy(run, "boss", { boss: bossInfo(20), x: 540, y: 410 });
+      b2.hp = Math.round(b2.maxHp * 0.50);
+      b2.usedShield = true;
+      b2.shield = Math.round(b2.maxHp * 0.28);
+      b2.sweepAng = Math.PI / 2 - 0.2;
+      b2.tele = 0.9;
+      b2.pendingSweep = true;
+      [["spark",150,700],["spark",930,720],["coil",200,900],["coil",880,880]]
+        .forEach(p => spawnEnemy(run, p[0], { x: p[1], y: p[2] }));
+      hudDirty = true; consoleDirty = true; refreshHud(true); refreshConsole(true);
+      if (root.LastOutpost) root.LastOutpost._run = run;
       return;
     }
     startRun();
@@ -2653,7 +3296,7 @@
     if (name === "late") {
       run.wave = 0; beginWave(run, 37);
       run.phase = "combat"; run.phaseT = 0; run.banner = null; run.pending = [];
-      run.up = Object.assign(defaultMid(), { dmg: 10, rate: 8, hp: 7, shield: 3, spread: 4, laser: 3, missile: 2, drone: 2, crit: 3, critDmg: 2, pierce: 2, multi: 1, bspd: 3, burn: 2, magnet: 3, coinVal: 2, dcount: 1, orbit: 2 });
+      run.up = Object.assign(defaultMid(), { dmg: 10, rate: 8, hp: 7, shield: 3, spread: 4, laser: 3, missile: 2, drone: 2, crit: 3, critDmg: 2, pierce: 2, multi: 1, bspd: 3, burn: 2, pdef: 6, coinVal: 2, dcount: 1, orbit: 2 });
       run.coins = 1240; run._st = null;
       const st = playerStats(run); run.hp = Math.round(st.maxHp * 0.85); run.shield = st.maxShield;
       run.enemies = [];
@@ -2671,12 +3314,12 @@
       run.coins = 400; run._st = null;
       const st = playerStats(run); run.hp = Math.round(st.maxHp * 0.7); run.shield = st.maxShield * 0.8;
       run.enemies = [];
-      const b = spawnEnemy(run, "boss", { boss: bossInfo(10), x: 540, y: 280 });
+      const b = spawnEnemy(run, "boss", { boss: bossInfo(10), x: 540, y: 400 });
       b.hp = Math.round(b.maxHp * 0.62);
       b.sweepAng = Math.PI / 2 + 0.28;
       b.tele = 0.95;
       b.pendingSweep = true;
-      [["spark",160,480],["spark",920,500],["coil",150,880],["coil",930,860],["needle",80,600],["needle",1000,620]]
+      [["spark",120,820],["spark",960,840]]
         .forEach(p => spawnEnemy(run, p[0], { x: p[1], y: p[2] }));
     }
     hudDirty = true; consoleDirty = true; refreshHud(true); refreshConsole(true);
