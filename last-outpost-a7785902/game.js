@@ -11,7 +11,7 @@
   let SHIP_Y = 1812; // alias of turretPivotY() = RAIL_Y-72; not an orbit/weapon center
   const CONSOLE_H = 100; // ground gutter under the wall; the console now lives in a CSS overlay
   const STORAGE_KEY = "idleusa.lastOutpost.v2";
-  const BUILD = "v10.3-wall-orbit-pdef";
+  const BUILD = "v10.4-late-game";
   const MAX_PARTICLES = 90;
   const MAX_FLOATERS = 18;
   const MAX_PICKUPS = 48;
@@ -225,6 +225,26 @@
     50: { name: "ECLIPSE ENGINE", kind: "eclipse",    hp: 74000, r: 190, coins: 260 }
   };
 
+  // Late-game accounts melted the Lattice/Harbinger/Eclipse in ~2s. Ramp only from
+  // wave 30 so the Herald and Twin Spire (and early-run pacing) stay unchanged.
+  function lateBossMul(wave) {
+    const w = wave | 0;
+    if (w < 30) return 1;
+    if (w <= 30) return 16.0;
+    if (w <= 40) return 16.0 + (24.7 - 16.0) * (w - 30) / 10;
+    if (w <= 50) return 24.7 + (18.4 - 24.7) * (w - 40) / 10;
+    if (w <= 60) return 18.4 + (16.2 - 18.4) * (w - 50) / 10;
+    return 16.2 * Math.pow(1.14, (w - 60) / 10);
+  }
+  // Longer late fights would one-shot a Mk III loadout if raw dmgScale kept climbing.
+  // Scale only boss (and beam) damage down after wave 40 so 50/60 stay threatening but completable.
+  function lateBossDmgMul(wave) {
+    const w = wave | 0;
+    if (w <= 40) return 1;
+    if (w <= 50) return 1 - 0.38 * (w - 40) / 10;
+    if (w <= 60) return 0.62 - 0.14 * (w - 50) / 10;
+    return Math.max(0.40, 0.48 * Math.pow(0.97, (w - 60) / 10));
+  }
   function bossInfo(wave) {
     const tier = Math.floor(wave / 10) * 10;
     const table = BOSS[tier] || BOSS[50];
@@ -233,7 +253,7 @@
     const name = tier <= 50 ? table.name : table.name + " " + (roman[Math.floor(tier / 10) - 4] || String(tier));
     const kind = tier <= 40 ? table.kind : (tier === 50 ? "eclipse" : (tier % 40 === 0 ? "harbinger" : table.kind));
     const src = BOSS[Math.min(50, tier)] || BOSS[50];
-    return { name, kind, hp: Math.floor(src.hp * Math.pow(1.42, extra)), r: src.r, coins: Math.floor(src.coins * (1 + extra * 0.35)) };
+    return { name, kind, hp: Math.floor(src.hp * Math.pow(1.42, extra) * lateBossMul(tier)), r: src.r, coins: Math.floor(src.coins * (1 + extra * 0.35)) };
   }
 
   function makeRng(seed) {
@@ -396,8 +416,63 @@
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(save)); } catch (e) {}
   }
 
-  function costOf(def, level) { return Math.floor(def.base * Math.pow(def.grow, level)); }
-  function midCost(id, level) { return costOf(UP_BY_ID[id], level); }
+  function costOf(def, level) {
+    if (!def) return 0;
+    const lv = Math.max(0, level | 0);
+    const raw = def.base * Math.pow(def.grow, lv);
+    if (!isFinite(raw) || raw > 1e15) return 1e15;
+    return Math.floor(raw);
+  }
+  // Prestige cashes in 10 mid levels and used to reset the mid counter to 1, so the
+  // next buy was priced as Lv 1 again. Price from mid + 10 per prestige of this stat
+  // so a post-prestige purchase is at least as expensive as it was before.
+  function midCostLevel(run, id, level) {
+    const mid = (level != null) ? (level | 0) : ((run && run.up && run.up[id]) || 0);
+    const prest = (run && run.prest && run.prest[id]) || 0;
+    return mid + prest * 10;
+  }
+  function midCost(id, level, run) {
+    const def = UP_BY_ID[id];
+    if (!def) return 0;
+    const lv = run != null ? midCostLevel(run, id, level) : (level | 0);
+    return costOf(def, lv);
+  }
+  function formatCoins(n) {
+    n = +n;
+    if (!isFinite(n)) return "—";
+    const sign = n < 0 ? "-" : "";
+    const a = Math.abs(n);
+    if (a >= 1e15) return sign + "999T+";
+    if (a >= 1e12) return sign + (a / 1e12).toFixed(2) + "T";
+    if (a >= 1e9) return sign + (a / 1e9).toFixed(2) + "B";
+    if (a >= 1e6) return sign + (a / 1e6).toFixed(2) + "M";
+    return sign + Math.floor(a).toLocaleString("en-US");
+  }
+  function blasterVolley(run, st) {
+    const spreadLv = (run && run.up && run.up.spread) || 0;
+    const multiLv = (st && st.multi != null) ? st.multi : (((run && run.up && run.up.multi) || 0) + ((run && run.perma && run.perma.multi) || 0));
+    const oldSpreadWays = spreadLv <= 0 ? 1 : (spreadLv === 1 ? 3 : (spreadLv < 4 ? 5 : 7));
+    const oldWays = Math.min(9, oldSpreadWays + multiLv);
+    const oldFactor = oldWays === 1 ? 1 : (1 + (oldWays - 1) * 0.85);
+    let shots = 1;
+    if (spreadLv >= 1 || multiLv >= 1) shots = 2;
+    if (spreadLv >= 3 || multiLv >= 2) shots = 3;
+    shots = Math.min(3, shots);
+    return { shots: shots, chunk: oldFactor / shots, oldWays: oldWays, oldFactor: oldFactor };
+  }
+  function particleCap(run) {
+    const w = (run && run.wave) || 0;
+    if (w >= 55) return 48;
+    if (w >= 40) return 64;
+    return 90;
+  }
+  function floaterCap(run) {
+    const w = (run && run.wave) || 0;
+    if (w >= 55) return 10;
+    if (w >= 40) return 14;
+    return 18;
+  }
+  const ENEMY_BULLET_CAP = 36;
 
   function isUnlocked(id, wave, up, bestWave, shop) {
     const def = UP_BY_ID[id];
@@ -445,8 +520,9 @@
     const waveSc = Math.pow(1.23, Math.min(n, 8))
       * Math.pow(1.20, Math.max(0, Math.min(n, 12) - 8))
       * Math.pow(1.155, Math.max(0, Math.min(n, 24) - 12))
-      * Math.pow(1.125, Math.max(0, Math.min(n, 40) - 24))
-      * Math.pow(1.095, Math.max(0, n - 40));
+      * Math.pow(1.125, Math.max(0, Math.min(n, 29) - 24))
+      * Math.pow(1.155, Math.max(0, Math.min(n, 40) - 29))
+      * Math.pow(1.125, Math.max(0, n - 40));
     return waveSc * adaptMul(run);
   }
   function approachMul() {
@@ -463,7 +539,7 @@
   }
   function dmgScale(wave) {
     const n = Math.max(0, wave - 1);
-    return Math.pow(1.10, Math.min(n, 8)) * Math.pow(1.08, Math.max(0, Math.min(n, 40) - 8)) * Math.pow(1.10, Math.max(0, n - 40));
+    return Math.pow(1.10, Math.min(n, 8)) * Math.pow(1.08, Math.max(0, Math.min(n, 40) - 8)) * Math.pow(1.00, Math.max(0, n - 40));
   }
 
   const TURRET_MAX_DEV = 70 * Math.PI / 180;
@@ -584,6 +660,65 @@
   }
   function fieldTop() { return 56; }
   function fieldBottom() { return RAIL_Y - 8; }
+  function spawnYCap() {
+    const playH = Math.max(200, RAIL_Y - fieldTop());
+    return fieldTop() + playH * 0.35;
+  }
+  function pointInsideDome(x, y, run) {
+    if (typeof shieldArcGeom !== "function") return y > RAIL_Y - 280;
+    const A = shieldArcGeom(run);
+    if (!A || y > RAIL_Y + 8) return false;
+    const dx = x - A.cx, dy = y - A.cy;
+    if (Math.hypot(dx, dy) > A.r + 8) return false;
+    let a = Math.atan2(dy, dx) + Math.PI / 2;
+    while (a > Math.PI) a -= Math.PI * 2;
+    while (a < -Math.PI) a += Math.PI * 2;
+    return Math.abs(a) < A.half + 0.05;
+  }
+  function ensureSpawnStats(run) {
+    if (!run) return { total: 0, guarded: 0, inDome: 0, tooLow: 0, log: [], byWave: {} };
+    if (!run._spawnStats) run._spawnStats = { total: 0, guarded: 0, inDome: 0, tooLow: 0, log: [], byWave: {} };
+    return run._spawnStats;
+  }
+  function noteSpawn(run, e, flags) {
+    const stt = ensureSpawnStats(run);
+    const wave = (run && run.wave) || 0;
+    const rec = {
+      wave: wave, type: e && e.type, x: e && Math.round(e.x), y: e && Math.round(e.y),
+      r: e && e.r, tooLow: !!(flags && flags.tooLow), inDome: !!(flags && flags.inDome),
+      guarded: !!(flags && flags.guarded), src: (flags && flags.src) || "spawn"
+    };
+    stt.total++;
+    if (rec.tooLow) stt.tooLow++;
+    if (rec.inDome) stt.inDome++;
+    if (rec.guarded) stt.guarded++;
+    if (!stt.byWave[wave]) stt.byWave[wave] = { total: 0, guarded: 0, tooLow: 0, inDome: 0 };
+    const bw = stt.byWave[wave];
+    bw.total++;
+    if (rec.tooLow) bw.tooLow++;
+    if (rec.inDome) bw.inDome++;
+    if (rec.guarded) bw.guarded++;
+    if (stt.log.length < 4000) stt.log.push(rec);
+    return rec;
+  }
+  function guardSpawnY(run, e, extra) {
+    extra = extra || {};
+    if (!e || extra.keepY || (run && run._keepSpawnY)) {
+      if (e) noteSpawn(run, e, { src: "placed" });
+      return false;
+    }
+    const cap = spawnYCap();
+    const tooLow = e.y > cap;
+    const inDome = pointInsideDome(e.x, e.y, run);
+    if (tooLow || inDome) {
+      e.y = -20 - ((run && run.rng) ? run.rng() : Math.random()) * 40;
+      if (e.type === "boss") e.y = Math.min(e.y, -40);
+      noteSpawn(run, e, { tooLow: tooLow, inDome: inDome, guarded: true, src: extra.src || "spawn" });
+      return true;
+    }
+    noteSpawn(run, e, { src: extra.src || "spawn" });
+    return false;
+  }
   function knockResist(wave) {
     const n = wave | 0;
     if (n < 16) return 0;
@@ -600,6 +735,7 @@
     let count = Math.min(BAL.countMax, Math.floor(BAL.countBase + n * BAL.countPerWave));
     if (n >= 20) count += Math.floor((n - 19) * 0.85);
     if (n >= 28) count += Math.floor((n - 27) * 1.5);
+    // Count saturates at 56 from wave 30; later waves get denser *feel* from HP, not more bodies.
     const cap = n >= 30 ? 56 : (n >= 20 ? 38 : BAL.countMax);
     return Math.min(cap, count);
   }
@@ -621,6 +757,11 @@
     st.bulletSpd = BAL.bulletSpd * (1 + 0.10 * u.bspd);
     st.pierce = (u.pierce || 0) + (p.pierce || 0);
     st.multi = (u.multi || 0) + (p.multi || 0);
+    {
+      const vol = blasterVolley({ up: u, perma: p }, st);
+      st.volleyShots = vol.shots;
+      st.chunkMul = vol.chunk;
+    }
     st.regen = (u.regen || 0) * 2.2 + (p.regen || 0) * 2.0;
     st.thorns = (u.thorns || 0) * 0.14 + (p.thorns || 0) * 0.12;
     st.knockLv = u.knock || 0;
@@ -673,8 +814,19 @@
   const pool = { bullets: [], particles: [], floaters: [], pickups: [], lasers: [] };
   function take(name) { return pool[name].length ? pool[name].pop() : {}; }
   function give(name, obj) {
+    if (!obj) return;
     for (const k in obj) obj[k] = undefined;
-    pool[name].push(obj);
+    if (pool[name].length < 240) pool[name].push(obj);
+  }
+  function recycleRun(run) {
+    if (!run) return;
+    const names = ["bullets", "particles", "floaters", "pickups", "lasers"];
+    for (let n = 0; n < names.length; n++) {
+      const arr = run[names[n]];
+      if (!arr) continue;
+      for (let i = 0; i < arr.length; i++) give(names[n], arr[i]);
+      arr.length = 0;
+    }
   }
   function popAt(arr, i) {
     const o = arr[i];
@@ -687,11 +839,11 @@
   const INFO = {
     dmg: "Your main blaster. Each level raises bullet damage. This is a core item: at level 10 you can Prestige it for a new shape, a new color, and a big power bonus.",
     rate: "Shortens the time between blaster volleys. Higher fire rate means more shots per second. Caps high and does not prestige.",
-    spread: "Adds extra bullets that fan around your aim — from EVERY turret. Level 1 gives a 3-shot fan per turret; higher levels add more shots in a wider cone.",
+    spread: "Each turret fires a tight fan of up to three chunky bolts. The first levels add a second and third bolt; further levels pack more damage into each shot instead of filling the screen.",
     crit: "Chance for a shot to crit and use your Crit Damage multiplier. Shown as a white, heavier bolt when it procs.",
     critDmg: "How hard a critical hit hurts. Starts at 2× and climbs with each level.",
     pierce: "Bullets keep going after a hit. Each level lets a shot pass through one more enemy.",
-    multi: "Adds extra projectiles on top of the spread fan on EVERY turret, for a thicker volley from each hardpoint.",
+    multi: "First levels can add a bolt to each turret volley (capped at three). Further Multishot levels make every bolt hit harder, so total damage keeps pace without a bullet storm.",
     bspd: "Makes your shots fly faster so lead aiming lands more cleanly and they cross the screen sooner.",
     burn: "Hits set enemies on fire, dealing damage over time after the shot.",
     chain: "On hit, lightning jumps to a nearby enemy for a fraction of the damage. Higher levels jump farther and more times.",
@@ -731,7 +883,7 @@
     crit: "Adds a permanent bonus to critical-hit chance.",
     critDmg: "Adds a permanent bonus to critical-hit damage.",
     pierce: "Your bullets start with extra pierce charges.",
-    multi: "Your volley starts with extra shots.",
+    multi: "Your volley starts with extra punch (and a second bolt once unlocked). Further ranks add damage, not more projectiles.",
     slot: "Starts the run with a weapon already online (Spread, then Laser, Missiles, and Drones as you buy more slots).",
     hp: "Raises the outpost's base max health on every run.",
     shield: "Adds permanent shield strength, even before you buy mid-run Shield.",
@@ -759,11 +911,16 @@
       const iv = Math.max(BAL.minInterval, BAL.baseInterval * Math.pow(BAL.rateDecay, lv));
       return (1 / iv).toFixed(2) + " shots/sec";
     }
-    if (id === "spread") return lv <= 0 ? "Single bolt per turret" : ((lv === 1 ? 3 : (lv < 4 ? 5 : 7)) + "-shot fan per turret");
+    if (id === "spread") {
+      if (lv <= 0) return "Single bolt per turret";
+      if (lv === 1) return "2-shot fan  ·  extra levels feed damage";
+      if (lv === 2) return "2-shot fan  ·  damage packed into each bolt";
+      return "3-shot fan  ·  further levels add bolt damage";
+    }
     if (id === "crit") return "Crit chance " + Math.round(Math.min(0.7, lv * 0.035) * 100) + "%";
     if (id === "critDmg") return "Crits deal " + (2 + lv * 0.22).toFixed(2) + "×";
     if (id === "pierce") return lv ? ("Pierce " + lv + " target" + (lv > 1 ? "s" : "")) : "No pierce";
-    if (id === "multi") return lv ? ("+" + lv + " extra shot" + (lv > 1 ? "s" : "") + " per turret") : "No extra shots";
+    if (id === "multi") return lv ? (lv === 1 ? "Second bolt online  ·  later ranks add damage" : (lv === 2 ? "Third bolt online  ·  further ranks add damage" : ("Volley capped at 3  ·  +" + Math.round((lv - 2) * 10) + "% bolt damage"))) : "No extra shots";
     if (id === "bspd") return "Shot speed " + Math.round(BAL.bulletSpd * (1 + 0.10 * lv));
     if (id === "burn") return lv ? ("Burn " + Math.round(lv * 22) + "% of damage over time") : "No burn";
     if (id === "chain") return lv ? (Math.min(4, 1 + (lv / 3 | 0)) + " jump" + (lv > 2 ? "s" : "") + ", " + Math.round(40 + 4 * lv) + "% carry") : "No chain";
@@ -949,6 +1106,7 @@
         hitCd: 0, usedShield: false, enraged: false, patT: 0, pattern: 0,
         tele: 0, sweepAng: 0, sweepHot: 0, spawnCd: 1.8
       };
+      if (typeof guardSpawnY === "function") guardSpawnY(run, e, extra);
       run.enemies.push(e);
       return e;
     }
@@ -970,8 +1128,35 @@
     e.maxHp = e.hp + e.shield;
     e.cx = e.x;
     if (!extra.x && Math.abs(e.x - SHIP_X) < 20) e.x += 40;
+    if (typeof guardSpawnY === "function") guardSpawnY(run, e, extra);
     run.enemies.push(e);
     return e;
+  }
+
+  function pushEnemyBullet(run, b) {
+    if (!b) return;
+    if (run._pdefStats) run._pdefStats.spawned = (run._pdefStats.spawned || 0) + 1;
+    const cap = (typeof ENEMY_BULLET_CAP === "number") ? ENEMY_BULLET_CAP : 36;
+    let n = 0, oldest = -1, oldestLife = 1e9;
+    let mergeAt = -1;
+    for (let i = 0; i < run.bullets.length; i++) {
+      const x = run.bullets[i];
+      if (!x || x.friendly) continue;
+      n++;
+      if ((x.life || 0) < oldestLife) { oldestLife = x.life; oldest = i; }
+      if (mergeAt < 0 && Math.abs(x.x - b.x) < 30 && Math.abs(x.y - b.y) < 30) mergeAt = i;
+    }
+    if (n >= cap) {
+      if (mergeAt >= 0) {
+        const x = run.bullets[mergeAt];
+        x.dmg = (x.dmg || 0) + (b.dmg || 0);
+        x.r = Math.min(14, (x.r || 6) + 1.1);
+        if (typeof give === "function") give("bullets", b);
+        return;
+      }
+      if (oldest >= 0) give("bullets", popAt(run.bullets, oldest));
+    }
+    run.bullets.push(b);
   }
 
   function shootEnemyAtPlayer(run, e) {
@@ -982,8 +1167,7 @@
     b.x = e.x; b.y = e.y + e.r; b.vx = Math.cos(ang) * spd; b.vy = Math.sin(ang) * spd;
     b.r = 6; b.dmg = e.shotDmg || 7; b.friendly = false; b.color = e.color || C.magenta;
     b.life = 3; b.kind = "enemy"; b.crit = false; b.pierce = 0; b.bounces = 0; b.target = null; b.turn = 0;
-    run.bullets.push(b);
-    if (run._pdefStats) run._pdefStats.spawned = (run._pdefStats.spawned || 0) + 1;
+    pushEnemyBullet(run, b);
   }
 
   function threatScore(e, fromX, fromY) {
@@ -1094,13 +1278,13 @@
   function fireBlaster(run, st) {
     const assigned = assignTurretTargets(run, st);
     const gunDmg = st.gunDmg || st.dmg;
-    const spreadWays = run.up.spread <= 0 ? 1 : (run.up.spread === 1 ? 3 : (run.up.spread < 4 ? 5 : 7));
-    const extra = st.multi || 0;
-    const ways = Math.min(9, spreadWays + extra);
-    const spreadW = ways === 1 ? 0 : (ways <= 3 ? 0.18 : (ways <= 5 ? 0.14 : 0.11));
+    const vol = (typeof blasterVolley === "function") ? blasterVolley(run, st) : { shots: 1, chunk: 1 };
+    const ways = Math.min(3, vol.shots || 1);
+    const chunk = vol.chunk || 1;
+    const spreadW = ways === 1 ? 0 : (ways === 2 ? 0.16 : 0.14);
     const start = -((ways - 1) / 2);
     const mid = (ways - 1) / 2;
-    const dense = ways >= 5;
+    const dense = false;
     let aim = -Math.PI / 2;
     if (!run.turretAng) run.turretAng = [-Math.PI/2,-Math.PI/2,-Math.PI/2,-Math.PI/2,-Math.PI/2];
     if (!run.turretTgt) run.turretTgt = [null,null,null,null,null];
@@ -1119,24 +1303,42 @@
       for (let i = 0; i < ways; i++) {
         const a = ang + (start + i) * spreadW;
         const crit = run.rng() < st.crit;
-        const dmg = gunDmg * (crit ? st.critMul : 1) * (ways > 1 && i !== mid ? 0.85 : 1);
+        const dmg = gunDmg * chunk * (crit ? st.critMul : 1);
         const b = take("bullets");
         b.x = m.x + Math.cos(a) * 8; b.y = m.y + Math.sin(a) * 8;
         b.vx = Math.cos(a) * st.bulletSpd; b.vy = Math.sin(a) * st.bulletSpd;
         const ti = tierOf(st.tierBlaster || 0);
-        b.r = crit ? 6 : 4.5; b.dmg = dmg; b.friendly = true; b.color = crit ? ti.core : ti.color;
+        const power = Math.max(1, chunk);
+        b.r = (crit ? 6.4 : 5.2) * Math.min(2.5, 0.88 + power * 0.32);
+        b.dmg = dmg; b.friendly = true; b.color = crit ? ti.core : ti.color;
         b.life = 1.85; b.crit = crit; b.kind = "blast"; b.target = null; b.turn = 0;
         b.tier = st.tierBlaster || 0;
         b.pierce = st.pierce; b.bounces = st.ricochet; b.hitSet = 0;
-        b.thin = dense && i !== mid;
+        b.thin = false;
+        b.chunk = power;
+        b.scale = Math.min(2.8, (crit ? 1.22 : 1.08) * (0.92 + power * 0.28) * (1 + (st.tierBlaster || 0) * 0.05));
+        b.glow = Math.min(1, 0.35 + power * 0.22);
         run.bullets.push(b);
       }
     }
     run.aimAng = aim;
+    // Keep a hard cap so a maxed fire-rate loadout cannot flood the screen after a restart.
+    let blastN = 0;
+    for (let i = 0; i < run.bullets.length; i++) if (run.bullets[i] && run.bullets[i].kind === "blast") blastN++;
+    const cap = 160;
+    if (blastN > cap) {
+      for (let i = 0; i < run.bullets.length && blastN > cap; i++) {
+        const b = run.bullets[i];
+        if (b && b.kind === "blast") { give("bullets", popAt(run.bullets, i)); i--; blastN--; }
+      }
+    }
   }
 
   function fireMissile(run, st) {
-    const n = Math.max(1, st.mcount | 0);
+    let live = 0;
+    for (let i = 0; i < run.bullets.length; i++) if (run.bullets[i] && run.bullets[i].kind === "missile") live++;
+    if (live >= 16) return;
+    const n = Math.max(1, Math.min(st.mcount | 0, 16 - live));
     const hps = turretHardpoints(run);
     const targets = closestEnemies(run, SHIP_X, turretPivotY(), n);
     for (let i = 0; i < n; i++) {
@@ -1182,6 +1384,9 @@
   }
 
   function fireDrone(run, st, x, y) {
+    let live = 0;
+    for (let i = 0; i < run.bullets.length; i++) if (run.bullets[i] && run.bullets[i].kind === "drone") live++;
+    if (live >= 20) return;
     const e = closestEnemy(run, x, y);
     const spd = st.bulletSpd * 0.88;
     const ang = e ? leadPoint(x, y, e, spd).ang : -Math.PI / 2;
@@ -1214,8 +1419,10 @@
 
 
   function burst(run, x, y, color, n) {
-    if (run.particles.length >= MAX_PARTICLES) return;
-    const count = Math.min(n, MAX_PARTICLES - run.particles.length, 12);
+    const cap = (typeof particleCap === "function") ? particleCap(run) : MAX_PARTICLES;
+    if (run.particles.length >= cap) return;
+    const maxBurst = (run.wave || 0) >= 55 ? 6 : ((run.wave || 0) >= 40 ? 8 : 12);
+    const count = Math.min(n, cap - run.particles.length, maxBurst);
     for (let i = 0; i < count; i++) {
       const a = (i / count) * Math.PI * 2 + run.rng() * 0.4;
       const s = 80 + run.rng() * 260;
@@ -1231,9 +1438,9 @@
       const add = parseInt(text, 10) || 0;
       for (let i = 0; i < run.floaters.length; i++) {
         const f = run.floaters[i];
-        if (f.kind === "dmg" && f.t < 0.28 && Math.abs(f.x - x) < 50 && Math.abs(f.y - y) < 44) {
+        if (f.kind === "dmg" && f.t < 0.34 && Math.abs(f.x - x) < 70 && Math.abs(f.y - y) < 58) {
           f.amt = (f.amt || parseInt(f.text, 10) || 0) + add;
-          f.text = String(f.amt);
+          f.text = (typeof formatCoins === "function" && f.amt >= 10000) ? formatCoins(f.amt) : String(f.amt);
           f.t = Math.min(f.t, 0.06);
           f.life = 0.72;
           f.color = color;
@@ -1247,8 +1454,9 @@
           if (run.floaters[i].t > oldestT) { oldestT = run.floaters[i].t; oldest = i; }
         }
       }
-      if (dmgCount >= 8 && oldest >= 0) give("floaters", popAt(run.floaters, oldest));
-    } else if (run.floaters.length >= MAX_FLOATERS) {
+      const dmgCap = (run.wave || 0) >= 55 ? 5 : ((run.wave || 0) >= 40 ? 6 : 8);
+      if (dmgCount >= dmgCap && oldest >= 0) give("floaters", popAt(run.floaters, oldest));
+    } else if (run.floaters.length >= ((typeof floaterCap === "function") ? floaterCap(run) : MAX_FLOATERS)) {
       give("floaters", popAt(run.floaters, 0));
     }
     let ox = 0, oy = 0;
@@ -1333,11 +1541,21 @@
     const top = fieldTop() + (e.r || 16);
     // Max level can drive enemies to the top edge. Wave resistance raises the ceiling so
     // late swarms hold around mid-field instead of being pinned off the top.
+    // hold used to be resist * almost the full field, so at wave 36+ the first hit
+    // snapped every spawn DOWN into the dome / onto the wall (Math.max(ceil, y-step)
+    // when ceil is below the enemy). Cap the hold at mid-field, above the dome, and
+    // never move an enemy downward.
     const unresisted = pivotY - 90 - t * (pivotY - 90 - top);
-    const hold = resist * (pivotY - top) * 0.95;
-    const ceil = Math.max(top, unresisted + hold);
+    const playH = Math.max(200, RAIL_Y - fieldTop());
+    let maxCeil = fieldTop() + playH * 0.42;
+    if (typeof shieldArcGeom === "function") {
+      const A = shieldArcGeom(run);
+      if (A && A.peak) maxCeil = Math.min(maxCeil, RAIL_Y - A.peak - 24);
+    }
+    maxCeil = Math.max(top, maxCeil);
+    const ceil = Math.max(top, unresisted + resist * Math.max(0, maxCeil - unresisted));
     const step = 18 + t * 70;
-    e.y = Math.max(ceil, e.y - step);
+    if (e.y > ceil) e.y = Math.max(ceil, e.y - step);
     e.x = Math.max(40, Math.min(W - 40, e.x));
   }
 
@@ -1925,6 +2143,48 @@
     }
   }
 
+
+  const _egBuckets = [];
+  let _egCols = 0, _egRows = 0, _egCell = 96;
+  function buildEnemyGrid(run) {
+    const cell = 96;
+    _egCell = cell;
+    const cols = ((W / cell) | 0) + 4;
+    const rows = ((((typeof RAIL_Y === "number" ? RAIL_Y : 2000) + 80) / cell) | 0) + 4;
+    const need = cols * rows;
+    while (_egBuckets.length < need) _egBuckets.push([]);
+    const clearTo = Math.max(need, _egCols * _egRows);
+    for (let i = 0; i < clearTo; i++) { if (_egBuckets[i]) _egBuckets[i].length = 0; }
+    _egCols = cols; _egRows = rows;
+    const list = run.enemies;
+    for (let i = 0; i < list.length; i++) {
+      const e = list[i];
+      if (!e || e.hp <= 0) continue;
+      const cx = Math.max(0, Math.min(cols - 1, (e.x / cell) | 0));
+      const cy = Math.max(0, Math.min(rows - 1, (e.y / cell) | 0));
+      _egBuckets[cy * cols + cx].push(e);
+    }
+  }
+  function forEnemiesNear(x, y, rad, fn) {
+    const cell = _egCell, cols = _egCols, rows = _egRows;
+    if (!cols) return false;
+    const c0 = Math.max(0, ((x - rad) / cell) | 0);
+    const c1 = Math.min(cols - 1, ((x + rad) / cell) | 0);
+    const r0 = Math.max(0, ((y - rad) / cell) | 0);
+    const r1 = Math.min(rows - 1, ((y + rad) / cell) | 0);
+    for (let ry = r0; ry <= r1; ry++) {
+      const row = ry * cols;
+      for (let cx = c0; cx <= c1; cx++) {
+        const bucket = _egBuckets[row + cx];
+        if (!bucket) continue;
+        for (let i = 0; i < bucket.length; i++) {
+          if (fn(bucket[i]) === true) return true;
+        }
+      }
+    }
+    return false;
+  }
+
   function updateRun(run, dt) {
     if (dt > 0.05) dt = 0.05;
     if (run.dead) {
@@ -2072,6 +2332,8 @@
 
     updatePointDef(run, dt, st);
 
+    buildEnemyGrid(run);
+
     for (let i = run.bullets.length - 1; i >= 0; i--) {
       const b = run.bullets[i];
       if (b.kind === "missile") {
@@ -2150,9 +2412,10 @@
       }
       if (b.friendly) {
         let hit = false;
-        for (let k = run.enemies.length - 1; k >= 0; k--) {
-          const e = run.enemies[k];
-          if (!e || e.hp <= 0) continue;
+        const rad = (b.r || 5) + HIT_PAD + 40 + Math.hypot(b.x - x0, b.y - y0) * 0.5;
+        const mx = (x0 + b.x) * 0.5, my = (y0 + b.y) * 0.5;
+        forEnemiesNear(mx, my, rad, function (e) {
+          if (!e || e.hp <= 0) return;
           if (distToSegment(e.x, e.y, x0, y0, b.x, b.y) < e.r + b.r + HIT_PAD) {
             hitEnemy(run, e, b.dmg, b.crit);
             hit = true;
@@ -2160,12 +2423,12 @@
               run.missileStats.hits++;
               if ((b.steerAcc || 0) > Math.PI * 2 * 1.05) run.missileStats.orbits++;
             }
-            if (b.pierce && b.pierce > 0) { b.pierce--; continue; }
-            if (bounceBullet(run, b, e)) break;
+            if (b.pierce && b.pierce > 0) return;
+            if (bounceBullet(run, b, e)) return true;
             give("bullets", popAt(run.bullets, i));
-            break;
+            return true;
           }
-        }
+        });
         if (hit && !run.bullets[i]) continue;
       } else {
         let ate = false;
@@ -2286,8 +2549,11 @@
     b.x = x; b.y = y; b.vx = Math.cos(ang) * spd; b.vy = Math.sin(ang) * spd;
     b.r = r || 7; b.dmg = dmg; b.friendly = false; b.color = color || C.magenta;
     b.life = 4.2; b.kind = "enemy"; b.crit = false; b.pierce = 0; b.bounces = 0; b.target = null; b.turn = 0;
-    run.bullets.push(b);
-    if (run._pdefStats) run._pdefStats.spawned = (run._pdefStats.spawned || 0) + 1;
+    if (typeof pushEnemyBullet === "function") pushEnemyBullet(run, b);
+    else {
+      run.bullets.push(b);
+      if (run._pdefStats) run._pdefStats.spawned = (run._pdefStats.spawned || 0) + 1;
+    }
   }
 
   function bossAim(e) { return Math.atan2(turretPivotY() - e.y, SHIP_X - e.x); }
@@ -2318,7 +2584,7 @@
     e.x = 540 + Math.sin(e.t * weave) * (e.weaveAmp || 140);
     e.x = Math.max(120, Math.min(W - 120, e.x));
 
-    const scD = dmgScale(run.wave);
+    const scD = dmgScale(run.wave) * (typeof lateBossDmgMul === "function" ? lateBossDmgMul(run.wave) : 1);
     const shotDmg = (e.enraged ? 12 : 9) * scD;
     const kind = e.bossKind;
     e.fireCd -= dt;
@@ -2482,7 +2748,7 @@
     const lv = run.up[id] || 0;
     if (def.prestige && lv >= 10) return false;
     if (lv >= def.max) return false;
-    const cost = midCost(id, lv);
+    const cost = midCost(id, lv, run);
     if (run.coins < cost) return false;
     run.coins -= cost;
     run.up[id] = lv + 1;
@@ -2723,7 +2989,7 @@
 
   const LO = {
     BAL, UPGRADES, PERMA, ENEMY, TABS,
-    createRun, updateRun, tryBuy, tryBuyPerma, autoBuyMid, autoBuyPerma, fireMissile, fireBlaster, shopLv, shopUpgradeCost, shipMuzzles, turretHardpoints, turretCount, simulateSwarmCheck, placeWaveMines, waveEnemyCount, fieldTop, wallFace, pylonPos, dronePos, droneMaxHp, DRONE_RESPAWN, shieldArcGeom, fortressTopH, orbitGeom, orbitPos, isForwardEnemy, pdefTurretPos, pdefReach, clampTurretAng, angInTurretArc, lerpTurretAng, TURRET_MAX_DEV, turretPivotY,
+    createRun, updateRun, tryBuy, tryBuyPerma, autoBuyMid, autoBuyPerma, fireMissile, fireBlaster, shopLv, shopUpgradeCost, shipMuzzles, turretHardpoints, turretCount, simulateSwarmCheck, placeWaveMines, waveEnemyCount, fieldTop, wallFace, pylonPos, dronePos, droneMaxHp, DRONE_RESPAWN, shieldArcGeom, fortressTopH, orbitGeom, orbitPos, isForwardEnemy, pdefTurretPos, pdefReach, clampTurretAng, angInTurretArc, lerpTurretAng, TURRET_MAX_DEV, turretPivotY, spawnYCap, pointInsideDome, guardSpawnY, ensureSpawnStats, noteSpawn, lateBossMul, lateBossDmgMul, midCostLevel, formatCoins, blasterVolley, particleCap, floaterCap, ENEMY_BULLET_CAP, pushEnemyBullet, recycleRun,
     playerStats, gemsFor, simulateUntilDeath, simulateRuns, beginWave, spawnEnemy,
     defaultPerma, defaultMid, defaultPrest, defaultSave, defaultShop, loadSave, writeSave, migrateSave, midCost, costOf, isUnlocked, SHOP, carryRate, pdefTurretCount, pdefNextAt,
     bossInfo, settlePickups, tryPrestige, prestigeCost, prestMul, tierOf, PRESTIGE_IDS, TIER, MAX_PREST, INFO, PERMA_INFO, effectLine,
@@ -5249,9 +5515,9 @@
       for (let i = 1; i < pts.length; i++) g.lineTo(pts[i].x, pts[i].y);
       g.stroke();
     };
-    stroke(16, 0.22, 22, col);
-    stroke(7, 0.8, 12, acc);
-    stroke(2.4, 0.95, 6, core);
+    stroke(13, 0.16, 16, col);
+    stroke(6, 0.72, 8, acc);
+    stroke(2.2, 0.92, 4, core);
     // traveling pulse
     const u = (t * 1.6) % 1;
     const i = Math.min(pts.length - 1, (u * (pts.length - 1)) | 0);
@@ -5449,13 +5715,23 @@
           g.restore();
         } else if (b.friendly) {
           g.save(); g.translate(b.x, b.y); g.rotate(a);
+          const sc = b.scale || ((b.crit ? 1.2 : 1.05) * (1 + (b.tier || 0) * 0.05));
           g.globalAlpha = blastA;
-          blit(g, "streak-t" + (b.tier || 0), 0, 0, (b.crit ? 1.2 : 1.05) * (1 + (b.tier || 0) * 0.05));
+          if (b.glow && b.glow > 0.2) {
+            g.fillStyle = b.color || C.cyan;
+            g.globalAlpha = Math.min(0.55, b.glow) * blastA;
+            g.beginPath(); g.arc(0, 0, 7 + sc * 5, 0, Math.PI * 2); g.fill();
+            g.globalAlpha = blastA;
+          }
+          blit(g, "streak-t" + (b.tier || 0), 0, 0, sc);
           const trail = (run.shop && run.shop.trail) || "default";
-          if (trail === "spark") {
+          // Spark Trails are a short drawn spark, not a new particle per frame.
+          // Past a dense volley, skip every other trail to keep phones smooth.
+          const trailOk = blastN < 48 || (blastN < 80 && (i & 1) === 0);
+          if (trailOk && trail === "spark") {
             g.fillStyle = C.yellow; g.globalAlpha = 0.7 * blastA;
-            g.beginPath(); g.arc(-14, 0, 3, 0, Math.PI * 2); g.fill();
-          } else if (trail === "prism") {
+            g.beginPath(); g.arc(-14 * Math.min(1.4, sc), 0, 2.4 + sc * 1.2, 0, Math.PI * 2); g.fill();
+          } else if (trailOk && trail === "prism") {
             g.fillStyle = C.magenta; g.globalAlpha = 0.7 * blastA;
             g.beginPath(); g.moveTo(8, 0); g.lineTo(-10, -5); g.lineTo(-10, 5); g.closePath(); g.fill();
           }
@@ -5527,8 +5803,9 @@
           g.moveTo(arc.pts[0].x, arc.pts[0].y);
           for (let k = 1; k < arc.pts.length; k++) {
             const p0 = arc.pts[k - 1], p1 = arc.pts[k];
-            const mx = (p0.x + p1.x) / 2 + (Math.random() - 0.5) * 16;
-            const my = (p0.y + p1.y) / 2 + (Math.random() - 0.5) * 16;
+            const h = ((p0.x * 13 + p0.y * 7 + k * 17 + ((run.time * 30) | 0)) % 17) / 17;
+            const mx = (p0.x + p1.x) / 2 + (h - 0.5) * 16;
+            const my = (p0.y + p1.y) / 2 + ((1 - h) - 0.5) * 16;
             g.quadraticCurveTo(mx, my, p1.x, p1.y);
           }
           g.stroke();
@@ -5691,6 +5968,20 @@
         g.globalAlpha = Math.min(1, run.flash * 1.4);
         g.fillRect(0, 0, W, H);
         g.globalAlpha = 1;
+      }
+      if (LO.DEBUG && run._spawnStats) {
+        const ss = run._spawnStats;
+        const cap = (typeof spawnYCap === "function") ? spawnYCap() : 0;
+        g.save();
+        g.font = "700 22px Tomorrow, sans-serif";
+        g.textAlign = "left"; g.textBaseline = "top";
+        g.fillStyle = "rgba(0,0,0,0.55)";
+        g.fillRect(10, 86, 420, 78);
+        g.fillStyle = ss.guarded ? "#ff6b6b" : "#c8ff00";
+        g.fillText("SPAWN " + ss.total + "  guard " + ss.guarded + "  low " + ss.tooLow + "  dome " + ss.inDome, 18, 92);
+        g.fillStyle = "#eaffff";
+        g.fillText("capY " + Math.round(cap) + "  rail " + RAIL_Y + "  w" + run.wave, 18, 122);
+        g.restore();
       }
     }
     if (sh > 0) g.restore();
@@ -6074,7 +6365,7 @@
       const atPrest = !!(def.prestige && lv >= 10 && tier < MAX_PREST);
       const maxed = def.prestige ? (tier >= MAX_PREST && lv >= 10) : lv >= def.max;
       const pcost = atPrest ? prestigeCost(id, tier) : null;
-      const cost = maxed ? 0 : (atPrest ? pcost.coins : midCost(id, lv));
+      const cost = maxed ? 0 : (atPrest ? pcost.coins : midCost(id, lv, run));
       const can = unlocked && !maxed && (atPrest ? (run.coins >= pcost.coins) : run.coins >= cost);
       const star = tier > 0 ? " " + "★".repeat(Math.min(5, tier)) : "";
       if (nameEl.textContent !== def.name + star) nameEl.textContent = def.name + star;
@@ -6092,10 +6383,10 @@
       }
       if (lvlEl.textContent !== lvlTxt) lvlEl.textContent = lvlTxt;
       let costTxt;
-      if (!unlocked) costTxt = midCost(id, 0) + " ¢";
+      if (!unlocked) costTxt = formatCoins(midCost(id, 0, run)) + " ¢";
       else if (maxed) costTxt = "—";
-      else if (atPrest) costTxt = "PRESTIGE  " + pcost.coins + "¢";
-      else costTxt = cost + " ¢";
+      else if (atPrest) costTxt = "PRESTIGE  " + formatCoins(pcost.coins) + "¢";
+      else costTxt = formatCoins(cost) + " ¢";
       if (costEl.textContent !== costTxt) costEl.textContent = costTxt;
       let cls = "up-btn";
       if (!unlocked) cls += " locked";
@@ -6108,7 +6399,7 @@
       if (tier > 0) cls += " t" + Math.min(5, tier);
       if (btn.className !== cls) btn.className = cls;
     }
-    if (el("up-coins")) el("up-coins").textContent = Math.floor(run.coins).toLocaleString("en-US");
+    if (el("up-coins")) el("up-coins").textContent = formatCoins(run.coins);
     const upBtn = el("btn-upgrades");
     if (upBtn) {
       let afford = false;
@@ -6128,7 +6419,7 @@
     if (!force && !hudDirty && key === lastHudKey) return;
     lastHudKey = key; hudDirty = false;
     el("hud-wave").textContent = String(run.wave).padStart(2, "0");
-    el("hud-coins").textContent = Math.floor(run.coins).toLocaleString("en-US");
+    el("hud-coins").textContent = formatCoins(run.coins);
     if (el("hud-gems")) el("hud-gems").textContent = String(save.gems | 0);
     el("hud-best").textContent = String(Math.max(save.bestWave, run.wave, run.bestWave || 0));
     const hpPct = Math.max(0, run.hp / st.maxHp * 100);
@@ -6187,7 +6478,7 @@
         row.className = "upg" + (maxed ? " maxed" : (can ? " buyable" : " costly"));
         const pipMax = Math.min(def.max, 8);
         const pips = def.max <= 8 ? pipsHtml(lv, pipMax) : "";
-        row.innerHTML = '<div class="un">' + def.name + '</div><div class="ul">Lv ' + lv + (maxed ? " MAX" : "") + pips + '</div><div class="uc">' + (maxed ? "MAX" : cost + " ¢") + '</div>';
+        row.innerHTML = '<div class="un">' + def.name + '</div><div class="ul">Lv ' + lv + (maxed ? " MAX" : "") + pips + '</div><div class="uc">' + (maxed ? "MAX" : formatCoins(cost) + " ¢") + '</div>';
         row.addEventListener("click", () => onBuyPerma(def.id));
         col.appendChild(row);
       });
@@ -6232,7 +6523,10 @@
 
   function startRun() {
     audio.unlock();
-    if (run) settlePickups(run);
+    if (run) {
+      settlePickups(run);
+      if (typeof recycleRun === "function") recycleRun(run);
+    }
     run = createRun(save.perma, { bestWave: save.bestWave, persist: !demo, seed: (Date.now() ^ 0x9e3779b9) >>> 0, mid: save.mid, prest: save.prest, carryCoins: 0, gemWallet: save, shop: save.shop });
     if (el("shop")) el("shop").classList.remove("show");
     if (el("info")) el("info").classList.remove("show");
@@ -6532,7 +6826,7 @@
       run.enemies = [];
       const low = turretPivotY();
       [["spark",low-240, 300],["spark",low-200, 540],["drifter",low-280, 420],["shellback",low-260, 700],["razor",low-180, 800],["spark",low-220, 200],["spark",low-230, 480],["drifter",low-250, 620]]
-        .forEach(row => { const e = spawnEnemy(run, row[0], { x: row[2], y: row[1] }); if (e) { e.hp = e.maxHp = Math.max(e.hp, 90); e.vy = 12; e._onField = true; } });
+        .forEach(row => { const e = spawnEnemy(run, row[0], { keepY: true, x: row[2], y: row[1] }); if (e) { e.hp = e.maxHp = Math.max(e.hp, 90); e.vy = 12; e._onField = true; } });
       run.nukeCd = 0.15;
       hudDirty = true; consoleDirty = true; refreshHud(true); refreshConsole(true);
       setPlayDock(true);
@@ -6547,7 +6841,7 @@
       run.coins = 420; run._st = null;
       const stu = playerStats(run); run.hp = stu.maxHp; run.shield = stu.maxShield;
       run.enemies = [];
-      spawnEnemy(run, "spark", { x: 400, y: 500 });
+      spawnEnemy(run, "spark", { keepY: true, x: 400, y: 500 });
       openUpgrades();
       return;
     }
@@ -6559,7 +6853,7 @@
       run.up = Object.assign(defaultMid(), { dmg: 4, rate: 3, hp: 2, ship: 2, spread: 1, shield: 1, armor: 1 });
       run.coins = 120; run._st = null;
       run.enemies = [];
-      spawnEnemy(run, "spark", { x: 400, y: 500 });
+      spawnEnemy(run, "spark", { keepY: true, x: 400, y: 500 });
       hudDirty = true; consoleDirty = true; refreshHud(true); refreshConsole(true);
       openInfo("atk");
       return;
@@ -6572,8 +6866,8 @@
       save.gems = 80; run.coins = 900; run._st = null;
       const st = playerStats(run); run.hp = st.maxHp; run.shield = st.maxShield;
       run.enemies = [];
-      spawnEnemy(run, "drifter", { x: 500, y: 420 });
-      spawnEnemy(run, "spark", { x: 300, y: 360 });
+      spawnEnemy(run, "drifter", { keepY: true, x: 500, y: 420 });
+      spawnEnemy(run, "spark", { keepY: true, x: 300, y: 360 });
       setTab("atk");
       hudDirty = true; consoleDirty = true; refreshHud(true); refreshConsole(true);
       return;
@@ -6602,12 +6896,12 @@
       run.coins = 80; run._st = null;
       const st = playerStats(run); run.hp = st.maxHp;
       run.enemies = [];
-      spawnEnemy(run, "shellback", { x: 130, y: turretPivotY() - 220 });
-      spawnEnemy(run, "spark", { x: 70, y: turretPivotY() - 340 });
-      spawnEnemy(run, "drifter", { x: 210, y: turretPivotY() - 430 });
-      spawnEnemy(run, "spark", { x: 540, y: 240 });
-      spawnEnemy(run, "spark", { x: 980, y: 360 });
-      spawnEnemy(run, "coil", { x: 860, y: 520 });
+      spawnEnemy(run, "shellback", { keepY: true, x: 130, y: turretPivotY() - 220 });
+      spawnEnemy(run, "spark", { keepY: true, x: 70, y: turretPivotY() - 340 });
+      spawnEnemy(run, "drifter", { keepY: true, x: 210, y: turretPivotY() - 430 });
+      spawnEnemy(run, "spark", { keepY: true, x: 540, y: 240 });
+      spawnEnemy(run, "spark", { keepY: true, x: 980, y: 360 });
+      spawnEnemy(run, "coil", { keepY: true, x: 860, y: 520 });
       hudDirty = true; consoleDirty = true; refreshHud(true); refreshConsole(true);
       return;
     }
@@ -6619,7 +6913,7 @@
       run.coins = 420; run._st = null;
       const st = playerStats(run); run.hp = Math.round(st.maxHp * 0.8); run.shield = st.maxShield;
       run.enemies = [];
-      [["spark",200,400],["drifter",700,360],["razor",400,500],["shellback",900,480]].forEach(p => spawnEnemy(run, p[0], { x: p[1], y: p[2] }));
+      [["spark",200,400],["drifter",700,360],["razor",400,500],["shellback",900,480]].forEach(p => spawnEnemy(run, p[0], { keepY: true, x: p[1], y: p[2] }));
       setTab("atk");
       hudDirty = true; consoleDirty = true; refreshHud(true); refreshConsole(true);
       return;
@@ -6636,7 +6930,7 @@
       const low = turretPivotY();
       [["shooter",130,low-420],["shooter",320,low-360],["shooter",540,low-480],["shooter",760,low-360],["shooter",950,low-420],["shooter",200,low-560],["shooter",400,low-620],["shooter",700,low-620],["shooter",880,low-560]]
         .forEach(p => {
-          const e = spawnEnemy(run, p[0], { x: p[1], y: p[2] });
+          const e = spawnEnemy(run, p[0], { keepY: true, x: p[1], y: p[2] });
           if (e) { e.hp = e.maxHp = 4000; e.fireCd = 0.05 + run.rng() * 0.2; e.fireEvery = 0.85; }
         });
       setTab("def");
@@ -6653,7 +6947,7 @@
       run.coins = 400; run._st = null;
       const st2 = playerStats(run); run.hp = Math.round(st2.maxHp * 0.7); run.shield = st2.maxShield * 0.8;
       run.enemies = [];
-      const b2 = spawnEnemy(run, "boss", { boss: bossInfo(20), x: 540, y: 470 });
+      const b2 = spawnEnemy(run, "boss", { boss: bossInfo(20), x: 540, keepY: true, y: 470 });
       b2.hp = Math.round(b2.maxHp * 0.50);
       b2.usedShield = true;
       b2.shield = Math.round(b2.maxHp * 0.28);
@@ -6661,7 +6955,7 @@
       b2.tele = 0.9;
       b2.pendingSweep = true;
       [["spark",150,700],["spark",930,720],["coil",200,900],["coil",880,880]]
-        .forEach(p => spawnEnemy(run, p[0], { x: p[1], y: p[2] }));
+        .forEach(p => spawnEnemy(run, p[0], { keepY: true, x: p[1], y: p[2] }));
       hudDirty = true; consoleDirty = true; refreshHud(true); refreshConsole(true);
       if (root.LastOutpost) root.LastOutpost._run = run;
       return;
@@ -6686,7 +6980,7 @@
       run.invuln = opts.invuln != null ? opts.invuln : 0;
       run.enemies = [];
       (opts.enemies || []).forEach(row => {
-        const e = spawnEnemy(run, row[0], { x: row[1], y: row[2] });
+        const e = spawnEnemy(run, row[0], { x: row[1], y: row[2], keepY: true });
         if (e) {
           e._onField = true;
           if (row[3]) { e.hp = e.maxHp = row[3]; }
@@ -6763,7 +7057,7 @@
       // plant a few enemies about to ram the wall so the shot can catch the burst
       const face = wallFace();
       [["shellback", 400], ["spark", 540], ["drifter", 700], ["razor", 280]].forEach((row, i) => {
-        const e = spawnEnemy(run, row[0], { x: row[1], y: face - 36 - i * 10 });
+        const e = spawnEnemy(run, row[0], { keepY: true, x: row[1], y: face - 36 - i * 10 });
         if (e) { e._onField = true; e.vy = 80; e.spd = 140; }
       });
       return;
@@ -6830,7 +7124,7 @@
       const kinds = ["spark","spark","drifter","razor","needle","coil","shooter","shellback","splitter","brood"];
       for (let i = 0; i < 36; i++) {
         const typ = kinds[i % kinds.length];
-        const e = spawnEnemy(run, typ, { x: 80 + (i * 97) % 920, y: 420 + (i * 41) % 700 });
+        const e = spawnEnemy(run, typ, { keepY: true, x: 80 + (i * 97) % 920, y: 420 + (i * 41) % 700 });
         if (e) { e._onField = true; e.hp = Math.max(e.hp, 40); }
       }
       hudDirty = true; refreshHud(true);
@@ -6861,7 +7155,7 @@
       run.pending = [];
       const kinds = ["spark","drifter","razor","needle","coil","shooter","shellback","splitter","brood"];
       for (let i = 0; i < 28; i++) {
-        const e = spawnEnemy(run, kinds[i % kinds.length], { x: 80 + (i * 97) % 920, y: 180 + (i * 53) % 900 });
+        const e = spawnEnemy(run, kinds[i % kinds.length], { keepY: true, x: 80 + (i * 97) % 920, y: 180 + (i * 53) % 900 });
         if (e) e._onField = true;
       }
       return;
@@ -6874,9 +7168,125 @@
       run.pending = [];
       const kinds = ["spark","drifter","razor","needle","coil","shooter","shellback","splitter","brood"];
       for (let i = 0; i < 32; i++) {
-        const e = spawnEnemy(run, kinds[i % kinds.length], { x: 80 + (i * 97) % 920, y: 180 + (i * 53) % 900 });
+        const e = spawnEnemy(run, kinds[i % kinds.length], { keepY: true, x: 80 + (i * 97) % 920, y: 180 + (i * 53) % 900 });
         if (e) e._onField = true;
       }
+      return;
+    }
+
+
+    function hisShop() {
+      const shop = defaultShop();
+      shop.unlocked = Object.assign(shop.unlocked || {}, {
+        pylon: 1, mines: 1, tesla: 1, nuke: 1, flak: 1, rail: 1,
+        skin_chrome: 1, trail_spark: 1
+      });
+      shop.levels = { pylon: 8, mines: 8, tesla: 8, nuke: 8, flak: 8, rail: 8 };
+      shop.addons = ["pylon", "mines"];
+      shop.weapons = ["tesla", "nuke", "flak", "rail"];
+      shop.skin = "chrome"; shop.trail = "spark"; shop.speed3 = 1;
+      return shop;
+    }
+    function applyHisLoadout(wave, mk) {
+      mk = (mk == null) ? 2 : mk;
+      save.shop = hisShop();
+      save.bestWave = Math.max(save.bestWave || 0, 60);
+      save.gems = Math.max(save.gems || 0, 2000);
+      save.mid = Object.assign(defaultMid(), {
+        dmg: 10, rate: 18, hp: 16, ship: 10, shield: 10, spread: 10, multi: 8,
+        pdef: 15, orbit: 10, drone: 10, dcount: 6, knock: 12, pierce: 10,
+        missile: 10, mcount: 6, laser: 8, bspd: 12, crit: 10, critDmg: 8,
+        laserW: 8, burn: 8, tesla: 8, nuke: 8, flak: 8, rail: 8, pylon: 8, mines: 8
+      });
+      save.prest = Object.assign(defaultPrest(), {
+        ship: mk, dmg: 3, shield: 3, drone: 2, armor: 2, laser: 2, missile: 2
+      });
+      save.perma = Object.assign(defaultPerma(), {
+        dmg: 16, rate: 16, hp: 16, shield: 12, armor: 8, crit: 10, pdef: 8,
+        multi: 5, pierce: 6, slot: 4
+      });
+      startRun();
+      run.shop = save.shop;
+      run.prest = save.prest;
+      run.up = Object.assign(defaultMid(), save.mid);
+      run.perma = save.perma;
+      run.coins = 8000; run._st = null;
+      const st = playerStats(run); run.hp = st.maxHp; run.shield = st.maxShield;
+      beginWave(run, wave);
+      hudDirty = true; consoleDirty = true; refreshHud(true); refreshConsole(true);
+      setPlayDock(true);
+      if (root.LastOutpost) root.LastOutpost._run = run;
+    }
+    if (name === "loadout" || name === "his" || name === "w1-loadout") {
+      applyHisLoadout(1, 2);
+      return;
+    }
+    if (name === "loadout-mkvi" || name === "his-mkvi") {
+      applyHisLoadout(1, 5);
+      return;
+    }
+    if (name === "w45") {
+      applyHisLoadout(45, 2);
+      return;
+    }
+    if (name === "w60" || name === "his-w60") {
+      applyHisLoadout(60, 2);
+      return;
+    }
+    if (name === "w60-mkvi") {
+      applyHisLoadout(60, 5);
+      return;
+    }
+
+    if (name === "mike" || name === "w40play") {
+      save.shop = defaultShop();
+      save.shop.unlocked.pylon = 1; save.shop.unlocked.mines = 1;
+      save.shop.unlocked.skin_chrome = 1; save.shop.unlocked.trail_spark = 1;
+      save.shop.levels = { pylon: 5, mines: 6, tesla: 0 };
+      save.shop.addons = ["pylon", "mines"];
+      save.shop.skin = "chrome"; save.shop.trail = "spark";
+      save.shop.speed3 = 1;
+      save.bestWave = 47; save.gems = 860;
+      startRun();
+      run.shop = save.shop;
+      run.prest = Object.assign(defaultPrest(), { ship: 2, dmg: 2, shield: 2, drone: 1, armor: 1 });
+      run.up = Object.assign(defaultMid(), {
+        dmg: 12, rate: 8, hp: 10, ship: 10, shield: 10, spread: 3, multi: 2,
+        pdef: 10, orbit: 6, drone: 4, dcount: 3, knock: 12, pierce: 3,
+        missile: 3, mcount: 2, laser: 3, bspd: 4, crit: 4
+      });
+      run.coins = 2400; run._st = null;
+      const st = playerStats(run); run.hp = st.maxHp; run.shield = st.maxShield;
+      beginWave(run, 40);
+      // Natural intro → composeWave. Do not pre-place mid-field enemies.
+      hudDirty = true; consoleDirty = true; refreshHud(true); refreshConsole(true);
+      setPlayDock(true);
+      if (root.LastOutpost) root.LastOutpost._run = run;
+      return;
+    }
+    if (name === "w41") {
+      save.shop = defaultShop();
+      save.shop.unlocked.pylon = 1; save.shop.unlocked.mines = 1;
+      save.shop.unlocked.skin_chrome = 1; save.shop.unlocked.trail_spark = 1;
+      save.shop.levels = { pylon: 5, mines: 6 };
+      save.shop.addons = ["pylon", "mines"];
+      save.shop.skin = "chrome"; save.shop.trail = "spark";
+      save.shop.speed3 = 1;
+      save.bestWave = 47;
+      startRun();
+      run.shop = save.shop;
+      run.prest = Object.assign(defaultPrest(), { ship: 2, dmg: 2, shield: 2, drone: 1, armor: 1 });
+      run.up = Object.assign(defaultMid(), {
+        dmg: 12, rate: 8, hp: 10, ship: 10, shield: 10, spread: 3, multi: 2,
+        pdef: 10, orbit: 6, drone: 4, dcount: 3, knock: 12, pierce: 3,
+        missile: 3, mcount: 2, laser: 3, bspd: 4, crit: 4
+      });
+      run.coins = 2400; run._st = null;
+      const st = playerStats(run); run.hp = st.maxHp; run.shield = st.maxShield;
+      beginWave(run, 41);
+      hudDirty = true; consoleDirty = true; refreshHud(true); refreshConsole(true);
+      setPlayDock(true);
+      if (root.LastOutpost) root.LastOutpost._run = run;
       return;
     }
 
@@ -6898,7 +7308,7 @@
       run.coins = 48; run.up.dmg = 1; run.up.rate = 1; run.up.hp = 1; run._st = null;
       run.hp = Math.min(80, playerStats(run).maxHp); run.enemies = [];
       [["spark",330,310],["spark",780,270],["spark",200,470],["spark",900,430],["drifter",540,400],["drifter",820,560],["spark",470,220]]
-        .forEach(p => spawnEnemy(run, p[0], { x: p[1], y: p[2] }));
+        .forEach(p => spawnEnemy(run, p[0], { keepY: true, x: p[1], y: p[2] }));
     }
     if (name === "late") {
       run.wave = 0; beginWave(run, 37);
@@ -6911,7 +7321,7 @@
        ["razor",200,380],["razor",880,360],["drifter",340,470],["drifter",760,450],["shellback",540,430],
        ["needle",120,560],["needle",960,540],["splitter",280,640],["splitter",800,620],["shooter",430,580],
        ["coil",660,560],["brood",540,720],["shellback",180,720],["coil",900,700],["shooter",320,820],["razor",740,800]]
-        .forEach(p => spawnEnemy(run, p[0], { x: p[1], y: p[2] }));
+        .forEach(p => spawnEnemy(run, p[0], { keepY: true, x: p[1], y: p[2] }));
     }
     if (name === "boss") {
       run.wave = 0; beginWave(run, 40);
@@ -6921,19 +7331,25 @@
       run.coins = 400; run._st = null;
       const st = playerStats(run); run.hp = Math.round(st.maxHp * 0.7); run.shield = st.maxShield * 0.8;
       run.enemies = [];
-      const b = spawnEnemy(run, "boss", { boss: bossInfo(10), x: 540, y: 460 });
+      const b = spawnEnemy(run, "boss", { boss: bossInfo(10), x: 540, keepY: true, y: 460 });
       b.hp = Math.round(b.maxHp * 0.62);
       b.sweepAng = Math.PI / 2 + 0.28;
       b.tele = 0.95;
       b.pendingSweep = true;
       [["spark",120,820],["spark",960,840]]
-        .forEach(p => spawnEnemy(run, p[0], { x: p[1], y: p[2] }));
+        .forEach(p => spawnEnemy(run, p[0], { keepY: true, x: p[1], y: p[2] }));
     }
     hudDirty = true; consoleDirty = true; refreshHud(true); refreshConsole(true);
     if (root.LastOutpost) root.LastOutpost._run = run;
   }
 
   function boot() {
+    try {
+      const q = new URLSearchParams(location.search);
+      if (q.get("debug") === "1" || q.get("debug") === "true") {
+        LO.DEBUG = true;
+      }
+    } catch (err) {}
     fit();
     buildSprites();
     railTicks();
