@@ -11,7 +11,7 @@
   let SHIP_Y = 1812; // alias of turretPivotY() = RAIL_Y-72; not an orbit/weapon center
   const CONSOLE_H = 100; // ground gutter under the wall; the console now lives in a CSS overlay
   const STORAGE_KEY = "idleusa.lastOutpost.v2";
-  const BUILD = "v10.4-late-game";
+  const BUILD = "v11-tesla-crown";
   const MAX_PARTICLES = 90;
   const MAX_FLOATERS = 18;
   const MAX_PICKUPS = 48;
@@ -563,7 +563,8 @@
   const DRONE_RESPAWN = 5;
   function fortressTopH(tier) {
     const t = Math.max(0, Math.min(5, tier | 0));
-    return 100 + t * 10 + 16 + Math.min(10, t * 2) + (t >= 5 ? 52 : (t >= 4 ? 28 : 10));
+    // Mk VI tesla crown spires sit well above the keep; orbits/shield use this.
+    return 100 + t * 10 + 16 + Math.min(10, t * 2) + (t >= 5 ? 200 : (t >= 4 ? 28 : 10));
   }
   function fortressBastionExtra(tier) {
     const t = Math.max(0, Math.min(5, tier | 0));
@@ -849,7 +850,7 @@
     chain: "On hit, lightning jumps to a nearby enemy for a fraction of the damage. Higher levels jump farther and more times.",
     laser: "Fires a piercing beam from a turret or the core at the closest threats. Core item: Prestige at level 10 for a thicker, cooler beam (split and spiral at the top tiers) and more power.",
     missile: "Launches homing missiles from the turrets or the core at the closest threats. Core item: Prestige at level 10 for bigger frames, brighter exhaust, heavier blasts, and a new look.",
-    ship: "The outpost itself. Raises base max health. Prestige at level 10 to a new fortress class: Mk I bunker (1 center turret), Mk II (2 turrets), Mk III (3), Mk IV (4), Mk V (5), Mk VI citadel (5 turrets plus a sweeping S-curve void beam from the core). Each turret rotates independently up to 70° left or right to lead its own target. Damage is split across turrets with a modest per-tier gain. Spread and Multishot apply per turret. The base never moves or flips.",
+    ship: "The outpost itself. Raises base max health. Prestige at level 10 to a new fortress class: Mk I bunker (1 center turret), Mk II (2 turrets), Mk III (3), Mk IV (4), Mk V (5), Mk VI citadel (5 turrets plus a TESLA CROWN — spires on the keep that chain lightning between enemies). Each turret rotates independently up to 70° left or right to lead its own target. Damage is split across turrets with a modest per-tier gain. Spread and Multishot apply per turret. The base never moves or flips.",
     hp: "Buys more max health and instantly repairs a chunk of the base. A mid-run survival purchase; Base is the prestige path for the outpost look and turret count.",
     shield: "A rechargeable energy dome projected over the entire fortress. The arc meets the rail beyond the base corners so no part of the bunker or its corner pylons sits outside it. It blocks frontal shots that pass through the dome. When shield HP hits 0 the dome cracks and fades; when it regenerates, it visibly powers back up. Prestige adds strength.",
     shRegen: "The shield refills faster after you stop taking hits.",
@@ -929,7 +930,7 @@
     if (id === "ship") {
       const hp = Math.round((BAL.baseHp + BAL.shipHpPerLv * (lv + prestBank(t))) * prestMul(t));
       const guns = turretCount(t);
-      const extra = t >= 5 ? "  ·  void beam" : "";
+      const extra = t >= 5 ? "  ·  tesla crown" : "";
       return "Base " + hp + " HP  ·  " + guns + " turret" + (guns > 1 ? "s" : "") + extra + (t ? "  ·  " + tierOf(t).name : "  ·  Mk I");
     }
     if (id === "hp") return "+" + (BAL.hpPerBuy * lv) + " max HP, repairs on buy";
@@ -988,7 +989,7 @@
       bestWave: opts.bestWave || 0,
       persist: opts.persist !== false,
       shop: opts.shop ? Object.assign(defaultShop(), opts.shop) : defaultShop(),
-      railCd: 0, teslaCd: 0, flakCd: 0, nukeCd: 0.8, nukeFx: [], voidBeam: null, pylonCd: 0, pylonAim: -Math.PI/2, mineCd: 0, mines: [], teslaArcs: [], pdefAim: [-Math.PI/2,-Math.PI/2,-Math.PI/2,-Math.PI/2], pdefCds: [0,0,0,0], shieldBreakT: 0
+      railCd: 0, teslaCd: 0, flakCd: 0, nukeCd: 0.8, nukeFx: [], voidBeam: null, teslaCrown: null, pylonCd: 0, pylonAim: -Math.PI/2, mineCd: 0, mines: [], teslaArcs: [], pdefAim: [-Math.PI/2,-Math.PI/2,-Math.PI/2,-Math.PI/2], pdefCds: [0,0,0,0], shieldBreakT: 0
     };
     if (run.perma.slot >= 1) run.up.spread = Math.max(run.up.spread, 1);
     if (run.perma.slot >= 2) run.up.laser = Math.max(run.up.laser, 1);
@@ -1961,35 +1962,91 @@
       }
     }
   }
-  function updateVoidBeam(run, dt, st) {
-    if ((st.tierShip || 0) < 5) { run.voidBeam = null; return; }
-    if (!run.voidBeam) run.voidBeam = { t: 0, pts: [], tick: 0 };
-    const b = run.voidBeam;
-    b.t += dt;
-    const pts = [];
-    const originX = SHIP_X, originY = turretPivotY() - 24;
-    const top = fieldTop() + 8;
-    const amp = 210 + 50 * Math.sin(b.t * 0.65);
-    const phase = b.t * 2.15;
-    const k = 0.0078;
-    for (let y = originY; y > top; y -= 20) {
-      const u = originY - y;
-      const x = originX + Math.sin(phase + u * k) * amp + Math.sin(phase * 0.55 + u * k * 2.1) * (amp * 0.32);
-      pts.push({ x: x, y: y });
+  // Mk VI TESLA CROWN. Keeps the old void-beam DPS role: when a target stays
+  // in the chain it takes about 5.75 * gunDmg per second. Chains hop to nearby
+  // enemies so waves clear faster than a single S-curve, then TTK is remessured.
+  const CROWN_SPIRES = [
+    { x: -219, h: 70 }, { x: -146, h: 100 }, { x: -73, h: 118 },
+    { x: 0, h: 130 }, { x: 73, h: 118 }, { x: 146, h: 100 }, { x: 219, h: 70 }
+  ];
+  function crownSpires() {
+    const base = 328; // wall + keep of Mk VI, matches the baked body
+    const out = [];
+    for (let i = 0; i < CROWN_SPIRES.length; i++) {
+      const s = CROWN_SPIRES[i];
+      out.push({ x: SHIP_X + s.x, y: RAIL_Y - (base + s.h) });
     }
-    b.pts = pts;
-    b.tick -= dt;
-    if (b.tick <= 0 && pts.length > 1) {
-      b.tick = 0.08;
-      const dmg = (st.gunDmg || st.dmg) * 5 * 0.08 * 1.15; // modest DoT on top of 5 guns
-      const halfW = 18;
-      for (let i = 0; i < run.enemies.length; i++) {
-        const e = run.enemies[i];
-        if (!e || e.hp <= 0) continue;
-        if (distToPolyline(e.x, e.y, pts) < e.r + halfW) hitEnemy(run, e, dmg, false, true);
-      }
-    }
+    return out;
   }
+  function updateTeslaCrown(run, dt, st) {
+    if ((st.tierShip || 0) < 5) { run.teslaCrown = null; run.voidBeam = null; return; }
+    if (!run.teslaCrown) run.teslaCrown = { t: 0, tick: 0, arcs: [] };
+    const b = run.teslaCrown;
+    b.t += dt;
+    b.tick -= dt;
+    if (b.arcs) {
+      for (let i = b.arcs.length - 1; i >= 0; i--) {
+        b.arcs[i].t -= dt;
+        if (b.arcs[i].t <= 0) b.arcs.splice(i, 1);
+      }
+    } else b.arcs = [];
+    if (b.tick > 0) return;
+    b.tick = 0.08;
+    const spires = crownSpires();
+    const living = [];
+    for (let i = 0; i < run.enemies.length; i++) {
+      const e = run.enemies[i];
+      if (e && e.hp > 0) living.push(e);
+    }
+    if (!living.length) return;
+    const range = 1500, hopR = 280, maxHops = 5;
+    // Prefer a boss as the first target, else the one closest to the central spire.
+    const mid = spires[3];
+    let primary = null, best = 1e15, boss = null;
+    for (let i = 0; i < living.length; i++) {
+      const e = living[i];
+      const d = Math.hypot(e.x - mid.x, e.y - mid.y);
+      if (d > range + (e.r || 0)) continue;
+      if (e.type === "boss" && !boss) boss = e;
+      if (d < best) { best = d; primary = e; }
+    }
+    if (boss) primary = boss;
+    if (!primary) return;
+    // Closest spire to the primary
+    let s0 = spires[3], sd = 1e15;
+    for (let i = 0; i < spires.length; i++) {
+      const d = Math.hypot(primary.x - spires[i].x, primary.y - spires[i].y);
+      if (d < sd) { sd = d; s0 = spires[i]; }
+    }
+    const chain = [primary];
+    const used = [primary];
+    let cur = primary;
+    while (chain.length < maxHops) {
+      let nxt = null, nd = hopR;
+      for (let i = 0; i < living.length; i++) {
+        const e = living[i];
+        if (used.indexOf(e) >= 0) continue;
+        const d = Math.hypot(e.x - cur.x, e.y - cur.y);
+        if (d < nd) { nd = d; nxt = e; }
+      }
+      if (!nxt) break;
+      used.push(nxt);
+      chain.push(nxt);
+      cur = nxt;
+    }
+    const dmg0 = (st.gunDmg || st.dmg) * 5 * 0.08 * 1.15; // same as the old beam tick
+    const pts = [{ x: s0.x, y: s0.y }];
+    for (let i = 0; i < chain.length; i++) {
+      const e = chain[i];
+      pts.push({ x: e.x, y: e.y });
+      const fall = Math.pow(0.85, i); // light hop falloff; remessure TTK after
+      hitEnemy(run, e, dmg0 * fall, false, true);
+    }
+    b.arcs.push({ pts: pts, t: 0.14, life: 0.14, stamp: (b.t * 17) | 0 });
+    // Keep a legacy alias so older debug hooks still see activity.
+    run.voidBeam = { t: b.t, pts: pts, tick: b.tick };
+  }
+  function updateVoidBeam(run, dt, st) { updateTeslaCrown(run, dt, st); }
 
   function updateShopWeapons(run, dt, st) {
     const lvR = shopLv(run, "rail");
@@ -3153,9 +3210,20 @@
     sprites[key] = c;
     return c;
   }
+  const _blitMiss = Object.create(null);
   function blit(g, key, x, y, s) {
     const im = sprites[key];
-    if (!im) return;
+    if (!im || !im.width || !im.height) {
+      if (key && !_blitMiss[key]) {
+        _blitMiss[key] = 1;
+        console.warn("[v11] blit missing or empty:", key);
+        if (typeof LO !== "undefined") {
+          if (!LO._assetLog) LO._assetLog = [];
+          LO._assetLog.push("blit missing " + key);
+        }
+      }
+      return;
+    }
     s = s || 1;
     g.drawImage(im, x - im._ox * s, y - im._oy * s, im.width * s, im.height * s);
   }
@@ -4729,6 +4797,10 @@
     g.translate(x, y);
     g.scale(scale, scale);
 
+    const bodyKey = "fortress-t" + tier + "-" + skin;
+    if (sprites[bodyKey] && sprites[bodyKey].width) {
+      blit(g, bodyKey, 0, 0, 1);
+    } else {
     g.fillStyle = metalDark;
     g.beginPath();
     g.moveTo(-halfW - 22, 2);
@@ -4906,6 +4978,7 @@
     g.lineWidth = 1.4;
     g.beginPath(); g.moveTo(-halfW - 10, 0); g.lineTo(halfW + 10, 0); g.stroke();
     g.globalAlpha = 1;
+    } // end procedural fortress body (v11 atlas miss)
 
     const barrelL = 52 + tier * 5;
     const barrelW = 12 + Math.min(6, tier);
@@ -4916,6 +4989,13 @@
       g.save();
       g.translate(sx, -72);
       g.rotate(ang + Math.PI / 2);
+
+      const tkey = "turret-" + skin;
+      if (sprites[tkey] && sprites[tkey].width) {
+        blit(g, tkey, 0, 0, 1);
+        g.restore();
+        continue;
+      }
 
       g.fillStyle = metalDark;
       g.beginPath(); g.arc(0, 0, 18, 0, Math.PI * 2); g.fill();
@@ -4970,7 +5050,8 @@
   }
 
   function buildSprites() {
-    // Base and turrets are drawn live (see drawFortress). Caching 30 full-width
+    // Procedural fallbacks first. v11 atlases (if they load) overwrite the same keys.
+    // Base and turrets used to be drawn live because caching 30 full-width
     // 1080x280 canvases with shadowBlur was blowing mobile GPU memory and leaving
     // the outpost invisible on some Android devices.
 
@@ -5228,6 +5309,110 @@
   }
 
 
+  // ---- v11 atlas loader ------------------------------------------------
+  // Load packed sprites from assets/v11/. If anything fails (Android GPU,
+  // missing file, empty canvas), keep the procedural sprites already baked
+  // by buildSprites() and log the miss. Never silently blit a 0-size image.
+  const V11_ASSET_DIR = "assets/v11/";
+  const assetLog = [];
+  function v11Log() {
+    const msg = Array.prototype.slice.call(arguments).join(" ");
+    assetLog.push(msg);
+    console.warn("[v11 assets]", msg);
+    if (typeof LO !== "undefined") LO._assetLog = assetLog.slice();
+  }
+  function v11Url(name) {
+    try {
+      return new URL(V11_ASSET_DIR + name, document.baseURI || location.href).href;
+    } catch (err) {
+      return V11_ASSET_DIR + name;
+    }
+  }
+  function loadImageSafe(url, ms) {
+    return new Promise(function (resolve) {
+      let done = false;
+      const im = new Image();
+      const finish = function (val) {
+        if (done) return;
+        done = true;
+        resolve(val);
+      };
+      const t = setTimeout(function () { v11Log("timeout", url); finish(null); }, ms || 2500);
+      im.onload = function () {
+        clearTimeout(t);
+        if (!im.width || !im.height) { v11Log("empty image", url); finish(null); return; }
+        finish(im);
+      };
+      im.onerror = function () { clearTimeout(t); v11Log("load error", url); finish(null); };
+      try { im.src = url; } catch (err) { clearTimeout(t); v11Log("src throw", url, err && err.message); finish(null); }
+    });
+  }
+  function stampV11Frame(key, atlasImg, fr) {
+    try {
+      if (!atlasImg || !fr || !fr.w || !fr.h) { v11Log("bad frame", key); return false; }
+      const c = document.createElement("canvas");
+      c.width = fr.w | 0; c.height = fr.h | 0;
+      if (!c.width || !c.height) { v11Log("zero canvas", key); return false; }
+      const g = c.getContext("2d");
+      if (!g) { v11Log("no 2d context", key); return false; }
+      g.drawImage(atlasImg, fr.x, fr.y, fr.w, fr.h, 0, 0, fr.w, fr.h);
+      c._ox = +fr.ox || (fr.w / 2);
+      c._oy = +fr.oy || (fr.h / 2);
+      c._v11 = true;
+      sprites[key] = c;
+      return true;
+    } catch (err) {
+      v11Log("stamp throw", key, err && err.message);
+      return false;
+    }
+  }
+  function loadV11Atlases() {
+    const timeout = 3000;
+    const ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+    const timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, timeout);
+    return fetch(v11Url("manifest.json"), { cache: "no-cache", signal: ctrl ? ctrl.signal : undefined })
+      .then(function (res) {
+        if (!res.ok) throw new Error("manifest HTTP " + res.status);
+        return res.json();
+      })
+      .then(function (man) {
+        if (!man || !man.atlases || !man.frames) throw new Error("bad manifest");
+        const jobs = [];
+        for (let i = 0; i < man.atlases.length; i++) {
+          jobs.push(loadImageSafe(v11Url(man.atlases[i]), 2500));
+        }
+        return Promise.all(jobs).then(function (imgs) {
+          let ok = 0, fail = 0;
+          const keys = Object.keys(man.frames);
+          for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            const fr = man.frames[key];
+            const im = imgs[fr.atlas];
+            if (!im) { fail++; v11Log("no atlas for", key, "atlas", fr.atlas); continue; }
+            if (stampV11Frame(key, im, fr)) ok++;
+            else fail++;
+          }
+          sprites._v11 = ok > 0;
+          sprites._v11Boss = !!(sprites["boss-herald-body"] && sprites["boss-herald-body"]._v11);
+          sprites._v11Build = man.build || "v11";
+          if (typeof LO !== "undefined") {
+            LO._assetLog = assetLog.slice();
+            LO._v11Assets = { ok: ok, fail: fail, bytes: man.bytes || 0, atlases: man.atlases.length };
+          }
+          console.info("[v11 assets] stamped", ok, "failed", fail, "bytes", man.bytes);
+          if (ok === 0) v11Log("no frames stamped — using procedural fallbacks");
+          return { ok: ok, fail: fail };
+        });
+      })
+      .catch(function (err) {
+        v11Log("atlas load failed, using procedural:", err && (err.message || err));
+        if (typeof LO !== "undefined") LO._assetLog = assetLog.slice();
+        return { ok: 0, fail: -1 };
+      })
+      .then(function (r) { clearTimeout(timer); return r; });
+  }
+
+
   function fillTentacle(g, x0, y0, ang, len, wobble, color, width) {
     const ca = Math.cos(ang), sa = Math.sin(ang);
     const x1 = x0 + ca * len * 0.28 + Math.cos(ang + 1.2) * wobble;
@@ -5310,6 +5495,16 @@
       g.restore();
     }
     const tentCol = rage ? C.red : (kind === "herald" ? C.orange : (kind === "lattice" ? C.cyan : C.magenta));
+    const painted = !!(sprites._v11Boss && sprites["boss-" + kind + "-body"] && sprites["boss-" + kind + "-body"]._v11);
+    // Painted sheet bodies are ~600-780px wide; old procedural bodies were 720-900.
+    // Scale so the art sits around 2.4 * hitbox radius (same visual weight as before).
+    function blitBossBody(key, ox, oy) {
+      const im = sprites[key];
+      if (!im) return;
+      const target = (e.r || 160) * 2.45;
+      const s = target / Math.max(im.width, im.height * 1.15);
+      blit(g, key, ox || 0, oy || 0, s);
+    }
     if (kind === "herald") {
       const n = 8;
       for (let i = 0; i < n; i++) {
@@ -5321,9 +5516,13 @@
         const w = 22 + mid * 8;
         fillTentacle(g, Math.sin(base - Math.PI / 2) * 64, 70, base, len, wob, tentCol, w);
       }
-      blit(g, "boss-herald-body", 0, 0, 1);
-      blit(g, blink ? "boss-herald-eyeShut" : "boss-herald-eye", 0, -30, rage ? 1.15 : 1);
-      blit(g, firing ? "boss-herald-jawOpen" : "boss-herald-jaw", 0, 70, 1);
+      if (painted) {
+        blitBossBody("boss-herald-body", 0, 0);
+      } else {
+        blit(g, "boss-herald-body", 0, 0, 1);
+        blit(g, blink ? "boss-herald-eyeShut" : "boss-herald-eye", 0, -30, rage ? 1.15 : 1);
+        blit(g, firing ? "boss-herald-jawOpen" : "boss-herald-jaw", 0, 70, 1);
+      }
     } else if (kind === "twin") {
       for (const sx of [-1, 1]) {
         for (let i = 0; i < 3; i++) {
@@ -5332,27 +5531,35 @@
           strokeTentacle(g, sx * 50, 80, ang, 150 + i * 16, wob, tentCol, 13);
         }
       }
-      blit(g, "boss-twin-body", 0, 30, 1);
-      for (const sx of [-1, 1]) {
-        const hx = sx * 148, hy = -42 + Math.sin(t * 2.0 + sx) * 6;
-        g.save(); g.translate(hx, hy); g.rotate(sx * 0.12 + Math.sin(t * 1.2) * 0.05 * sx);
-        blit(g, "boss-twin-head", 0, 0, 1.15);
-        blit(g, blink ? "boss-twin-eyeShut" : "boss-twin-eye", sx * -10, -8, 1.15);
-        blit(g, firing ? "boss-twin-jawOpen" : "boss-twin-jaw", 0, 48, 1.1);
-        g.restore();
+      if (painted) {
+        blitBossBody("boss-twin-body", 0, 10);
+      } else {
+        blit(g, "boss-twin-body", 0, 30, 1);
+        for (const sx of [-1, 1]) {
+          const hx = sx * 148, hy = -42 + Math.sin(t * 2.0 + sx) * 6;
+          g.save(); g.translate(hx, hy); g.rotate(sx * 0.12 + Math.sin(t * 1.2) * 0.05 * sx);
+          blit(g, "boss-twin-head", 0, 0, 1.15);
+          blit(g, blink ? "boss-twin-eyeShut" : "boss-twin-eye", sx * -10, -8, 1.15);
+          blit(g, firing ? "boss-twin-jawOpen" : "boss-twin-jaw", 0, 48, 1.1);
+          g.restore();
+        }
       }
     } else if (kind === "lattice") {
-      blit(g, "boss-lattice-body", 0, 0, 1);
-      const eyes = [[-90, -40], [0, -70], [90, -40], [-140, 30], [140, 30], [-60, 70], [60, 70], [0, 10]];
-      for (let i = 0; i < eyes.length; i++) {
-        const shut = blink && (i % 3 === (t * 2 | 0) % 3);
-        blit(g, shut ? "boss-lattice-eyeShut" : "boss-lattice-eye", eyes[i][0], eyes[i][1], 1);
-      }
-      for (const sx of [-1, 1]) {
-        g.save(); g.translate(sx * 200, 80); g.rotate(sx * (0.4 + Math.sin(t * (firing ? 6 : 2.2)) * 0.25));
-        g.scale(sx, 1);
-        blit(g, "boss-lattice-pincer", 0, 0, 1);
-        g.restore();
+      if (painted) {
+        blitBossBody("boss-lattice-body", 0, 0);
+      } else {
+        blit(g, "boss-lattice-body", 0, 0, 1);
+        const eyes = [[-90, -40], [0, -70], [90, -40], [-140, 30], [140, 30], [-60, 70], [60, 70], [0, 10]];
+        for (let i = 0; i < eyes.length; i++) {
+          const shut = blink && (i % 3 === (t * 2 | 0) % 3);
+          blit(g, shut ? "boss-lattice-eyeShut" : "boss-lattice-eye", eyes[i][0], eyes[i][1], 1);
+        }
+        for (const sx of [-1, 1]) {
+          g.save(); g.translate(sx * 200, 80); g.rotate(sx * (0.4 + Math.sin(t * (firing ? 6 : 2.2)) * 0.25));
+          g.scale(sx, 1);
+          blit(g, "boss-lattice-pincer", 0, 0, 1);
+          g.restore();
+        }
       }
       for (let i = 0; i < 5; i++) {
         const ang = Math.PI * 0.35 + i * 0.2;
@@ -5363,10 +5570,14 @@
         const ang = Math.PI * 0.3 + i * 0.18;
         strokeTentacle(g, (i - 2.5) * 40, 140, ang, 200 + i * 8, Math.sin(t * (rage ? 5 : 2.2) + i) * 28, tentCol, 8);
       }
-      blit(g, "boss-harbinger-body", 0, 0, 1);
-      blit(g, blink ? "boss-harbinger-eyeShut" : "boss-harbinger-eye", -48, -40, rage ? 1.2 : 1);
-      blit(g, blink ? "boss-harbinger-eyeShut" : "boss-harbinger-eye", 48, -40, rage ? 1.2 : 1);
-      blit(g, firing ? "boss-harbinger-jawOpen" : "boss-harbinger-jaw", 0, 70, 1);
+      if (painted) {
+        blitBossBody("boss-harbinger-body", 0, 0);
+      } else {
+        blit(g, "boss-harbinger-body", 0, 0, 1);
+        blit(g, blink ? "boss-harbinger-eyeShut" : "boss-harbinger-eye", -48, -40, rage ? 1.2 : 1);
+        blit(g, blink ? "boss-harbinger-eyeShut" : "boss-harbinger-eye", 48, -40, rage ? 1.2 : 1);
+        blit(g, firing ? "boss-harbinger-jawOpen" : "boss-harbinger-jaw", 0, 70, 1);
+      }
     } else {
       // eclipse leviathan
       for (let i = 0; i < 10; i++) {
@@ -5374,11 +5585,15 @@
         const wob = Math.sin(t * (rage ? 4.5 : 2) + i) * 30;
         strokeTentacle(g, Math.cos(ang) * 230, Math.sin(ang) * 230, ang, 170, wob, tentCol, 6);
       }
-      blit(g, "boss-eclipse-body", 0, 0, 1);
-      for (let i = 0; i < 8; i++) {
-        const a = i * Math.PI / 4 + t * 0.15;
-        const shut = blink && (i % 2 === 0);
-        blit(g, shut ? "boss-eclipse-eyeShut" : "boss-eclipse-eye", Math.cos(a) * 205, Math.sin(a) * 205, 1);
+      if (painted) {
+        blitBossBody("boss-eclipse-body", 0, 0);
+      } else {
+        blit(g, "boss-eclipse-body", 0, 0, 1);
+        for (let i = 0; i < 8; i++) {
+          const a = i * Math.PI / 4 + t * 0.15;
+          const shut = blink && (i % 2 === 0);
+          blit(g, shut ? "boss-eclipse-eyeShut" : "boss-eclipse-eye", Math.cos(a) * 205, Math.sin(a) * 205, 1);
+        }
       }
     }
     g.restore();
@@ -5501,29 +5716,61 @@
     stroke(2.4, 1, 0, core || "#fff");
     g.restore();
   }
-  function drawVoidBeam(g, beam, t) {
-    const pts = beam.pts;
+  function drawLightningChain(g, pts, alpha, stampOff) {
     if (!pts || pts.length < 2) return;
+    alpha = (alpha == null) ? 1 : alpha;
+    if (alpha <= 0) return;
     g.save();
-    g.lineCap = "round"; g.lineJoin = "round";
     g.globalCompositeOperation = "lighter";
-    const col = TIER[5].color, core = TIER[5].core, acc = TIER[5].accent;
-    const stroke = (w, alpha, blur, style) => {
-      g.strokeStyle = style; g.globalAlpha = alpha; g.lineWidth = w; g.shadowColor = style; g.shadowBlur = blur;
+    g.globalAlpha = alpha;
+    let usedStamp = false;
+    for (let k = 1; k < pts.length; k++) {
+      const p0 = pts[k - 1], p1 = pts[k];
+      const dx = p1.x - p0.x, dy = p1.y - p0.y;
+      const len = Math.hypot(dx, dy);
+      if (len < 4) continue;
+      const key = "lightning-" + (((k + (stampOff || 0)) % 8 + 8) % 8);
+      const im = sprites[key];
+      if (im && im.width && im.height) {
+        usedStamp = true;
+        const ang = Math.atan2(dy, dx);
+        g.save();
+        g.translate(p0.x, p0.y);
+        g.rotate(ang - Math.PI / 2);
+        const sy = len / Math.max(8, im.height - (im._oy || 0));
+        const sx = 1;
+        g.drawImage(im, -(im._ox || im.width / 2) * sx, -(im._oy || 0) * sy, im.width * sx, im.height * sy);
+        g.restore();
+      }
+    }
+    if (!usedStamp) {
+      // Procedural fallback — no per-frame shadowBlur.
+      g.strokeStyle = C.cyan; g.lineWidth = 5; g.lineCap = "round"; g.lineJoin = "round";
       g.beginPath();
       g.moveTo(pts[0].x, pts[0].y);
-      for (let i = 1; i < pts.length; i++) g.lineTo(pts[i].x, pts[i].y);
+      for (let k = 1; k < pts.length; k++) {
+        const p0 = pts[k - 1], p1 = pts[k];
+        const h = ((p0.x * 13 + p0.y * 7 + k * 17) % 17) / 17;
+        g.quadraticCurveTo((p0.x + p1.x) / 2 + (h - 0.5) * 16, (p0.y + p1.y) / 2 + ((1 - h) - 0.5) * 16, p1.x, p1.y);
+      }
       g.stroke();
-    };
-    stroke(13, 0.16, 16, col);
-    stroke(6, 0.72, 8, acc);
-    stroke(2.2, 0.92, 4, core);
-    // traveling pulse
-    const u = (t * 1.6) % 1;
-    const i = Math.min(pts.length - 1, (u * (pts.length - 1)) | 0);
-    blitGlow(g, "spark", pts[i].x, pts[i].y, 1.4);
+      g.strokeStyle = "#fff"; g.lineWidth = 1.6; g.stroke();
+    }
     g.restore();
     g.globalAlpha = 1;
+  }
+  function drawTeslaCrown(g, crown, t) {
+    if (!crown || !crown.arcs) return;
+    for (let i = 0; i < crown.arcs.length; i++) {
+      const arc = crown.arcs[i];
+      if (!arc.pts || arc.pts.length < 2) continue;
+      const a = Math.max(0, arc.t / (arc.life || 0.14));
+      drawLightningChain(g, arc.pts, 0.35 + 0.65 * a, arc.stamp || i);
+    }
+  }
+  function drawVoidBeam(g, beam, t) {
+    // Back-compat name; the purple S-curve is gone.
+    if (run && run.teslaCrown) drawTeslaCrown(g, run.teslaCrown, t);
   }
   function drawNukeFx(g, fx) {
     const u = Math.max(0, Math.min(1, fx.t / fx.life));
@@ -5543,7 +5790,7 @@
 
   function drawTierShowcase(g, t) {
     const ids = [0, 2, 5];
-    const labels = ["Mk I  CYAN", "Mk III  PLASMA", "Mk VI  VOID"];
+    const labels = ["Mk I  CYAN", "Mk III  PLASMA", "Mk VI  CROWN"];
     const xs = [200, 540, 880];
     g.fillStyle = "rgba(0,0,0,0.35)";
     g.fillRect(0, 0, W, H);
@@ -5786,33 +6033,17 @@
           drawShieldArcAt(g, SHIP_X, RAIL_Y, power, ti.color, ti.core, state === "regen" ? "full" : state, run);
         }
       }
-      if (run.voidBeam && run.voidBeam.pts && run.voidBeam.pts.length > 1) {
-        drawVoidBeam(g, run.voidBeam, t);
+      if (run.teslaCrown && run.teslaCrown.arcs && run.teslaCrown.arcs.length) {
+        drawTeslaCrown(g, run.teslaCrown, t);
       }
-      // Tesla / pylon bolts in front of the bunker, from their emitters.
+      // Shop tesla / pylon bolts — same pre-baked stamps, no shadowBlur.
       if (run.teslaArcs) {
-        g.save();
-        g.globalCompositeOperation = "lighter";
-        g.lineCap = "round"; g.lineJoin = "round";
         for (let i = 0; i < run.teslaArcs.length; i++) {
           const arc = run.teslaArcs[i];
-          if (!arc.pts || !arc.pts.length) continue;
+          if (!arc.pts || arc.pts.length < 2) continue;
           const a = Math.max(0, arc.t / (arc.life || 0.16));
-          g.strokeStyle = C.cyan; g.lineWidth = 4; g.globalAlpha = a;
-          g.beginPath();
-          g.moveTo(arc.pts[0].x, arc.pts[0].y);
-          for (let k = 1; k < arc.pts.length; k++) {
-            const p0 = arc.pts[k - 1], p1 = arc.pts[k];
-            const h = ((p0.x * 13 + p0.y * 7 + k * 17 + ((run.time * 30) | 0)) % 17) / 17;
-            const mx = (p0.x + p1.x) / 2 + (h - 0.5) * 16;
-            const my = (p0.y + p1.y) / 2 + ((1 - h) - 0.5) * 16;
-            g.quadraticCurveTo(mx, my, p1.x, p1.y);
-          }
-          g.stroke();
-          g.strokeStyle = "#fff"; g.lineWidth = 1.5; g.stroke();
-          g.globalAlpha = 1;
+          drawLightningChain(g, arc.pts, a, i);
         }
-        g.restore();
       }
       const drones = st.drones;
       const dkey = "drone-t" + (st.tierDrone || 0);
@@ -7352,20 +7583,34 @@
     } catch (err) {}
     fit();
     buildSprites();
-    railTicks();
-    buildUpgradeGrid();
-    el("btn-mute").classList.toggle("on", audio.mute);
-    el("btn-mute").textContent = audio.mute ? "\u2715" : "\u266A";
-    el("title-best").textContent = String(save.bestWave);
-    if (demo) applyDemo(demo);
-    else showTitle();
-    window.addEventListener("resize", fit);
-    window.addEventListener("orientationchange", fit);
-    if (window.visualViewport) {
-      visualViewport.addEventListener("resize", fit);
+    const finishBoot = function () {
+      railTicks();
+      buildUpgradeGrid();
+      el("btn-mute").classList.toggle("on", audio.mute);
+      el("btn-mute").textContent = audio.mute ? "\u2715" : "\u266A";
+      el("title-best").textContent = String(save.bestWave);
+      if (demo) applyDemo(demo);
+      else showTitle();
+      window.addEventListener("resize", fit);
+      window.addEventListener("orientationchange", fit);
+      if (window.visualViewport) {
+        visualViewport.addEventListener("resize", fit);
+      }
+      requestAnimationFrame(loop);
+      document.body.dataset.ready = "1";
+    };
+    if (typeof loadV11Atlases === "function") {
+      const t = setTimeout(function () {
+        console.warn("[v11] asset load exceeded 3.5s, continuing with fallbacks");
+      }, 3500);
+      loadV11Atlases().then(function () { clearTimeout(t); finishBoot(); }, function (err) {
+        clearTimeout(t);
+        console.warn("[v11] boot continuing after asset fail", err);
+        finishBoot();
+      });
+    } else {
+      finishBoot();
     }
-    requestAnimationFrame(loop);
-    document.body.dataset.ready = "1";
   }
 
   LO._getRun = function () { return run; };
